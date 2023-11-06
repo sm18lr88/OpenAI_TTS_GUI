@@ -1,44 +1,44 @@
-# OpenAI_TTS_GUI 🗣️
 
-A simple and user-friendly tool to convert text to speech using OpenAI's API, implemented in Python with a Tkinter GUI.
+# OpenAI_TTS_GUI
 
-## Features 🌟
+A straightforward tool for converting text to speech using OpenAI's API, with a Python Tkinter GUI interface.
 
-- **Intuitive Interface** 🖱️: Easily input your text and select your save path with a click of a button.
-- **Customizable Options** ⚙️: Choose your desired voice, format, and speed from dropdown menus.
-- **Background Processing** 🔄: Generates TTS without freezing the GUI, using threading.
+## Features
 
-## Requirements 📋
+- **Simple Interface**: Input text and choose the save path with minimal clicks.
+- **Customizable**: Select voice, format, and speed from pre-defined lists.
+- **Efficient**: Utilizes threading for seamless TTS generation.
 
-To run TTS Creator, you need Python installed on your system. The required Python packages can be installed using the following command:
+## Requirements
 
-```bash
+Python and the following packages are required, which can be installed via:
+
+```
 pip install -r requirements.txt
 ```
 
-## Usage 💻
+## Usage
 
-1. Run `python tts_creator.py`, or whatever form of running python you're used to.
-2. Input your text into the provided text box 📝.
-3. Click `Select Path` 📁 to choose where to save your TTS file and what to name it.
-4. Customize your TTS using the dropdown menus for the model, voice, format, and speed 🎚️. I think only the mp3 format works properly at the moment.
-5. Click `Create TTS` 🎉 to generate and save your TTS file.
+1. Execute `python tts_creator.py`.
+2. Enter text into the textbox.
+3. Use `Select Path` to set the output file's save location and name.
+4. Adjust settings for the model, voice, format, and speed. (mp3 format is recommended.)
+5. Press `Create TTS` to produce the TTS file.
 
-## Configuration 🔧
+## Configuration
 
-Place your OpenAI API key in a file named `api_key.txt` in the same directory as the script.
+Save your OpenAI API key in `api_key.txt` in the script's directory.
 
-## Support 🆘
+## Support
 
-If you encounter any issues or have questions, please file an issue on this GitHub repository.
+For issues or inquiries, please open an issue in the GitHub repository.
 
-## Contribution 🤝
+## Contribution
 
-No, please don't. I don't have time to oversee this project. I'll improve it slowly from time to time, but that's about it.
+This project is not open for contributions at this time.
 
-## License 📄
+## License
 
-License yet to be chosen. In the meantime, free to use and modify, for personal use only.
+Currently not licensed; free for personal use and modification.
 
-![image](https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/42b2e31b-59a2-40e6-95d6-dd216d8bee25)
-
+<img src="https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/42b2e31b-59a2-40e6-95d6-dd216d8bee25" width="250">
