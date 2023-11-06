@@ -41,4 +41,4 @@ This project is not open for contributions at this time.
 
 Currently not licensed; free for personal use and modification.
 
-<img src="https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/42b2e31b-59a2-40e6-95d6-dd216d8bee25" width="250">
+<img src="https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/42b2e31b-59a2-40e6-95d6-dd216d8bee25" width="450">
