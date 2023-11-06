@@ -39,3 +39,6 @@ No, please don't. I don't have time to oversee this project. I'll improve it slo
 ## License 📄
 
 License yet to be chosen. In the meantime, free to use and modify, for personal use only.
+
+![image](https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/42b2e31b-59a2-40e6-95d6-dd216d8bee25)
+
