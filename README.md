@@ -21,7 +21,7 @@ pip install -r requirements.txt
 1. Run `python tts_creator.py`, or whatever form of running python you're used to.
 2. Input your text into the provided text box 📝.
 3. Click `Select Path` 📁 to choose where to save your TTS file and what to name it.
-4. Customize your TTS using the dropdown menus for the model, voice, format, and speed 🎚️.
+4. Customize your TTS using the dropdown menus for the model, voice, format, and speed 🎚️. I think only the mp3 format works properly at the moment.
 5. Click `Create TTS` 🎉 to generate and save your TTS file.
 
 ## Configuration 🔧
