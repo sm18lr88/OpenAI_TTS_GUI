@@ -33,7 +33,7 @@ Save your OpenAI API key in `api_key.txt` in the script's directory.
 
 ## Roadmap
 
-- [ ] Price estimate
+- [x] Price estimate
 
 ## Support
 
