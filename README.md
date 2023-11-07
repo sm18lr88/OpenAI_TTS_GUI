@@ -1,9 +1,9 @@
 
 # OpenAI_TTS_GUI
 
-A straightforward tool for converting text to speech using OpenAI's API, with a Python Tkinter GUI interface.
+Complete GUI for OpenAI's new TTS. Has token and price estimator too!
 
-<img src="https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/42b2e31b-59a2-40e6-95d6-dd216d8bee25" width="450">
+<img src="https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/5554f41b-70d6-44cd-87ed-0dbd37b62666" width="450">
 
 ## Features
 
