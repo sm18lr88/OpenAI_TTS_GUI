@@ -3,6 +3,8 @@
 
 A straightforward tool for converting text to speech using OpenAI's API, with a Python Tkinter GUI interface.
 
+<img src="https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/42b2e31b-59a2-40e6-95d6-dd216d8bee25" width="450">
+
 ## Features
 
 - **Simple Interface**: Input text and choose the save path with minimal clicks.
@@ -35,14 +37,8 @@ Save your OpenAI API key in `api_key.txt` in the script's directory.
 
 ## Support
 
-None. but ChatGPT built this app, so I'm sure it can fix any issues or answer any questions about it.
-
-## Contribution
-
-This project is not open for contributions at this time.
+None. but ChatGPT built this app, so I'm sure it can fix any issues or answer any questions about it. Just copy/paste the code into the prompt window + any questions or terminal errors you see, and as usual: "be concise and to the point, don't explain the error or your plan, just give me steps to fix or copy/paste commands."
 
 ## License
 
 Currently not licensed; free for personal use and modification.
-
-<img src="https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/42b2e31b-59a2-40e6-95d6-dd216d8bee25" width="450">
