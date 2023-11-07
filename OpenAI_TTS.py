@@ -1,12 +1,48 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import requests
-import os
 from threading import Thread
+import tiktoken
+
+# Pricing constants
+TTS_PRICE_PER_1K_CHARS = 0.015
+TTS_HD_PRICE_PER_1K_CHARS = 0.030
 
 def read_api_key():
-    with open('api_key.txt', 'r') as file:
-        return file.read().strip()
+    try:
+        with open('api_key.txt', 'r') as file:
+            return file.read().strip()
+    except FileNotFoundError:
+        messagebox.showerror("Error", "API key file 'api_key.txt' not found.")
+        return None
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+        return None
+
+def count_tokens(text, model_name='cl100k_base'):
+    enc = tiktoken.get_encoding(model_name)
+    tokens = enc.encode(text)
+    token_count = len(tokens)
+    return token_count
+
+def estimate_price():
+    text = text_box.get("1.0", tk.END)
+    if not text.strip():
+        messagebox.showwarning("Warning", "The text box is empty.")
+        return
+    
+    token_count = count_tokens(text)
+    num_chars = len(text)
+    
+    # Choose the pricing based on the model
+    if model_var.get() == 'tts-1':
+        price_per_1k_chars = TTS_PRICE_PER_1K_CHARS
+    else:  # tts-1-hd or any other HD models
+        price_per_1k_chars = TTS_HD_PRICE_PER_1K_CHARS
+    
+    # Calculate the price
+    price = (num_chars / 1000) * price_per_1k_chars
+    messagebox.showinfo("Estimate Price", f"Estimated tokens: {token_count}\nEstimated price: ${price:.2f}")
 
 def save_speech(text, path, api_key, model, voice, response_format, speed):
     headers = {
@@ -88,7 +124,10 @@ tk.Label(settings_frame, text="Speed:").pack(side=tk.LEFT)
 speed_menu = tk.OptionMenu(settings_frame, speed_var, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 3.5, 4.0)
 speed_menu.pack(side=tk.LEFT, padx=5)
 
+estimate_button = tk.Button(app, text="Estimate Price", command=estimate_price)
+estimate_button.pack(side=tk.LEFT, padx=5)
+
 create_button = tk.Button(app, text="Create TTS", command=create_speech)
-create_button.pack()
+create_button.pack(side=tk.LEFT)
 
 app.mainloop()
