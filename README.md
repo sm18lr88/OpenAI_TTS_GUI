@@ -29,9 +29,13 @@ pip install -r requirements.txt
 
 Save your OpenAI API key in `api_key.txt` in the script's directory.
 
+## Roadmap
+
+- [ ] Price estimate
+
 ## Support
 
-For issues or inquiries, please open an issue in the GitHub repository.
+None. but ChatGPT built this app, so I'm sure it can fix any issues or answer any questions about it.
 
 ## Contribution
 
