@@ -7,9 +7,8 @@ Complete GUI for OpenAI's new TTS. Has token and price estimator too!
 
 ## Features
 
-- **Simple Interface**: Input text and choose the save path with minimal clicks.
-- **Customizable**: Select voice, format, and speed from pre-defined lists.
-- **Efficient**: Utilizes threading for seamless TTS generation.
+- Select voice, format, and speed from pre-defined lists.
+- Utilizes threading for seamless TTS generation.
 
 ## Requirements
 
@@ -37,7 +36,7 @@ Save your OpenAI API key in `api_key.txt` in the script's directory.
 
 ## Support
 
-None. but ChatGPT built this app, so I'm sure it can fix any issues or answer any questions about it. Just copy/paste the code into the prompt window + any questions or terminal errors you see, and as usual: "be concise and to the point, don't explain the error or your plan, just give me steps to fix or copy/paste commands."
+Copy/paste the code into ChatGPT, along with whatever error your getting, and it should help you solve any issues.
 
 ## License
 
