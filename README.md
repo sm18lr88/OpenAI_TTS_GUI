@@ -32,7 +32,8 @@ Save your OpenAI API key in `api_key.txt` in the script's directory.
 
 ## Roadmap
 
-- [x] Price estimate
+- [x] Price estimate.
+- [ ] Creative solution for the 4096 character limit per API call.
 - [ ] Improve text box, or upgrade GUI framework.
 
 ## Support
