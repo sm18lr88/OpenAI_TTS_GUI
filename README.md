@@ -3,16 +3,17 @@
 
 Complete GUI for OpenAI's new TTS. Has token and price estimator too!
 
-<img src="https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/5554f41b-70d6-44cd-87ed-0dbd37b62666" width="450">
+<img src="https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/7ad5b13d-126d-4808-81a0-c1eae8db1d3e" width="450">
 
 ## Features
 
 - Select voice, format, and speed from pre-defined lists.
+- Text over 4096 characters get chunked, turned into audio, then concatenated.
 - Utilizes threading for seamless TTS generation.
 
 ## Requirements
 
-Python and the following packages are required, which can be installed via:
+Python, [ffmpeg](https://phoenixnap.com/kb/ffmpeg-windows) and the following packages are required, which can be installed via:
 
 ```
 pip install -r requirements.txt
@@ -33,7 +34,8 @@ Save your OpenAI API key in `api_key.txt` in the script's directory.
 ## Roadmap
 
 - [x] Price estimate.
-- [ ] Creative solution for the 4096 character limit per API call.
+- [X] Creative solution for the 4096 character limit per API call.
+- [ ] Improve the chunking and concatenating process.
 - [ ] Improve text box, or upgrade GUI framework.
 
 ## Support
