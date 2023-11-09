@@ -40,6 +40,7 @@ Save your OpenAI API key in `api_key.txt` in the script's directory.
 
 ## Support
 
+For immediate customer support, please visit chat.openai.com to chat with the agent. lol.
 Copy/paste the code into ChatGPT, along with whatever error your getting, and it should help you solve any issues.
 
 ## License
