@@ -1,2 +1,4 @@
 requests
 pydub
+PySimpleGUI
+tiktoken
