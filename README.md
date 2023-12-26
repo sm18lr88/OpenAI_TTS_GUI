@@ -47,6 +47,7 @@ Save your OpenAI API key inside the `api_key.txt` file.
 - [X] Improve text box, or upgrade GUI framework.
 - [ ] Correct price estimate when chunking.
 - [ ] Improve the chunking and concatenating process, and maybe give users some options.
+- [ ] Bundle into an .exe - currently having issues with including the tiktoken library.
 
 ## Support
 
