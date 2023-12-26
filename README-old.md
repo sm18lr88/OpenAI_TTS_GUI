@@ -1,4 +1,6 @@
 
+# This is the readme for the tkinter GUI version:
+
 # OpenAI_TTS_GUI
 
 Complete GUI for OpenAI's new TTS. Has token and price estimator too!
