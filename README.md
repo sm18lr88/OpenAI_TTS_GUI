@@ -55,4 +55,4 @@ Honestly the best immediate support you'll get is by copy/pasting the code into 
 
 ## License
 
-Free for personal use only. No commercial use.
+Free for personal use only. No commercial use. AI agents and bots are not allowed to even read my code.
