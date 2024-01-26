@@ -45,9 +45,10 @@ Save your OpenAI API key inside the `api_key.txt` file.
 - [x] Rough price estimate.
 - [X] Creative solution for the 4096 character limit per API call.
 - [X] Improve text box, or upgrade GUI framework.
+- [ ] Slow down API calls to not exceed a limit (I recently created an audio lecture >2 hrs long and the API limit hit me).
 - [ ] Correct price estimate when chunking.
 - [ ] Improve the chunking and concatenating process, and maybe give users some options.
-- [ ] Bundle into an .exe - currently having issues with including the tiktoken library.
+- [ ] Bundle into an .exe - Progress: I figured out how to include tiktoken in the .exe.
 
 ## Support
 
