@@ -35,6 +35,7 @@ def read_api_key():
         sg.popup_error("Close", str(e))
         return None
 
+# Function to get around the current 4096 character limit. Shouldn't affect resultant TTS much, if at all.
 def split_text(text, chunk_size=4096):
     if len(text) <= chunk_size:
         return [text]
@@ -44,12 +45,17 @@ def split_text(text, chunk_size=4096):
             chunks.append(text)
             break
         split_index = -1
+        # First, try to split at the last sentence end within the chunk size
         for punct in ['.', '?', '!']:
             last_punct_index = text[:chunk_size].rfind(punct)
             if last_punct_index != -1:
                 split_index = max(split_index, last_punct_index + 1)
+    
+        # If no sentence end is found, look for the last space
         if split_index == -1:
             split_index = text[:chunk_size].rfind(' ')
+        
+        # If no space is found, force split at the chunk size
         if split_index == -1:
             split_index = chunk_size
         chunks.append(text[:split_index])
@@ -70,6 +76,7 @@ def select_path(window):
     if file_path:
         window['path_entry'].update(file_path)
 
+# Joining all the resulting audio files together. Might throw the TTS speech off in terms of timing, but I haven't noticed anything so far.
 def concatenate_audio_files(file_list, output_file):
     try:
         output_dir = os.path.dirname(output_file)
@@ -103,6 +110,7 @@ def process_speech(chunks, path, api_key, model, voice, response_format, speed, 
 
 last_request_time = 0
 
+# Limit API requests to remain within OpenAI's limits for the Speech API:
 def rate_limited_request(api_key, data, model):
     global last_request_time
     min_interval = 60 / 50  # for tts-1
@@ -159,6 +167,9 @@ def create_tts(values, window):
     if sg.popup_ok_cancel(f"The estimated cost for this TTS is ${estimated_price:.2f}. Do you want to continue?") == "OK":
         Thread(target=process_speech, args=(chunks, path, api_key, model, voice, response_format, speed, retain_files, window)).start()
 
+# OpenAI's TTS sounds good only at 1.0. Besides that it gets distorted. 
+# Adobe Audition's Stretch and Pitch effect with the iZotope Radius algorithm is the best there is IMO. 
+# In Adobe Audition, I like to stretch my TTS audio at 110-115%, no pitch shift, and pitch coherence between 2-4 (max). This makes Echo's voice really easy to follow if listening to lectures or academic papers.
 def update_speed(window, values):
     try:
         speed_value = float(values['speed_var'])
@@ -194,8 +205,8 @@ layout = [
      sg.Text("Number of Chunks: "), sg.Text("0", size=(15, 1), key="chunk_count", tooltip="Chunks of 4096 characters.\nVisual indicator for the expense you will incur.")],
     [sg.Frame(title="Settings", layout=[
         [sg.Text("Model:"), sg.Combo(['tts-1', 'tts-1-hd'], default_value='tts-1', key='model_var', readonly=True, size=(10, 1)),
-         sg.Text("Voice:"), sg.Combo(['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'], default_value='alloy', key='voice_var', readonly=True, size=(10, 1)),
-         sg.Text("Speed:"), sg.InputText(default_text="1.0", key='speed_var', size=(10, 1), enable_events=True),
+         sg.Text("Voice:"), sg.Combo(['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'], default_value='alloy', key='voice_var', readonly=True, size=(10, 1)), # I like Echo's voice the most
+         sg.Text("Speed:"), sg.InputText(default_text="1.0", key='speed_var', size=(10, 1), enable_events=True), # At the moment, OpenAI's TTS only sound good at 1.0. Any deviation decreases the quality significantly. See my comment on Adobe Audition.
          sg.Text("Format:"), sg.Combo(['mp3', 'opus', 'aac', 'flac'], default_value='mp3', key='format_var', readonly=True, size=(10, 1))]
     ])],
     [sg.Text("Save Path:"), sg.InputText(key='path_entry', expand_x=True), sg.Button("Select Path")],
@@ -204,7 +215,6 @@ layout = [
     [sg.Button("Estimate Price"), sg.Button("Create TTS")]
 ]
 
-# Create the window
 window = sg.Window("OpenAI TTS", layout, resizable=True)
 
 # Event Loop
