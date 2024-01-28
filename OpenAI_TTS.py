@@ -200,7 +200,7 @@ layout = [
     ])],
     [sg.Text("Save Path:"), sg.InputText(key='path_entry', expand_x=True), sg.Button("Select Path")],
     [sg.Checkbox("Retain individual audio files", default=False, key='retain_files', tooltip="If your TTS job was >4096 characters, multiple audio files get created and then joined.\nBut the individual segments get deleted.\nIf you click here, you will retain those individual segments besides the final joint audio file.")],
-    [sg.ProgressBar(max_value=100, orientation='h', size=(45, 20), key='progress_bar')],
+    [sg.Text("Progress:"), sg.ProgressBar(max_value=100, orientation='h', size=(45, 20), key='progress_bar')],
     [sg.Button("Estimate Price"), sg.Button("Create TTS")]
 ]
 
