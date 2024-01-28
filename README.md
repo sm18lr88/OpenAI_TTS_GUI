@@ -7,7 +7,7 @@ GUI for OpenAI's TTS.
 ## Features
 
 - Select quality, voice, format, and speed.
-- Text over 4096 characters get chunked, turned into audio, then concatenated.
+- Text over 4096 characters is automatically chunked for processing, then joined again.
 - Live view of character count and chunks.
 - See price estimate.
 
@@ -25,9 +25,9 @@ Then install these python requirements:
 pip install -r requirements.txt
 ```
 
-## Add your OpenAI API key
+## Windows users:
 
-Save your OpenAI API key inside the `api_key.txt` file.
+You can just download the [compiled app](https://github.com/sm18lr88/OpenAI_TTS_GUI/releases/download/v0.2/OpenAI_TTS.exe), but you still need [ffmpeg](https://www.ffmpeg.org/download.html)
 
 ## Usage
 
