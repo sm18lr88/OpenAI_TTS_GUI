@@ -2,17 +2,14 @@
 
 GUI for OpenAI's TTS.
 
-<image src='https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/af41aea7-653d-4074-b204-d7feab50d182' width='650'>
+<image src='https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/c1e4c21d-821d-411d-9483-c05c89d01c91' width='650'>
 
 ## Features
 
-- Select voice, format, and speed from pre-defined lists.
+- Select quality, voice, format, and speed.
 - Text over 4096 characters get chunked, turned into audio, then concatenated.
-- Live view of token count, character count, and estimated price.
-
-## Personalized assistance setting up this app:
-
-Copy/paste this text into ChatGPT and ask it to help you, seriously. Best way for those not familiar with python and ffmpeg.
+- Live view of character count and chunks.
+- See price estimate.
 
 ## Requirements
 
@@ -34,21 +31,20 @@ Save your OpenAI API key inside the `api_key.txt` file.
 
 ## Usage
 
-1. Execute `python tts_creator.py`.
-2. Enter text into the textbox.
-3. Use `Select Path` to set the output file's save location and name.
-4. Adjust settings for the model, voice, format, and speed. (mp3 format is recommended.)
-5. Press `Create TTS` to produce the TTS file.
+1. Create a `api_key.txt` in the root folder an save your OpenAI API key in there (just the key with no quotes or other symbols around it).
+2. `python tts_creator.py`
+3. The rest should be self-evident.
+4. Speed recommendation: 1.0 - other settings decrease voice quality.
 
 ## Roadmap
 
 - [x] Rough price estimate.
 - [X] Creative solution for the 4096 character limit per API call.
 - [X] Improve text box, or upgrade GUI framework.
-- [ ] Slow down API calls to not exceed a limit (I recently created an audio lecture >2 hrs long and the API limit hit me).
-- [ ] Correct price estimate when chunking.
-- [ ] Improve the chunking and concatenating process, and maybe give users some options.
-- [ ] Bundle into an .exe - Progress: I figured out how to include tiktoken in the .exe.
+- [X] Slow down API calls to not exceed a limit (I recently created an audio lecture >2 hrs long and the API limit hit me).
+- [X] Correct price estimate when chunking.
+- [X] Improve the chunking and concatenating process, and maybe give users some options.
+- [X] Bundle into an .exe
 
 ## Support
 
