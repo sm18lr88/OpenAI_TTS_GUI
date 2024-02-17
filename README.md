@@ -32,9 +32,10 @@ You can just download the [compiled app](https://github.com/sm18lr88/OpenAI_TTS_
 ## Usage
 
 1. Create a `api_key.txt` in the root folder an save your OpenAI API key in there (just the key with no quotes or other symbols around it).
-2. `python tts_creator.py`
-3. The rest should be self-evident.
-4. Speed recommendation: 1.0 - other settings decrease voice quality.
+   - Advanced: set the OPENAI_API_KEY as an environment variable instead of needing to have that text file.
+3. In the terminal, type `python path/to/tts_creator.py`, or use the bundled .exe
+4. The rest should be self-evident.
+5. Speed recommendation: 1.0 - other settings decrease voice quality.
 
 ## Roadmap
 
@@ -46,6 +47,7 @@ You can just download the [compiled app](https://github.com/sm18lr88/OpenAI_TTS_
 - [X] Improve the chunking and concatenating process, and maybe give users some options.
 - [X] Bundle into an .exe
 - [ ] Speed boost: parallel mp3 chunks vs. one at a time, without hitting rate limits.
+- [ ] Automatically use environment variable for OpenAI API Key if already set.
 
 ## Support
 
