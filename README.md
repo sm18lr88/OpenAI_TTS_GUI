@@ -45,6 +45,7 @@ You can just download the [compiled app](https://github.com/sm18lr88/OpenAI_TTS_
 - [X] Correct price estimate when chunking.
 - [X] Improve the chunking and concatenating process, and maybe give users some options.
 - [X] Bundle into an .exe
+- [ ] Speed boost: parallel mp3 chunks vs. one at a time, without hitting rate limits.
 
 ## Support
 
