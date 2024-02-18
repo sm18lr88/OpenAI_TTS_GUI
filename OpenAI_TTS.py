@@ -62,16 +62,24 @@ def split_text(text, chunk_size=4096):
         text = text[split_index:].lstrip()
     return chunks
 
-def select_path(window):
+def select_path(window, selected_format):
+    # Mapping formats to their file types and extensions
+    format_to_extension = {
+        'mp3': ('MP3 audio file', '*.mp3'),
+        'opus': ('Opus audio file', '*.opus'),
+        'aac': ('AAC audio file', '*.aac'),
+        'flac': ('FLAC audio file', '*.flac'),
+    }
+
+    # Get the corresponding file type and extension for the selected format
+    file_type_description, file_type_pattern = format_to_extension.get(selected_format, ('All Files', '*.*'))
+
     file_path = sg.popup_get_file(
         'Save As',
         save_as=True,
         no_window=True,
-        default_extension=".mp3",
-        file_types=(("MP3 audio file", "*.mp3"), 
-                    ("WAV audio file", "*.wav"), 
-                    ("FLAC audio file", "*.flac"), 
-                    ("AAC audio file", "*.aac")),
+        default_extension=file_type_pattern.split(';')[0],  # Adjust this to use the first pattern
+        file_types=[format_to_extension[selected_format]],  # Restrict file types to the selected format
     )
     if file_path:
         window['path_entry'].update(file_path)
@@ -83,10 +91,26 @@ def concatenate_audio_files(file_list, output_file):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         concat_list_path = os.path.join(output_dir, 'concat_list.txt')
+
         with open(concat_list_path, 'w') as f:
             for file_path in file_list:
                 f.write(f"file '{file_path}'\n")
-        concat_command = ['ffmpeg', '-f', 'concat', '-safe', '0', '-i', concat_list_path, '-c', 'copy', output_file]
+
+        # Determine the codec based on the file extension
+        output_extension = os.path.splitext(output_file)[1].lower()
+        if output_extension == '.mp3':
+            codec = 'libmp3lame'
+        elif output_extension == '.flac':
+            codec = 'flac'
+        elif output_extension == '.aac':
+            codec = 'aac'
+        elif output_extension == '.opus':
+            codec = 'libopus'
+        else:
+            codec = 'copy'  # Default to copy if the format is unknown
+
+        concat_command = ['ffmpeg', '-f', 'concat', '-safe', '0', '-i', concat_list_path, '-c:a', codec, output_file]
+
         subprocess.run(concat_command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         os.remove(concat_list_path)
     except Exception as e:
@@ -233,7 +257,8 @@ while True:
         window['chunk_count'].update(f"{num_chunks}")
 
     elif event == "Select Path":
-        select_path(window)
+        selected_format = values['format_var']  # Retrieve the selected format from the dropdown
+        select_path(window, selected_format)  # Pass the selected format to the select_path function
 
     elif event == "Estimate Price":
         text = values['text_box']
