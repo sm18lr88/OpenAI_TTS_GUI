@@ -1,4 +1,4 @@
-# The code format will look really weird. I'm experimenting with a format that's good for learning and readability.
+# The code format will look really weird. I'm experimenting with a format that's good for learning and readability. It looks awesome in VS Code with Rainbow Tables or other similar extensions.
 
 import concurrent.futures
 from decimal import Decimal
