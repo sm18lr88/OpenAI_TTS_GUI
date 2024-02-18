@@ -7,7 +7,7 @@ GUI for OpenAI's TTS.
 ## Features
 
 - Select quality, voice, format, and speed.
-- Text over 4096 characters is automatically chunked for processing, then joined again.
+- Support for text of unlimit of length. (I've created multi-hour TTS).
 - Live view of character count and chunks.
 - See price estimate.
 
@@ -39,19 +39,19 @@ You can just download the [compiled app](https://github.com/sm18lr88/OpenAI_TTS_
 
 ## Roadmap
 
-- [x] Rough price estimate.
+- [x] Precise price estimate.
 - [X] Creative solution for the 4096 character limit per API call.
-- [X] Improve text box, or upgrade GUI framework.
-- [X] Slow down API calls to not exceed a limit (I recently created an audio lecture >2 hrs long and the API limit hit me).
-- [X] Correct price estimate when chunking.
-- [X] Improve the chunking and concatenating process, and maybe give users some options.
+- [X] Upgrade GUI framework and textbox from tkinter.
+- [X] API rate limit.
+- [X] Improve the chunking and concatenating process.
+- [X] Give users option to retain individual audio files from each chunk.
 - [X] Bundle into an .exe
 - [ ] Speed boost: parallel mp3 chunks vs. one at a time, without hitting rate limits.
 - [ ] Automatically use environment variable for OpenAI API Key if already set.
 
 ## Support
 
-Honestly the best immediate support you'll get is by copy/pasting the code into ChatGPT and asking your questions.
+Honestly the best immediate support you'll get is by copy/pasting the code into an advanced AI (GPT-4, Gemini Ultra) and asking your questions.
 
 ## License
 
