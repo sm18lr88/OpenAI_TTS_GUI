@@ -1,3 +1,5 @@
+# The code format will look really weird. I'm experimenting with a format that's good for learning and readability.
+
 import concurrent.futures
 from decimal import Decimal
 import logging
