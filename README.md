@@ -31,6 +31,8 @@ You can just download the [compiled app](https://github.com/sm18lr88/OpenAI_TTS_
 
 ## Usage
 
+<sub>**NOTE:** When you click "Create TTS" and hit OK, unless you get a warning, it's actually starting to work. The program doesn't tell users it's begun to work. Just give it a few moments and you should start to see the audio files appearing in the selected output folder.</sub>
+
 1. Create a `api_key.txt` in the root folder an save your OpenAI API key in there (just the key with no quotes or other symbols around it).
    - Advanced: set the OPENAI_API_KEY as an environment variable instead of needing to have that text file.
 3. In the terminal, type `python path/to/tts_creator.py`, or use the bundled .exe
