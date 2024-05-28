@@ -2,14 +2,18 @@
 
 GUI for OpenAI's TTS.
 
-<image src='https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/c1e4c21d-821d-411d-9483-c05c89d01c91' width='650'>
+**Update**: switched from PySimpleGUI to PyQt6 to keep the app free and open-source.
+
+<image src='https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/858427a0-838a-472e-b653-5d98e5a5ad1a' width='650'>
 
 ## Features
 
 - Select quality, voice, format, and speed.
-- Support for text of unlimit of length. (I've created multi-hour TTS).
+- Support for text of unlimited length. (I've created multi-hour TTS).
 - Live view of character count and chunks.
-- See price estimate.
+- Live price estimate.
+- Dark and Light themes.
+- Option to retain individual audio files from each chunk.
 
 ## Requirements
 
@@ -21,35 +25,33 @@ Download and install:
 
 Then install these python requirements:
 
-```
+```bash
 pip install -r requirements.txt
 ```
 
 ## Windows users:
 
-You can just download the [compiled app](https://github.com/sm18lr88/OpenAI_TTS_GUI/releases/download/v0.2/OpenAI_TTS.exe), but you still need [ffmpeg](https://www.ffmpeg.org/download.html)
+You can just download the [compiled app](https://github.com/sm18lr88/OpenAI_TTS_GUI/releases/download/v0.3/OpenAI_TTS.exe), but you still need [ffmpeg](https://www.ffmpeg.org/download.html)
 
-## Usage
+## Tips
 
-<sub>**NOTE:** When you click "Create TTS" and hit OK, unless you get a warning, it's actually starting to work. The program doesn't tell users it's begun to work. Just give it a few moments and you should start to see the audio files appearing in the selected output folder.</sub>
-
-1. Create a `api_key.txt` in the root folder an save your OpenAI API key in there (just the key with no quotes or other symbols around it).
-   - Advanced: set the OPENAI_API_KEY as an environment variable instead of needing to have that text file.
-3. In the terminal, type `python path/to/tts_creator.py`, or use the bundled .exe
-4. The rest should be self-evident.
-5. Speed recommendation: 1.0 - other settings decrease voice quality.
+1. Speed recommendation: 1.0 - other settings decrease voice quality.
+2. You can set the OPENAI_API_KEY in your path variables, or set one in the app's `Settings`.
+3. The progress bar is programmed to start at 1% when the TTS process begins. I will improve it in the future. 
 
 ## Roadmap
 
 - [x] Precise price estimate.
-- [X] Creative solution for the 4096 character limit per API call.
-- [X] Upgrade GUI framework and textbox from tkinter.
-- [X] API rate limit.
-- [X] Improve the chunking and concatenating process.
-- [X] Give users option to retain individual audio files from each chunk.
-- [X] Bundle into an .exe
+- [x] Creative solution for the 4096 character limit per API call.
+- [x] Upgrade GUI framework and textbox from tkinter to PyQt6.
+- [x] API rate limit.
+- [x] Improve the chunking and concatenating process.
+- [x] Give users option to retain individual audio files from each chunk.
+- [x] Bundle into an .exe
+- [x] Light and Dark themes - default is "dark".
+- [x] Allow custom API key settings.
+- [x] Automatically use environment variable for OpenAI API Key if already set.
 - [ ] Speed boost: parallel mp3 chunks vs. one at a time, without hitting rate limits.
-- [ ] Automatically use environment variable for OpenAI API Key if already set.
 
 ## Support
 
