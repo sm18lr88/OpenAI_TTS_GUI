@@ -31,7 +31,7 @@ pip install -r requirements.txt
 
 ## Windows users:
 
-You can just download the [compiled app](https://github.com/sm18lr88/OpenAI_TTS_GUI/releases/download/v0.2/OpenAI_TTS.exe), but you still need [ffmpeg](https://www.ffmpeg.org/download.html)
+You can just download the [compiled app](https://github.com/sm18lr88/OpenAI_TTS_GUI/releases/download/v0.3/OpenAI_TTS.exe), but you still need [ffmpeg](https://www.ffmpeg.org/download.html)
 
 ## Tips
 
