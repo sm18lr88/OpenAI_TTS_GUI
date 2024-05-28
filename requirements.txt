@@ -1,2 +1,2 @@
-requests
-PySimpleGUI
+PyQt6==6.2.2
+requests==2.25.1
