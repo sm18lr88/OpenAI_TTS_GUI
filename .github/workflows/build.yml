@@ -16,10 +16,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4  # Update to v4
 
+    - name: Set up Node.js for GitHub Actions
+      uses: actions/setup-node@v4  # Ensure using Node.js 20
+      with:
+        node-version: '20'
+
     - name: Set up Python
       uses: actions/setup-python@v4  # Update to v4
       with:
-        python-version: 3.9
+        python-version: 3.11  # Use Python 3.11
 
     - name: Install dependencies
       run: |
