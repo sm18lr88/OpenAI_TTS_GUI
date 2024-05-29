@@ -12,20 +12,17 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
 
-    env:
-      NODE_OPTIONS: '--max_old_space_size=4096'
-
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4.1.6  # Use a specific latest version
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
+    - name: Set up Node.js for GitHub Actions
+      uses: actions/setup-node@v4.0.2  # Ensure using Node.js 20
       with:
         node-version: '20'
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5.1.0  # Use a specific latest version
       with:
         python-version: 3.11
 
@@ -39,7 +36,7 @@ jobs:
         pyinstaller --name OpenAI_TTS_GUI --onefile --windowed --icon=logo.ico main.py
 
     - name: Archive build artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v4.3.3  # Use a specific latest version
       with:
         name: OpenAI_TTS_GUI-${{ matrix.os }}
         path: dist/OpenAI_TTS_GUI*
