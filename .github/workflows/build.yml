@@ -14,10 +14,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4  # Update to v4
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4  # Update to v4
       with:
         python-version: 3.9
 
@@ -31,7 +31,7 @@ jobs:
         pyinstaller --name OpenAI_TTS_GUI --onefile --windowed --icon=logo.ico main.py
 
     - name: Archive build artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4  # Update to v4
       with:
         name: OpenAI_TTS_GUI-${{ matrix.os }}
         path: dist/OpenAI_TTS_GUI*
