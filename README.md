@@ -35,7 +35,7 @@ You can just download the [compiled app](https://github.com/sm18lr88/OpenAI_TTS_
 
 ## Tips
 
-1. Speed recommendation: 1.0 - other settings decrease voice quality.
+1. Speed recommendation: 1.0 - other settings decrease voice quality. For high-quality changes to speed, I recommend Adobe Audition.
 2. You can set the OPENAI_API_KEY in your path variables, or set one in the app's `Settings`.
 3. The progress bar is programmed to start at 1% when the TTS process begins. I will improve it in the future. 
 
