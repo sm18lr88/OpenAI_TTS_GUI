@@ -21,7 +21,7 @@ Download and install:
 - [Python](https://www.python.org/downloads/)
 - [ffmpeg](https://www.ffmpeg.org/download.html) 
 
-(Creating a new environment with Conda/Miniconda is always preferred)
+(Creating a new environment with UV or Conda is preferred)
 
 Then install these python requirements:
 
@@ -53,6 +53,7 @@ You can just download the [compiled app](https://github.com/sm18lr88/OpenAI_TTS_
 - [x] Automatically use environment variable for OpenAI API Key if already set.
 - [ ] Update to include new voices.
 - [ ] Update to include custom instructions for the new model.
+- [ ] Create a portable version of the app.
 
 ### Preview example of next release:
 
