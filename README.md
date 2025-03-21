@@ -51,7 +51,14 @@ You can just download the [compiled app](https://github.com/sm18lr88/OpenAI_TTS_
 - [x] Light and Dark themes - default is "dark".
 - [x] Allow custom API key settings.
 - [x] Automatically use environment variable for OpenAI API Key if already set.
-- [ ] Speed boost: parallel mp3 chunks vs. one at a time, without hitting rate limits.
+- [ ] Update to include new voices.
+- [ ] Update to include custom instructions for the new model.
+
+### Preview example of next release:
+
+##### <image src='https://github.com/user-attachments/assets/35ec74de-f830-4035-8f2e-46a18d6bf09f' width='500'>
+
+##### Check out the `test.mp3` file to see the output produced.
 
 ## Support
 
