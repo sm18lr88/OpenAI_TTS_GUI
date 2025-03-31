@@ -1,70 +1,105 @@
-# OpenAI_TTS_GUI
+# OpenAI TTS GUI
 
-GUI for OpenAI's TTS.
-
-**Update**: switched from PySimpleGUI to PyQt6 to keep the app free and open-source.
+Easily use high quality, cheap TTS.
 
 <image src='https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/858427a0-838a-472e-b653-5d98e5a5ad1a' width='650'>
 
 ## Features
 
-- Select quality, voice, format, and speed.
-- Support for text of unlimited length. (I've created multi-hour TTS).
-- Live view of character count and chunks.
-- Live price estimate.
-- Dark and Light themes.
-- Option to retain individual audio files from each chunk.
+- **Model Selection**: Choose between `tts-1`, `tts-1-hd`, and `gpt-4o-mini-tts`.
+- **Voice Selection**: Access all standard OpenAI TTS voices.
+- **Format & Speed**: Select output format (MP3, Opus, AAC, FLAC) and adjust playback speed (0.25x - 4.0x).
+- **Instructions Support**: Add custom voice guidance for `gpt-4o-mini-tts`.
+- **Instruction Presets**: Save, load, and manage frequently used instructions.
+- **Long Text Handling**: Splits large texts into API-compliant chunks and concatenates using `ffmpeg`.
+- **Real-time Feedback**: Displays character and chunk counts live.
+- **Progress Indication**: Shows TTS generation progress with a bar.
+- **Theming**: Toggle between Dark (default) and Light modes.
+- **API Key Management**: Set via environment variable or GUI (obfuscated storage in `api_key.enc`).
+- **Error Handling**: Includes retries and improved error reporting.
+- **Optional File Retention**: Keep intermediate audio chunk files if desired.
 
 ## Requirements
 
-Download and install: 
-- [Python](https://www.python.org/downloads/)
-- [ffmpeg](https://www.ffmpeg.org/download.html) 
+- **Python**: 3.10 or higher ([Download Python](https://www.python.org/downloads/))
+- **ffmpeg**: Must be installed and in PATH ([Download ffmpeg](https://www.ffmpeg.org/download.html))
+- **OpenAI API Key**: Obtain from [OpenAI](https://platform.openai.com/signup)
 
-(Creating a new environment with UV or Conda is preferred)
+## Installation
 
-Then install these python requirements:
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/sm18lr88/OpenAI_TTS_GUI.git
+   cd OpenAI_TTS_GUI
+   ```
 
-```bash
-pip install -r requirements.txt
-```
+2. **Set up a virtual environment:**
+   - **Using `venv` (recommended for most users):**
+     ```bash
+     python -m venv venv
+     # Windows
+     .\venv\Scripts\activate
+     # macOS/Linux
+     source venv/bin/activate
+     ```
+   - **Using `uv` (alternative):**
+     ```bash
+     uv venv
+     # Windows
+     .\venv\Scripts\activate
+     # macOS/Linux
+     source venv/bin/activate
+     ```
 
-## Windows users:
+3. **Install dependencies:**
+   - The dependencies are specified in `pyproject.toml`. Install them using:
+     ```bash
+     pip install openai pyqt6
+     ```
+   - If using `uv`, you can run:
+     ```bash
+     uv pip install openai pyqt6
+     ```
 
-You can just download the [compiled app](https://github.com/sm18lr88/OpenAI_TTS_GUI/releases/download/v0.2/OpenAI_TTS.exe), but you still need [ffmpeg](https://www.ffmpeg.org/download.html)
+## Running the Application
+
+1. **Set API Key**:
+   - **Option 1**: Set the `OPENAI_API_KEY` environment variable.
+   - **Option 2**: Launch the app and use `API Key` -> `Set/Update API Key...` (saves obfuscated in `api_key.enc`).
+
+2. **Start the GUI:**
+   ```bash
+   python main.py
+   ```
 
 ## Tips
 
-1. Speed recommendation: 1.0 - other settings decrease voice quality. For high-quality changes to speed, I recommend Adobe Audition.
-2. You can set the OPENAI_API_KEY in your path variables, or set one in the app's `Settings`.
-3. The progress bar is programmed to start at 1% when the TTS process begins. I will improve it in the future. 
+- **Speed**: Adjustments far from 1.0x may impact quality; use audio software liked Adobe Premiere for high-quality tweaks, or use the instruction model and instruct it to speak faster/slower.
+- **Instructions**: Only work with `gpt-4o-mini-tts`; presets simplify reuse.
+- **Security**: `api_key.enc` is obfuscated, not encrypted—don’t share it. Prefer environment variables.
+- **ffmpeg**: If not found, ensure it’s in PATH or set its path in `config.py`.
+- **Logs**: Check `tts_app.log` for errors or details.
 
 ## Roadmap
 
-- [x] Precise price estimate.
-- [x] Creative solution for the 4096 character limit per API call.
-- [x] Upgrade GUI framework and textbox from tkinter to PyQt6.
-- [x] API rate limit.
-- [x] Improve the chunking and concatenating process.
-- [x] Give users option to retain individual audio files from each chunk.
-- [x] Bundle into an .exe
-- [x] Light and Dark themes - default is "dark".
-- [x] Allow custom API key settings.
-- [x] Automatically use environment variable for OpenAI API Key if already set.
-- [ ] Update to include new voices.
-- [ ] Update to include custom instructions for the new model.
-- [ ] Create a portable version of the app.
-
-### Preview example of next release:
-
-##### <image src='https://github.com/user-attachments/assets/35ec74de-f830-4035-8f2e-46a18d6bf09f' width='500'>
-
-##### Check out the `test.mp3` file to see the output produced.
+- [x] Handle 4096 character limit
+- [x] Upgrade to PyQt6
+- [x] Basic API rate limit handling
+- [x] Enhance chunking and concatenation
+- [x] Option to retain chunk files
+- [x] Light and Dark themes
+- [x] Custom API key settings
+- [x] Use environment variable if set
+- [x] Code refactoring
+- [x] Basic API key obfuscation
+- [ ] Speed boost: Parallel chunk processing
+- [ ] Granular progress reporting
+- [] Bundle new release into .exe
 
 ## Support
 
-Honestly the best immediate support you'll get is by copy/pasting the code into an advanced AI (GPT-4, Gemini Ultra) and asking your questions.
+Check `tts_app.log` for issues. Report problems on GitHub. For code help, consult AI models with logs or snippets.
 
 ## License
 
-Free for personal use only. No commercial use. AI agents and bots are not allowed to even read my code.
+Free for personal use only. No commercial use. AI agents and bots may not read the code.
