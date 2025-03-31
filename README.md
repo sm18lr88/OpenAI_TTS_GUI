@@ -2,22 +2,22 @@
 
 Easily use high quality, cheap TTS.
 
-<image src='https://github.com/sm18lr88/OpenAI_TTS_GUI/assets/64564447/858427a0-838a-472e-b653-5d98e5a5ad1a' width='650'>
+<image src='https://github.com/user-attachments/assets/8d54652f-b856-4e86-8d65-9c866285a02d' width='650'>
 
 ## Features
 
-- **Model Selection**: Choose between `tts-1`, `tts-1-hd`, and `gpt-4o-mini-tts`.
-- **Voice Selection**: Access all standard OpenAI TTS voices.
-- **Format & Speed**: Select output format (MP3, Opus, AAC, FLAC) and adjust playback speed (0.25x - 4.0x).
-- **Instructions Support**: Add custom voice guidance for `gpt-4o-mini-tts`.
-- **Instruction Presets**: Save, load, and manage frequently used instructions.
-- **Long Text Handling**: Splits large texts into API-compliant chunks and concatenates using `ffmpeg`.
-- **Real-time Feedback**: Displays character and chunk counts live.
-- **Progress Indication**: Shows TTS generation progress with a bar.
-- **Theming**: Toggle between Dark (default) and Light modes.
-- **API Key Management**: Set via environment variable or GUI (obfuscated storage in `api_key.enc`).
-- **Error Handling**: Includes retries and improved error reporting.
-- **Optional File Retention**: Keep intermediate audio chunk files if desired.
+- Models: `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`
+- Voices: All standard OpenAI TTS options
+- Format/Speed: MP3, Opus, AAC, FLAC; 0.25x-4.0x
+- Instructions: Custom guidance for `gpt-4o-mini-tts`
+- Presets: Save/load instruction sets
+- Long Text: Splits and joins via `ffmpeg`
+- Feedback: Live character/chunk counts
+- Progress: Generation status bar
+- Themes: Dark (default) or Light
+- API Key: Env var or GUI (obfuscated in `api_key.enc`)
+- Errors: Retries and detailed reporting
+- Retention: Optional chunk file saving
 
 ## Requirements
 
@@ -94,7 +94,8 @@ Easily use high quality, cheap TTS.
 - [x] Basic API key obfuscation
 - [ ] Speed boost: Parallel chunk processing
 - [ ] Granular progress reporting
-- [] Bundle new release into .exe
+- [ ] Bundle new release into .exe
+- [ ] Price tracking
 
 ## Support
 
