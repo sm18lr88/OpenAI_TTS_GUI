@@ -1,6 +1,7 @@
 # OpenAI TTS GUI
 
-Easily use high quality, cheap TTS.
+* Easily use high quality, cheap TTS.
+* Long text is supported. 
 
 <image src='https://github.com/user-attachments/assets/8d54652f-b856-4e86-8d65-9c866285a02d' width='650'>
 
@@ -9,23 +10,23 @@ Easily use high quality, cheap TTS.
 - Models: `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`
 - Voices: All standard OpenAI TTS options
 - Format/Speed: MP3, Opus, AAC, FLAC; 0.25x-4.0x
-- Instructions: Custom guidance for `gpt-4o-mini-tts`
-- Presets: Save/load instruction sets
-- Long Text: Splits and joins via `ffmpeg`
-- Feedback: Live character/chunk counts
-- Progress: Generation status bar
+- Instructions: Custom voice instructions for `gpt-4o-mini-tts`
+- Presets: you can save or load your custom instructions
+- Long Text: handled automatically; no character limits
+- Feedback: Live character/chunk count for manual cost calculation if desired
 - Themes: Dark (default) or Light
-- API Key: Env var or GUI (obfuscated in `api_key.enc`)
-- Errors: Retries and detailed reporting
-- Retention: Optional chunk file saving
+- API Key: manually set, or reads from your environment variables
+- Retention: retain individual mp3 chunks if desired
 
 ## Requirements
 
-- **Python**: 3.10 or higher ([Download Python](https://www.python.org/downloads/))
-- **ffmpeg**: Must be installed and in PATH ([Download ffmpeg](https://www.ffmpeg.org/download.html))
-- **OpenAI API Key**: Obtain from [OpenAI](https://platform.openai.com/signup)
+- [**Python**](https://www.python.org/downloads/)
+- [**ffmpeg**](https://www.ffmpeg.org/download.html)
+- [**An OpenAI API key**](https://platform.openai.com/signup)
 
 ## Installation
+
+If installation seems too complicated, copy/paste this text into an AI chatbot to help you in the process.
 
 1. **Clone the repository:**
    ```bash
@@ -74,16 +75,16 @@ Easily use high quality, cheap TTS.
 
 ## Tips
 
-- **Speed**: Adjustments far from 1.0x may impact quality; use audio software liked Adobe Premiere for high-quality tweaks, or use the instruction model and instruct it to speak faster/slower.
-- **Instructions**: Only work with `gpt-4o-mini-tts`; presets simplify reuse.
-- **Security**: `api_key.enc` is obfuscated, not encrypted—don’t share it. Prefer environment variables.
+- **Speed**: Adjustments far from 1.0x may impact quality; try Adobe Audition for speed tweaks, or select the `gpt-4o-mini-tts` model and instruct it to speak faster/slower.
+- **Instructions**: check examples at [openai.fm](openai.fm).
+- **Security**: `api_key.enc` is obfuscated, not encrypted, so don’t share it. Environment variable option is safer.
 - **ffmpeg**: If not found, ensure it’s in PATH or set its path in `config.py`.
 - **Logs**: Check `tts_app.log` for errors or details.
 
 ## Roadmap
 
-- [x] Handle 4096 character limit
-- [x] Upgrade to PyQt6
+- [x] Handles long text
+- [x] PyQt6 GUI (formerly PySimpleGUI)
 - [x] Basic API rate limit handling
 - [x] Enhance chunking and concatenation
 - [x] Option to retain chunk files
@@ -95,7 +96,7 @@ Easily use high quality, cheap TTS.
 - [ ] Speed boost: Parallel chunk processing
 - [ ] Granular progress reporting
 - [ ] Bundle new release into .exe
-- [ ] Price tracking
+- [ ] Price estimate
 
 ## Support
 
