@@ -3,27 +3,60 @@ on:
   push:
     tags:
       - "v*"
+
+concurrency:
+  group: bundle-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  bundle:
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+  bundle-windows:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-          cache: "pip"
-      - name: Install build deps
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install runtime deps (no dev)
         run: |
-          python -m pip install -U pip
-          pip install .[dev]
+          uv pip install --system .  # installs your package
+          uv pip install --system pyinstaller
+
       - name: Build
-        run: |
-          pyinstaller --noconfirm openai_tts.spec
+        run: pyinstaller --noconfirm openai_tts.spec
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OpenAI-TTS-${{ runner.os }}-${{ github.ref_name }}
+          name: OpenAI-TTS-windows
+          path: dist/**
+
+  bundle-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install runtime deps (no dev)
+        run: |
+          uv pip install --system .  # installs your package
+          uv pip install --system pyinstaller
+
+      - name: Build
+        run: pyinstaller --noconfirm openai_tts.spec
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenAI-TTS-macos
           path: dist/**
