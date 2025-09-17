@@ -15,5 +15,5 @@ a = Analysis(
     hookspath=[]
 )
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-exe = EXE(pyz, a.scripts, name="OpenAI-TTS", console=False)
+exe = EXE(pyz, a.scripts, name="openai_tts_bin", console=False) # avoid name clash with COLLECT output dir
 coll = COLLECT(exe, a.binaries, a.zipfiles, a.datas, name="OpenAI-TTS")
