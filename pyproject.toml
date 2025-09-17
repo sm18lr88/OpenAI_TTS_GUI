@@ -10,7 +10,6 @@ urls = { Homepage = "https://github.com/sm18lr88/OpenAI_TTS_GUI" }
 dependencies = [
     "openai>=1.69,<2",
     "pyqt6>=6.8,<7",
-    "PyQt6-Fluent-Widgets[full]>=1.4,<2",
     "keyring>=24,<26",
     "platformdirs>=4.2,<6",
 ]

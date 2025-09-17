@@ -14,7 +14,7 @@
 - Presets: you can save or load your custom instructions
 - Long Text: handled automatically; no character limits
 - Feedback: Live character/chunk count for manual cost calculation if desired
-- Themes: Dark (default) or Light (now using Fluent UI styling via qfluentwidgets)
+- Themes: Dark or Light (native Qt)
 - API Key: manually set, or reads from your environment variables
 - Retention: retain individual mp3 chunks if desired
 - Sidecar: JSON metadata written next to outputs for reproducibility
@@ -57,13 +57,12 @@ If installation seems too complicated, copy/paste this text into an AI chatbot t
 3. **Install dependencies:**
    - The dependencies are specified in `pyproject.toml`. Install them using:
      ```bash
-     pip install -U openai PyQt6 PyQt6-Fluent-Widgets keyring platformdirs
+     pip install -U openai PyQt6 keyring platformdirs
      ```
    - If using **uv**:
      ```bash
      uv sync
      ```
-     If you previously tried `PyQt-Fluent-Widgets` and saw errors on Windows, switch to `PyQt6-Fluent-Widgets` (this project targets PyQt6).
 
 ## Running the Application
 ### One-time quick build (optional)
@@ -105,7 +104,6 @@ set TTS_PARALLELISM=4   # Windows PowerShell: $env:TTS_PARALLELISM=4
 - **Security**: `api_key.enc` is obfuscated, not encrypted. Prefer environment variables or OS keyring storage.
 - **ffmpeg**: If not found, ensure it’s in PATH or set its path in `config.py`.
 - **Logs**: Check `tts_app.log` for errors or details.
- - **Fluent UI**: The app uses PyQt-Fluent-Widgets for theming and components (e.g., Primary buttons, InfoBar toasts). Theme toggling uses `setTheme(Theme.DARK|Theme.LIGHT)` and an accent color.
 
 ## Roadmap
 
@@ -127,7 +125,7 @@ set TTS_PARALLELISM=4   # Windows PowerShell: $env:TTS_PARALLELISM=4
 ## Versions / Notes
 
 - OpenAI Python SDK `==1.69.0`.
-- PyQt6 `==6.8.1`, PyQt6-Fluent-Widgets `==1.8.7`.
+- PyQt6 `==6.8.1`.
 
 ## Support
 
