@@ -1,16 +1,27 @@
 import logging
 import sys
-from contextlib import suppress
 
 from PyQt6.QtWidgets import QApplication, QMessageBox
-from qfluentwidgets import Theme, setTheme
 
-# Set up configuration first
 import config
 
 # Now import GUI after config is available
 from gui import TTSWindow
 from utils import preflight_check
+
+
+# --- Compatibility shim: provide Theme/setTheme so tests can monkeypatch them
+# without depending on qfluentwidgets. These are no-ops at runtime.
+class _DummyTheme:
+    DARK = "dark"
+    LIGHT = "light"
+
+
+def setTheme(*_args, **_kwargs):
+    return None
+
+
+Theme = _DummyTheme()
 
 # --- Logging Setup ---
 # Basic configuration (can be enhanced with rotation, etc.)
@@ -33,9 +44,8 @@ def main():
     logger.info(f"Starting {config.APP_NAME} application.")
     app = QApplication(sys.argv)
 
-    # Apply Fluent theme early
-    with suppress(Exception):
-        setTheme(Theme.DARK)
+    # Keep a harmless call so older code/tests can patch it; does nothing here.
+    setTheme(Theme.DARK)
 
     try:
         ok, detail = preflight_check()
