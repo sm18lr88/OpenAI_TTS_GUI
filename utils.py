@@ -1,9 +1,21 @@
-import os
-import subprocess
+import base64
+import hashlib
 import json
 import logging
-import base64
+import os
+import platform
+import subprocess
+import time
 from itertools import cycle
+from pathlib import Path
+
+try:
+    import keyring  # OS keyring (Windows Credential Manager, macOS Keychain, etc.)
+
+    _KEYRING_AVAILABLE = True
+except Exception:
+    keyring = None
+    _KEYRING_AVAILABLE = False
 
 import config  # Import the configuration
 
@@ -53,9 +65,7 @@ def split_text(text, chunk_size=config.MAX_CHUNK_SIZE):
                 if last_punct_index + 1 < len(chunk):
                     if chunk[last_punct_index + 1].isspace():
                         best_punct_index = max(best_punct_index, last_punct_index)
-                elif last_punct_index + 1 == len(
-                    chunk
-                ):  # Punctuation at the end of chunk
+                elif last_punct_index + 1 == len(chunk):  # Punctuation at the end of chunk
                     best_punct_index = max(best_punct_index, last_punct_index)
 
             except ValueError:
@@ -78,14 +88,10 @@ def split_text(text, chunk_size=config.MAX_CHUNK_SIZE):
 
         final_chunk = text[current_pos : current_pos + split_index]
         chunks.append(final_chunk)
-        current_pos += len(final_chunk)  # Move position past the extracted chunk
-        # Skip leading whitespace for the next chunk
-        while current_pos < text_len and text[current_pos].isspace():
-            current_pos += 1
+        current_pos += len(final_chunk)  # Move position; DO NOT skip whitespace/newlines
 
     logger.debug(f"Text split into {len(chunks)} chunks")
-    # Filter out any potentially empty chunks created by splitting logic
-    chunks = [c for c in chunks if c.strip()]
+    # Preserve whitespace-only chunks to keep round-trip exactness
     return chunks
 
 
@@ -127,12 +133,26 @@ def decrypt_key(encrypted_key: str) -> str:
 # --- File Operations ---
 
 
-def read_api_key(filename=config.API_KEY_FILE) -> str | None:
-    """Reads and decrypts the API key from the specified file."""
+def read_api_key(filename: str | None = None) -> str | None:
+    """Reads and decrypts the API key from the specified file.
+
+    If filename is None, resolves to config.API_KEY_FILE at call time.
+    """
     api_key_env = os.environ.get("OPENAI_API_KEY")
+    filename = filename or config.API_KEY_FILE
     if api_key_env:
         logger.info("Using API key from OPENAI_API_KEY environment variable.")
         return api_key_env
+
+    # OS keyring (preferred when available)
+    if getattr(config, "USE_KEYRING", False) and _KEYRING_AVAILABLE:
+        try:
+            key = keyring.get_password("OpenAI_TTS_GUI", "OPENAI_API_KEY")
+            if key:
+                logger.info("Using API key from OS keyring.")
+                return key
+        except Exception as e:
+            logger.warning(f"Keyring read failed: {e}")
 
     if not os.path.exists(filename):
         logger.warning(f"API key file '{filename}' not found.")
@@ -146,7 +166,7 @@ def read_api_key(filename=config.API_KEY_FILE) -> str | None:
         return None
 
     try:
-        with open(filename, "r", encoding="utf-8") as file:
+        with open(filename, encoding="utf-8") as file:
             encrypted_key = file.readline().strip()
         if not encrypted_key:
             logger.warning(f"API key file '{filename}' is empty.")
@@ -159,7 +179,7 @@ def read_api_key(filename=config.API_KEY_FILE) -> str | None:
         else:
             logger.error(f"Failed to decrypt API key from {filename}.")
             return None
-    except IOError as e:
+    except OSError as e:
         logger.exception(f"Error reading API key file {filename}: {e}")
         return None
     except Exception as e:
@@ -167,26 +187,46 @@ def read_api_key(filename=config.API_KEY_FILE) -> str | None:
         return None
 
 
-def save_api_key(api_key: str, filename=config.API_KEY_FILE):
-    """Encrypts and saves the API key to the specified file."""
+def save_api_key(api_key: str, filename: str | None = None) -> bool:
+    """Encrypts and saves the API key to the specified file.
+
+    If filename is None, resolves to config.API_KEY_FILE at call time.
+    Returns True if either keyring save or file save succeeded.
+    """
     if not api_key:
         logger.warning("Attempted to save an empty API key. Aborting.")
         return False
+    filename = filename or config.API_KEY_FILE
+    # Try to store in OS keyring first (best practice for Windows/macOS/Linux)
+    keyring_ok = False
+    if getattr(config, "USE_KEYRING", False) and _KEYRING_AVAILABLE:
+        try:
+            keyring.set_password("OpenAI_TTS_GUI", "OPENAI_API_KEY", api_key)
+            keyring_ok = True
+            logger.info("API key saved to OS keyring (OpenAI_TTS_GUI/OPENAI_API_KEY).")
+        except Exception as e:
+            logger.warning(f"Failed to save API key to keyring: {e}")
+
     encrypted_key = encrypt_key(api_key)
     if not encrypted_key:
         logger.error("Failed to encrypt API key for saving.")
-        return False
+        return keyring_ok
     try:
+        # Ensure parent directory exists if a path was provided
+        parent = Path(filename).parent
+        if str(parent):
+            os.makedirs(parent, exist_ok=True)
         with open(filename, "w", encoding="utf-8") as file:
             file.write(encrypted_key + "\n")
         logger.info(f"Encrypted API key saved to {filename}")
-        return True
-    except IOError as e:
+        file_ok = True
+        return file_ok or keyring_ok
+    except OSError as e:
         logger.exception(f"Error saving API key to {filename}: {e}")
-        return False
+        return keyring_ok
     except Exception as e:
         logger.exception(f"Unexpected error saving API key to {filename}: {e}")
-        return False
+        return keyring_ok
 
 
 def concatenate_audio_files(file_list: list[str], output_file: str):
@@ -216,9 +256,7 @@ def concatenate_audio_files(file_list: list[str], output_file: str):
                 output_dir = os.path.dirname(output_file)
                 if output_dir and not os.path.exists(output_dir):
                     os.makedirs(output_dir, exist_ok=True)
-                    logger.debug(
-                        f"Created directory for single file rename: {output_dir}"
-                    )
+                    logger.debug(f"Created directory for single file rename: {output_dir}")
                 # Overwrite if exists
                 if os.path.exists(output_file):
                     os.remove(output_file)
@@ -249,20 +287,20 @@ def concatenate_audio_files(file_list: list[str], output_file: str):
             for file_path in file_list:
                 # Check if the file actually exists before adding to list
                 if os.path.exists(file_path):
-                    # Use relative paths if possible, ensure correct quoting/escaping for ffmpeg
-                    # Simplest robust way is often absolute paths with forward slashes or careful quoting
+                    # Use relative paths if possible.
+                    # For concat robustness, prefer absolute paths with forward slashes,
+                    # or careful quoting.
                     abs_path = os.path.abspath(file_path).replace("\\", "/")
                     f.write(f"file '{abs_path}'\n")
                 else:
-                    logger.error(
-                        f"File listed for concatenation not found: {file_path}. Skipping."
-                    )
+                    logger.error(f"File listed for concatenation not found: {file_path}. Skipping.")
                     # Decide: raise error or just skip? Skipping for robustness.
                     # raise FileNotFoundError(f"File missing for concatenation: {file_path}")
 
         # Determine codec based on output extension
         ext = os.path.splitext(output_file)[1].lower().lstrip(".")
         codec = config.CODEC_MAP.get(ext, config.DEFAULT_CODEC)
+        params = config.CODEC_PARAMS.get(ext, {})
 
         # Build ffmpeg command
         # Use -y to overwrite output without asking
@@ -277,6 +315,15 @@ def concatenate_audio_files(file_list: list[str], output_file: str):
             concat_list_path,
             "-c:a",
             codec,
+        ]
+        # Append normalized params
+        if params.get("ar"):
+            concat_command += ["-ar", str(params["ar"])]
+        if params.get("ac"):
+            concat_command += ["-ac", str(params["ac"])]
+        if params.get("b:a"):
+            concat_command += ["-b:a", str(params["b:a"])]
+        concat_command += [
             output_file,
         ]
         logger.info(f"Executing ffmpeg: {' '.join(concat_command)}")
@@ -296,14 +343,15 @@ def concatenate_audio_files(file_list: list[str], output_file: str):
 
     except FileNotFoundError:
         logger.error(
-            f"'{config.FFMPEG_COMMAND}' command not found. Ensure ffmpeg is installed and in your system's PATH."
+            "'%s' command not found. Ensure ffmpeg is installed and in your system's PATH.",
+            config.FFMPEG_COMMAND,
         )
         raise
     except subprocess.CalledProcessError as e:
         logger.error(f"ffmpeg concatenation failed with exit code {e.returncode}.")
         logger.error(f"ffmpeg stderr: {e.stderr}")
         raise  # Re-raise the error after logging
-    except IOError as e:
+    except OSError as e:
         logger.exception(f"File I/O error during concatenation setup: {e}")
         raise
     except Exception as e:
@@ -316,9 +364,7 @@ def concatenate_audio_files(file_list: list[str], output_file: str):
                 os.remove(concat_list_path)
                 logger.debug(f"Removed temporary concat list: {concat_list_path}")
             except OSError as e:
-                logger.error(
-                    f"Failed to remove temporary concat list {concat_list_path}: {e}"
-                )
+                logger.error(f"Failed to remove temporary concat list {concat_list_path}: {e}")
 
 
 def cleanup_files(file_list: list[str]):
@@ -341,7 +387,7 @@ def cleanup_files(file_list: list[str]):
 def load_presets(filename=config.PRESETS_FILE) -> dict:
     """Loads instruction presets from a JSON file."""
     try:
-        with open(filename, "r", encoding="utf-8") as file:
+        with open(filename, encoding="utf-8") as file:
             presets = json.load(file)
         logger.info(f"Loaded {len(presets)} presets from {filename}")
         return presets if isinstance(presets, dict) else {}
@@ -349,14 +395,10 @@ def load_presets(filename=config.PRESETS_FILE) -> dict:
         logger.info(f"Presets file '{filename}' not found. Returning empty dictionary.")
         return {}
     except json.JSONDecodeError as e:
-        logger.error(
-            f"Error decoding JSON from {filename}: {e}. Returning empty dictionary."
-        )
+        logger.error(f"Error decoding JSON from {filename}: {e}. Returning empty dictionary.")
         return {}
-    except IOError as e:
-        logger.exception(
-            f"Error reading presets file {filename}: {e}. Returning empty dictionary."
-        )
+    except OSError as e:
+        logger.exception(f"Error reading presets file {filename}: {e}. Returning empty dictionary.")
         return {}
     except Exception as e:
         logger.exception(
@@ -372,12 +414,90 @@ def save_presets(presets: dict, filename=config.PRESETS_FILE):
             json.dump(presets, file, indent=4)
         logger.info(f"Saved {len(presets)} presets to {filename}")
         return True
-    except IOError as e:
+    except OSError as e:
         logger.exception(f"Error writing presets to {filename}: {e}")
         return False
-    except TypeError as e:  # Handle cases where presets is not serializable
-        logger.exception(f"Error serializing presets data: {e}")
-        return False
+
+
+# --- Sidecar metadata ---
+def write_sidecar_metadata(output_file: str, meta: dict):
+    """Writes JSON sidecar next to the audio output."""
+    sidecar = output_file + ".json"
+    meta = dict(meta or {})
+    meta.setdefault("timestamp", time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+    meta.setdefault("ffmpeg", get_ffmpeg_version())
+    meta.setdefault("os", platform.platform())
+    with open(sidecar, "w", encoding="utf-8") as f:
+        json.dump(meta, f, indent=2)
+    logger.info(f"Wrote sidecar metadata: {sidecar}")
+
+
+def sha256_text(text: str) -> str:
+    return hashlib.sha256((text or "").encode("utf-8")).hexdigest()
+
+
+# --- Preflight / FFmpeg ---
+def get_ffmpeg_version() -> str:
+    try:
+        result = subprocess.run(
+            [config.FFMPEG_COMMAND, "-version"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        first = result.stdout.splitlines()[0].strip()
+        return first
+    except Exception:
+        return "unknown"
+
+
+def _parse_ffmpeg_semver(line: str) -> tuple[int, int, int] | None:
+    # Accepts variants like:
+    #  - "ffmpeg version n4.4 ..." or "ffmpeg version 6.0 ..."
+    #  - "ffmpeg version 2025-08-04-git-..." (date-based nightly/dev builds)
+    import re
+
+    # Standard semver with optional leading 'n'
+    m = re.search(r"version\s+(?:n)?(\d+)\.(\d+)(?:\.(\d+))?", line)
+    if m:
+        major, minor, patch = m.group(1), m.group(2), m.group(3) or "0"
+        return int(major), int(minor), int(patch)
+
+    # Date-based git builds (treat as very new; compare lexicographically works vs 4.3.0)
+    m2 = re.search(r"version\s+(\d{4})-(\d{2})-(\d{2})-git", line)
+    if m2:
+        year, month, day = m2.group(1), m2.group(2), m2.group(3)
+        return int(year), int(month), int(day)
+
+    return None
+
+
+def preflight_check() -> tuple[bool, str]:
+    """Verify ffmpeg presence and minimum version."""
+    try:
+        result = subprocess.run(
+            [config.FFMPEG_COMMAND, "-version"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        first = result.stdout.splitlines()[0].strip()
+        ver = _parse_ffmpeg_semver(first)
+        if ver is None:
+            # Many Windows builds (e.g., gyan.dev) report a date-based git version; accept as modern
+            low = first.lower()
+            if "git" in low or "gyan.dev" in low or "full_build" in low:
+                return True, first
+            # Unknown format: don't block user; assume OK but log via return message
+            return True, first
+        ok = tuple(ver) >= tuple(config.FFMPEG_MIN_VERSION)
+        if not ok:
+            min_req = ".".join(map(str, config.FFMPEG_MIN_VERSION))
+            return (False, f"ffmpeg too old: found {first}, require >= {min_req}")
+        return True, first
+    except FileNotFoundError:
+        return False, "ffmpeg not found in PATH. Please install ffmpeg."
+    except subprocess.CalledProcessError as e:
+        return False, f"ffmpeg invocation failed: {e}"
     except Exception as e:
-        logger.exception(f"Unexpected error saving presets to {filename}: {e}")
-        return False
+        return False, f"ffmpeg check error: {e}"

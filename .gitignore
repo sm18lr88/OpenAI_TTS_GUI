@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+build/
+dist/
+*.spec
+.benchmarks/
+htmlcov/
+reports/
+profiling/
+.pytest_cache/
+.ruff_cache/

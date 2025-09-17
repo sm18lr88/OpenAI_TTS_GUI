@@ -1,32 +1,57 @@
 import logging
 import os
+import subprocess
+import sys
+from contextlib import suppress
+
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QAction, QColor, QDoubleValidator
 from PyQt6.QtWidgets import (
-    QMainWindow,
-    QWidget,
-    QVBoxLayout,
+    QDialog,
+    QFileDialog,
     QHBoxLayout,
-    QTextEdit,
+    QInputDialog,
     QLabel,
     QLineEdit,
-    QPushButton,
-    QProgressBar,
-    QFileDialog,
-    QComboBox,
-    QMessageBox,
-    QMenuBar,
-    QMenu,
-    QInputDialog,
-    QDialog,
     QListWidget,
+    QMainWindow,
+    QMessageBox,
+    QSizePolicy,
     QSplitter,
-    QApplication,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot, QTimer
-from PyQt6.QtGui import QAction, QPalette, QColor, QDoubleValidator
+
+# --- Fluent Widgets & Theming ---
+from qfluentwidgets import (
+    ComboBox,
+    FluentIcon,
+    InfoBar,
+    InfoBarPosition,
+    LineEdit,
+    MessageBox,
+    NavigationInterface,
+    NavigationItemPosition,
+    PrimaryPushButton,
+    ProgressBar,
+    PushButton,
+    TextEdit,
+    Theme,
+    setTheme,
+    setThemeColor,
+)
 
 import config  # Import configuration
 from tts import TTSProcessor  # Use the processor class
-from utils import split_text, read_api_key, save_api_key, load_presets, save_presets
+from utils import (
+    get_ffmpeg_version,
+    load_presets,
+    read_api_key,
+    save_api_key,
+    save_presets,
+    split_text,
+)
 
 # Setup logger for this module
 logger = logging.getLogger(__name__)
@@ -57,9 +82,9 @@ class PresetDialog(QDialog):
         self.preset_list.setToolTip("Double-click to load.")
 
         button_layout = QHBoxLayout()
-        self.load_button = QPushButton("Load Selected")
-        self.save_button = QPushButton("Save Current Instructions")
-        self.delete_button = QPushButton("Delete Selected")
+        self.load_button = PrimaryPushButton("Load Selected")
+        self.save_button = PushButton("Save Current Instructions")
+        self.delete_button = PushButton("Delete Selected")
 
         button_layout.addWidget(self.load_button)
         button_layout.addWidget(self.save_button)
@@ -74,9 +99,7 @@ class PresetDialog(QDialog):
         self.load_button.clicked.connect(self.load_selected)
         self.save_button.clicked.connect(self.save_current)
         self.delete_button.clicked.connect(self.delete_selected)
-        self.preset_list.itemDoubleClicked.connect(
-            self.load_selected
-        )  # Double-click to load
+        self.preset_list.itemDoubleClicked.connect(self.load_selected)  # Double-click to load
 
     def load_presets(self):
         """Load presets from JSON and populate the list."""
@@ -98,7 +121,17 @@ class PresetDialog(QDialog):
             self.preset_selected.emit(instructions)  # Emit the signal
             self.accept()  # Close dialog
         else:
-            QMessageBox.warning(self, "No Selection", "Please select a preset to load.")
+            try:
+                InfoBar.warning(
+                    parent=self,
+                    title="No Selection",
+                    content="Please select a preset to load.",
+                    position=InfoBarPosition.TOP_RIGHT,
+                    duration=5000,
+                    closable=True,
+                )
+            except Exception:
+                QMessageBox.warning(self, "No Selection", "Please select a preset to load.")
 
     @pyqtSlot()
     def save_current(self):
@@ -113,19 +146,25 @@ class PresetDialog(QDialog):
         if ok and name:
             name = name.strip()
             if not name:
-                QMessageBox.warning(
-                    self, "Invalid Name", "Preset name cannot be empty."
-                )
+                try:
+                    InfoBar.warning(
+                        parent=self,
+                        title="Invalid Name",
+                        content="Preset name cannot be empty.",
+                        position=InfoBarPosition.TOP_RIGHT,
+                        duration=5000,
+                        closable=True,
+                    )
+                except Exception:
+                    QMessageBox.warning(self, "Invalid Name", "Preset name cannot be empty.")
                 return
             if name in self._presets:
-                reply = QMessageBox.question(
-                    self,
+                mb = MessageBox(
                     "Overwrite Preset?",
                     f"A preset named '{name}' already exists. Overwrite it?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                    QMessageBox.StandardButton.No,
+                    self,
                 )
-                if reply == QMessageBox.StandardButton.No:
+                if mb.exec() == 0:
                     return
 
             self._presets[name] = self._current_instructions
@@ -134,13 +173,43 @@ class PresetDialog(QDialog):
                     f"Saved preset '{name}' with instructions: {self._current_instructions[:50]}..."
                 )
                 self.load_presets()  # Refresh list
-                QMessageBox.information(
-                    self, "Preset Saved", f"Preset '{name}' saved successfully."
-                )
+                try:
+                    InfoBar.success(
+                        parent=self,
+                        title="Preset Saved",
+                        content=f"Preset '{name}' saved successfully.",
+                        position=InfoBarPosition.TOP_RIGHT,
+                        duration=5000,
+                        closable=True,
+                    )
+                except Exception:
+                    QMessageBox.information(
+                        self, "Preset Saved", f"Preset '{name}' saved successfully."
+                    )
             else:
-                QMessageBox.critical(self, "Error", "Failed to save presets to file.")
+                try:
+                    InfoBar.error(
+                        parent=self,
+                        title="Error",
+                        content="Failed to save presets to file.",
+                        position=InfoBarPosition.TOP_RIGHT,
+                        duration=8000,
+                        closable=True,
+                    )
+                except Exception:
+                    QMessageBox.critical(self, "Error", "Failed to save presets to file.")
         elif ok and not name.strip():
-            QMessageBox.warning(self, "Invalid Name", "Preset name cannot be empty.")
+            try:
+                InfoBar.warning(
+                    parent=self,
+                    title="Invalid Name",
+                    content="Preset name cannot be empty.",
+                    position=InfoBarPosition.TOP_RIGHT,
+                    duration=5000,
+                    closable=True,
+                )
+            except Exception:
+                QMessageBox.warning(self, "Invalid Name", "Preset name cannot be empty.")
 
     @pyqtSlot()
     def delete_selected(self):
@@ -148,23 +217,31 @@ class PresetDialog(QDialog):
         selected_item = self.preset_list.currentItem()
         if selected_item:
             name = selected_item.text()
-            reply = QMessageBox.question(
-                self,
+            mb = MessageBox(
                 "Confirm Deletion",
                 f"Are you sure you want to delete the preset '{name}'?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No,
+                self,
             )
-            if reply == QMessageBox.StandardButton.Yes:
+            if mb.exec() == 1:
                 if name in self._presets:
                     del self._presets[name]
                     if save_presets(self._presets):
                         logger.info(f"Deleted preset '{name}'")
                         self.load_presets()  # Refresh list
                     else:
-                        QMessageBox.critical(
-                            self, "Error", "Failed to save presets file after deletion."
-                        )
+                        try:
+                            InfoBar.error(
+                                parent=self,
+                                title="Error",
+                                content="Failed to save presets file after deletion.",
+                                position=InfoBarPosition.TOP_RIGHT,
+                                duration=8000,
+                                closable=True,
+                            )
+                        except Exception:
+                            QMessageBox.critical(
+                                self, "Error", "Failed to save presets file after deletion."
+                            )
                 else:
                     # Should not happen if list is sync with dict, but handle defensively
                     logger.warning(
@@ -172,9 +249,17 @@ class PresetDialog(QDialog):
                     )
                     self.load_presets()  # Resync list
         else:
-            QMessageBox.warning(
-                self, "No Selection", "Please select a preset to delete."
-            )
+            try:
+                InfoBar.warning(
+                    parent=self,
+                    title="No Selection",
+                    content="Please select a preset to delete.",
+                    position=InfoBarPosition.TOP_RIGHT,
+                    duration=5000,
+                    closable=True,
+                )
+            except Exception:
+                QMessageBox.warning(self, "No Selection", "Please select a preset to delete.")
 
 
 # --- Main Application Window ---
@@ -208,41 +293,92 @@ class TTSWindow(QMainWindow):
         if self._api_key:
             logger.info("API key loaded successfully on initialization.")
         else:
-            logger.warning(
-                "No API key found during initialization (checked env var and file)."
-            )
+            logger.warning("No API key found during initialization (checked env var and file).")
 
     def _init_ui(self):
         """Initialize the main user interface."""
         self.setWindowTitle(config.APP_NAME)
-        self.setGeometry(
-            100, 100, config.DEFAULT_WINDOW_WIDTH, config.DEFAULT_WINDOW_HEIGHT
-        )
+        self.setGeometry(100, 100, config.DEFAULT_WINDOW_WIDTH, config.DEFAULT_WINDOW_HEIGHT)
 
-        self._setup_menubar()
-
-        # Main vertical splitter
+        # Build main TTS page (existing layout)
         splitter = QSplitter(Qt.Orientation.Vertical)
-        self.setCentralWidget(splitter)
-
         # --- Top Part: Text Input ---
         text_widget = self._setup_text_area()
         splitter.addWidget(text_widget)
-
         # --- Bottom Part: Controls ---
         controls_widget = self._setup_controls_area()
         splitter.addWidget(controls_widget)
-
-        # Adjust initial splitter sizes (optional)
         splitter.setSizes([int(self.height() * 0.6), int(self.height() * 0.4)])
+        self.main_page = splitter
 
+        # Build About page
+        self.about_page = QWidget()
+        about_layout = QVBoxLayout(self.about_page)
+        about_layout.setContentsMargins(12, 12, 12, 12)
+        self.about_text = TextEdit()
+        self.about_text.setReadOnly(True)
+        about_layout.addWidget(self.about_text)
+
+        # Stacked pages
+        self.stack = QStackedWidget()
+        self.stack.addWidget(self.main_page)
+        self.stack.addWidget(self.about_page)
+
+        # Navigation interface
+        self.navigation = NavigationInterface(self, showMenuButton=True, showReturnButton=False)
+        try:
+            self.navigation.addItem(
+                routeKey="tts",
+                icon=FluentIcon.SPEAKER,
+                text="TTS",
+                onClick=lambda: self.stack.setCurrentWidget(self.main_page),
+                position=NavigationItemPosition.TOP,
+            )
+            self.navigation.addItem(
+                routeKey="about",
+                icon=FluentIcon.INFO,
+                text="About",
+                onClick=lambda: self._show_about_page(),
+                position=NavigationItemPosition.BOTTOM,
+            )
+        except Exception:
+            # Fallback icons if FluentIcon isn't available in this version
+            self.navigation.addItem(
+                routeKey="tts",
+                icon=None,
+                text="TTS",
+                onClick=lambda: self.stack.setCurrentWidget(self.main_page),
+                position=NavigationItemPosition.TOP,
+            )
+            self.navigation.addItem(
+                routeKey="about",
+                icon=None,
+                text="About",
+                onClick=lambda: self._show_about_page(),
+                position=NavigationItemPosition.BOTTOM,
+            )
+
+        # Central container with (nav | stack)
+        central = QWidget()
+        h = QHBoxLayout(central)
+        h.setContentsMargins(0, 0, 0, 0)
+        h.addWidget(self.navigation)
+        h.addWidget(self.stack, 1)
+        self.setCentralWidget(central)
+
+        # Build the standard menu bar
+        self._setup_menubar()
+
+        # Init signals and defaults
         self._connect_signals()
-        self.update_counts()  # Initial update
-        self.update_instructions_enabled()  # Initial update
+        self.update_counts()
+        self.update_instructions_enabled()
+        # Ensure attribute always exists for closeEvent safety
+        self.tts_processor = self.tts_processor  # no-op; kept for clarity
 
     def _setup_menubar(self):
         """Creates the application menu bar."""
-        menubar = self.menuBar()  # Get the main window's menu bar
+        menubar = self.menuBar()
 
         # --- Settings Menu ---
         settings_menu = menubar.addMenu("Settings")
@@ -252,18 +388,14 @@ class TTSWindow(QMainWindow):
         light_action = QAction(
             "Light", self, triggered=lambda: self._apply_theme(config.LIGHT_THEME)
         )
-        dark_action = QAction(
-            "Dark", self, triggered=lambda: self._apply_theme(config.DARK_THEME)
-        )
+        dark_action = QAction("Dark", self, triggered=lambda: self._apply_theme(config.DARK_THEME))
         theme_menu.addAction(light_action)
         theme_menu.addAction(dark_action)
 
         settings_menu.addSeparator()
 
         # Retain Files Option
-        self.retain_files_action = QAction(
-            "Retain intermediate chunk files", self, checkable=True
-        )
+        self.retain_files_action = QAction("Retain intermediate chunk files", self, checkable=True)
         self.retain_files_action.setChecked(False)  # Default to not retaining
         self.retain_files_action.setToolTip(
             "Keeps the individual audio files generated for each text chunk."
@@ -272,19 +404,24 @@ class TTSWindow(QMainWindow):
 
         # --- API Key Menu ---
         api_key_menu = menubar.addMenu("API Key")
-        # env_key_action = QAction("Use System Environment Variable (if set)", self) # Consider adding this
+        # env_key_action = QAction(
+        #     "Use System Environment Variable (if set)", self
+        # )  # Consider adding this
         # env_key_action.triggered.connect(self._use_env_api_key)
         # api_key_menu.addAction(env_key_action)
         load_key_action = QAction(
-            f"Reload from {config.API_KEY_FILE}",
+            "Reload from secure store",
             self,
             triggered=self._load_api_key_from_file,
         )
-        set_key_action = QAction(
-            "Set/Update API Key...", self, triggered=self._set_custom_api_key
-        )
+        set_key_action = QAction("Set/Update API Key...", self, triggered=self._set_custom_api_key)
         api_key_menu.addAction(load_key_action)
         api_key_menu.addAction(set_key_action)
+
+        # --- Help Menu ---
+        help_menu = menubar.addMenu("Help")
+        about_action = QAction("About", self, triggered=self._show_about)
+        help_menu.addAction(about_action)
 
     def _setup_text_area(self) -> QWidget:
         """Creates the text input area widget."""
@@ -293,19 +430,15 @@ class TTSWindow(QMainWindow):
         layout.setContentsMargins(5, 5, 5, 5)  # Add some padding
 
         layout.addWidget(QLabel("Text for TTS:"))
-        self.text_edit = QTextEdit()
+        self.text_edit = TextEdit()
         self.text_edit.setAcceptRichText(False)  # Ensure plain text
-        self.text_edit.setPlaceholderText(
-            "Enter the text you want to convert to speech..."
-        )
+        self.text_edit.setPlaceholderText("Enter the text you want to convert to speech...")
         layout.addWidget(self.text_edit)
 
         # Character and chunk count labels
         count_layout = QHBoxLayout()
         self.char_count_label = QLabel("Character Count: 0")
-        self.chunk_count_label = QLabel(
-            f"Chunks (max {config.MAX_CHUNK_SIZE} chars): 0"
-        )
+        self.chunk_count_label = QLabel(f"Chunks (max {config.MAX_CHUNK_SIZE} chars): 0")
         count_layout.addWidget(self.char_count_label)
         count_layout.addStretch()  # Push chunk count to the right
         count_layout.addWidget(self.chunk_count_label)
@@ -322,7 +455,7 @@ class TTSWindow(QMainWindow):
         # --- Model, Voice, Speed, Format ---
         settings_layout = QHBoxLayout()
         settings_layout.addWidget(QLabel("Model:"))
-        self.model_combo = QComboBox()
+        self.model_combo = ComboBox()
         self.model_combo.addItems(config.TTS_MODELS)
         self.model_combo.setToolTip(
             "Select the TTS model (HD is higher quality, gpt-4o-mini supports instructions)."
@@ -330,13 +463,14 @@ class TTSWindow(QMainWindow):
         settings_layout.addWidget(self.model_combo)
 
         settings_layout.addWidget(QLabel("Voice:"))
-        self.voice_combo = QComboBox()
+        self.voice_combo = ComboBox()
         self.voice_combo.addItems(config.TTS_VOICES)
         self.voice_combo.setToolTip("Select the desired voice.")
         settings_layout.addWidget(self.voice_combo)
 
         settings_layout.addWidget(QLabel("Speed:"))
-        self.speed_input = QLineEdit(str(config.DEFAULT_SPEED))
+        self.speed_input = LineEdit()
+        self.speed_input.setText(str(config.DEFAULT_SPEED))
         # Add validator for speed input (e.g., 0.25 to 4.0)
         speed_validator = QDoubleValidator(config.MIN_SPEED, config.MAX_SPEED, 2, self)
         speed_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
@@ -348,7 +482,7 @@ class TTSWindow(QMainWindow):
         settings_layout.addWidget(self.speed_input)
 
         settings_layout.addWidget(QLabel("Format:"))
-        self.format_combo = QComboBox()
+        self.format_combo = ComboBox()
         self.format_combo.addItems(config.TTS_FORMATS)
         self.format_combo.setToolTip("Select the output audio format.")
         settings_layout.addWidget(self.format_combo)
@@ -356,48 +490,56 @@ class TTSWindow(QMainWindow):
 
         # --- Instructions ---
         instructions_layout = QHBoxLayout()
+        # Left column: label on top, Presets button below
+        left_col = QVBoxLayout()
         self.instructions_label = QLabel("Instructions:")
         self.instructions_label.setToolTip(
             f"Optional instructions for the '{config.GPT_4O_MINI_TTS_MODEL}' model only."
         )
-        instructions_layout.addWidget(self.instructions_label)
+        self.manage_presets_button = PushButton("Presets")
+        self.manage_presets_button.setToolTip("Load, save, or delete instruction presets.")
+        left_col.addWidget(self.instructions_label)
+        left_col.addWidget(self.manage_presets_button)
+        left_col.addStretch()
+        instructions_layout.addLayout(left_col)
 
-        self.instructions_edit = QTextEdit()
+        # Right column: full-width, growable instructions editor
+        self.instructions_edit = TextEdit()
         self.instructions_edit.setPlaceholderText(
-            f"Provide guidance on voice, tone, pacing (only affects '{config.GPT_4O_MINI_TTS_MODEL}')..."
+            "Provide guidance on voice, tone, pacing (only affects "
+            f"'{config.GPT_4O_MINI_TTS_MODEL}')..."
         )
-        self.instructions_edit.setMaximumHeight(80)  # Limit height
-        instructions_layout.addWidget(self.instructions_edit)
+        # Let instructions expand to absorb extra vertical space instead of layout spacing
+        self.instructions_edit.setMinimumHeight(60)
+        self.instructions_edit.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
+        )
+        instructions_layout.addWidget(self.instructions_edit, 1)  # give editor stretch
 
-        self.manage_presets_button = QPushButton("Presets")
-        self.manage_presets_button.setToolTip(
-            "Load, save, or delete instruction presets."
-        )
-        instructions_layout.addWidget(self.manage_presets_button)
-        layout.addLayout(instructions_layout)
+        # Give the instructions row vertical stretch so it grows/shrinks,
+        # while other rows remain fixed
+        layout.addLayout(instructions_layout, 1)
 
         # --- Save Path ---
         path_layout = QHBoxLayout()
         path_layout.addWidget(QLabel("Save As:"))
-        self.path_entry = QLineEdit()
+        self.path_entry = LineEdit()
         self.path_entry.setPlaceholderText("Select output file path...")
         path_layout.addWidget(self.path_entry)
-        self.select_path_button = QPushButton("Browse...")
-        self.select_path_button.setToolTip(
-            "Select the file name and location to save the audio."
-        )
+        self.select_path_button = PushButton("Browse...")
+        self.select_path_button.setToolTip("Select the file name and location to save the audio.")
         path_layout.addWidget(self.select_path_button)
         layout.addLayout(path_layout)
 
         # --- Progress Bar & Create Button ---
         action_layout = QHBoxLayout()
-        self.progress_bar = QProgressBar()
+        self.progress_bar = ProgressBar()
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(True)
         self.progress_bar.setFormat("%p%")  # Show percentage
         action_layout.addWidget(self.progress_bar)
 
-        self.create_button = QPushButton("Create TTS")
+        self.create_button = PrimaryPushButton("Create TTS")
         self.create_button.setToolTip("Start generating the text-to-speech audio.")
         action_layout.addWidget(self.create_button)
         layout.addLayout(action_layout)
@@ -421,17 +563,25 @@ class TTSWindow(QMainWindow):
     # --- Theme Handling ---
 
     def _apply_theme(self, theme_colors):
-        """Applies the selected theme to the application."""
+        """Applies Fluent theme (with fallback stylesheet if disabled)."""
         self._current_theme = theme_colors
-        stylesheet = config.build_stylesheet(theme_colors)
-        self.setStyleSheet(stylesheet)
-        # Force style refresh on specific widgets if needed
-        self.text_edit.setStyleSheet(self.styleSheet())
-        self.instructions_edit.setStyleSheet(self.styleSheet())
-        # ... apply to other widgets if direct stylesheet doesn't cover all cases
-        logger.info(
-            f"Applied {'Dark' if theme_colors == config.DARK_THEME else 'Light'} theme."
-        )
+        if getattr(config, "FLUENT_ENABLED", True):
+            # Map our light/dark to Fluent Theme; set accent color as well.
+            is_dark = theme_colors == config.DARK_THEME
+            setTheme(Theme.DARK if is_dark else Theme.LIGHT)
+            with suppress(Exception):
+                setThemeColor(QColor(getattr(config, "FLUENT_ACCENT_HEX", "#66A3FF")))
+            # Clear any legacy stylesheet to avoid conflicts
+            self.setStyleSheet("")
+            logger.info("Applied Fluent theme: %s", "Dark" if is_dark else "Light")
+        else:
+            # Legacy stylesheet fallback
+            stylesheet = config.build_stylesheet(theme_colors)
+            self.setStyleSheet(stylesheet)
+            logger.info(
+                "Applied legacy stylesheet theme: %s",
+                "Dark" if theme_colors == config.DARK_THEME else "Light",
+            )
 
     # --- API Key Management ---
 
@@ -442,17 +592,17 @@ class TTSWindow(QMainWindow):
         key = read_api_key()
         if key:
             self._api_key = key
-            QMessageBox.information(
-                self,
+            self._show_message(
                 "API Key Reloaded",
-                f"Successfully loaded API key from {config.API_KEY_FILE}.",
+                "Successfully loaded API key from keyring or file.",
+                level="info",
             )
             logger.info("API key successfully reloaded from file.")
         else:
-            QMessageBox.warning(
-                self,
+            self._show_message(
                 "API Key Not Found",
-                f"Could not find or decrypt API key in {config.API_KEY_FILE}.\nPlease check the file or set the key via the menu.",
+                "Could not find an API key. Set one via the menu.",
+                level="warning",
             )
             logger.warning(f"Failed to reload API key from {config.API_KEY_FILE}.")
 
@@ -473,30 +623,34 @@ class TTSWindow(QMainWindow):
                 if save_api_key(api_key):
                     self._api_key = api_key  # Update runtime key
                     logger.info("Custom API key set and saved.")
-                    QMessageBox.information(
-                        self,
+                    self._show_message(
                         "API Key Set",
-                        f"API key updated and saved to {config.API_KEY_FILE}.",
+                        "API key saved (OS keyring preferred; file fallback updated).",
+                        level="info",
                     )
                 else:
-                    QMessageBox.critical(
-                        self,
+                    self._show_message(
                         "Error",
                         f"Failed to save the API key to {config.API_KEY_FILE}.",
+                        level="critical",
                     )
                     logger.error("Failed to save custom API key.")
             else:
-                QMessageBox.warning(self, "Empty Key", "API key cannot be empty.")
+                self._show_message("Empty Key", "API key cannot be empty.", level="warning")
                 logger.warning("User attempted to set an empty API key.")
 
     def _check_api_key_on_startup(self):
         """Checks for API key after UI is shown and prompts if missing."""
         if not self._api_key:
             logger.warning("No API key available on startup.")
-            QMessageBox.warning(
-                self,
+            self._show_message(
                 "API Key Missing",
-                f"No OpenAI API key found.\nPlease set one using the 'API Key' menu ('Set/Update API Key...').\n\nThe key will be saved (obfuscated) in '{config.API_KEY_FILE}'.",
+                (
+                    "No OpenAI API key found.\n"
+                    "Set one using the 'API Key' menu ('Set/Update API Key...').\n"
+                    f"Stored in keyring (if available) and '{config.API_KEY_FILE}'."
+                ),
+                level="warning",
             )
 
     # --- UI Update Slots ---
@@ -510,10 +664,8 @@ class TTSWindow(QMainWindow):
         chunks = split_text(text, config.MAX_CHUNK_SIZE) if text else []
         num_chunks = len(chunks)
         self.char_count_label.setText(f"Character Count: {char_count}")
-        self.chunk_count_label.setText(
-            f"Chunks (max {config.MAX_CHUNK_SIZE} chars): {num_chunks}"
-        )
-        # logger.debug(f"Updated counts: chars={char_count}, chunks={num_chunks}") # Too noisy for debug usually
+        self.chunk_count_label.setText(f"Chunks (max {config.MAX_CHUNK_SIZE} chars): {num_chunks}")
+        # logger.debug("Updated counts: chars=%d, chunks=%d", char_count, num_chunks)
 
     @pyqtSlot()
     def update_instructions_enabled(self):
@@ -552,46 +704,59 @@ class TTSWindow(QMainWindow):
         self.progress_bar.setValue(value)
         # logger.debug(f"Progress bar updated to {value}%") # Can be noisy
 
-    # --- File Dialog ---
+    # --- Help / About ---
+    @pyqtSlot()
+    def _show_about(self):
+        # Keep menu-based About as a toast and navigate to the About page
+        self._show_message("About", f"{config.APP_NAME} {config.APP_VERSION}", level="info")
+        self._show_about_page()
 
+    def _show_about_page(self):
+        snap = config.env_snapshot()
+        ffv = get_ffmpeg_version()
+        text = (
+            f"{config.APP_NAME} {config.APP_VERSION}\n\n"
+            f"Python: {snap.get('python')}\n"
+            f"Platform: {snap.get('platform')}\n"
+            f"OpenAI: {snap.get('openai')}\n"
+            f"PyQt6: {snap.get('pyqt6')}\n"
+            f"FFmpeg: {ffv}\n"
+            f"Log: {config.LOG_FILE}\n"
+            f"Data dir: {config.DATA_DIR}"
+        )
+        self.about_text.setPlainText(text)
+        self.stack.setCurrentWidget(self.about_page)
+
+    # ------- Methods merged from the duplicate class definition -------
     @pyqtSlot()
     def select_save_path(self):
         """Opens a dialog to select the output file save path."""
         selected_format = self.format_combo.currentText()
-        file_filter = config.FORMAT_FILTER_MAP.get(
-            selected_format, config.FORMAT_FILTER_MAP["all"]
-        )
+        file_filter = config.FORMAT_FILTER_MAP.get(selected_format, config.FORMAT_FILTER_MAP["all"])
+        current_path = self.path_entry.text()
+        start_dir = os.path.dirname(current_path) if current_path else config.DEFAULT_OUTPUT_DIR
+        os.makedirs(start_dir, exist_ok=True)
+
         default_ext = config.FORMAT_EXTENSION_MAP.get(selected_format, ".mp3")
         default_filename = f"output{default_ext}"
-
-        # Suggest directory based on current path if exists, else default
-        current_path = self.path_entry.text()
-        start_dir = os.path.dirname(current_path) if current_path else "."
-
-        # Construct default path for the dialog
         start_path = os.path.join(start_dir, default_filename)
 
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Save TTS Audio As",
-            start_path,  # Suggest a default name and location
+            start_path,
             file_filter,
         )
-
         if file_path:
-            # Ensure the selected file has the correct extension for the chosen format
             _, selected_ext = os.path.splitext(file_path)
             required_ext = config.FORMAT_EXTENSION_MAP.get(selected_format, ".mp3")
             if selected_ext.lower() != required_ext.lower():
                 file_path = os.path.splitext(file_path)[0] + required_ext
                 logger.info(f"Corrected file extension to {required_ext}")
-
             self.path_entry.setText(file_path)
             logger.info(f"Selected save path: {file_path}")
         else:
             logger.info("Save path selection cancelled.")
-
-    # --- Preset Dialog ---
 
     @pyqtSlot()
     def open_preset_dialog(self):
@@ -599,23 +764,17 @@ class TTSWindow(QMainWindow):
         logger.info("Opening preset management dialog.")
         current_instructions = self.instructions_edit.toPlainText()
         dialog = PresetDialog(current_instructions, self)
-        dialog.preset_selected.connect(self._apply_preset)  # Connect signal
+        dialog.preset_selected.connect(self._apply_preset)
         dialog.exec()
 
-    @pyqtSlot(str)
     def _apply_preset(self, instructions: str):
         """Applies the loaded preset instructions to the text box."""
         self.instructions_edit.setPlainText(instructions)
         logger.info("Applied selected preset instructions.")
 
-    # --- TTS Creation Logic ---
-
-    @pyqtSlot()
     def start_tts_creation(self):
         """Validates inputs and starts the TTS generation process."""
         logger.info("TTS creation requested.")
-
-        # 1. Check API Key
         if not self._api_key:
             logger.error("TTS aborted: No API key available.")
             self._show_message(
@@ -624,8 +783,6 @@ class TTSWindow(QMainWindow):
                 level="warning",
             )
             return
-
-        # 2. Check Text Input
         text_to_speak = self.text_edit.toPlainText().strip()
         if not text_to_speak:
             logger.warning("TTS aborted: Text input is empty.")
@@ -635,59 +792,52 @@ class TTSWindow(QMainWindow):
                 level="warning",
             )
             return
-
-        # 3. Check Save Path
         output_path = self.path_entry.text().strip()
         if not output_path:
-            logger.warning("TTS aborted: Output file path is empty.")
-            self._show_message(
-                "Invalid Path",
-                "Please select a valid file path to save the audio.",
-                level="warning",
-            )
-            return
-
-        # Ensure output directory exists or can be created
+            selected_format = self.format_combo.currentText()
+            default_ext = config.FORMAT_EXTENSION_MAP.get(selected_format, ".mp3")
+            output_dir = config.DEFAULT_OUTPUT_DIR
+            os.makedirs(output_dir, exist_ok=True)
+            output_path = os.path.join(output_dir, f"output{default_ext}")
+            self.path_entry.setText(output_path)
+            logger.info("No path provided; defaulting to %s", output_path)
         output_dir = os.path.dirname(output_path)
         if output_dir and not os.path.exists(output_dir):
             try:
                 os.makedirs(output_dir, exist_ok=True)
                 logger.info(f"Created output directory: {output_dir}")
             except OSError as e:
-                logger.error(
-                    f"TTS aborted: Failed to create output directory '{output_dir}': {e}"
-                )
+                logger.error(f"TTS aborted: Failed to create output directory '{output_dir}': {e}")
                 self._show_message(
                     "Directory Error",
                     f"Could not create the output directory:\n{e}",
                     level="critical",
                 )
                 return
-
-        # 4. Validate Speed
         try:
             speed_float = float(self.speed_input.text().strip())
             if not (config.MIN_SPEED <= speed_float <= config.MAX_SPEED):
                 raise ValueError("Speed out of range")
-            logger.debug(f"Speed input parsed: {speed_float}")
         except ValueError:
             logger.warning(
-                f"Invalid speed input '{self.speed_input.text()}'. Using default {config.DEFAULT_SPEED}."
+                "Invalid speed input '%s'. Using default %s.",
+                self.speed_input.text(),
+                config.DEFAULT_SPEED,
             )
             self._show_message(
                 "Invalid Speed",
-                f"Speed must be a number between {config.MIN_SPEED} and {config.MAX_SPEED}. Using {config.DEFAULT_SPEED}.",
+                (
+                    f"Speed must be a number between {config.MIN_SPEED} and "
+                    f"{config.MAX_SPEED}. Using {config.DEFAULT_SPEED}."
+                ),
                 level="warning",
             )
             speed_float = config.DEFAULT_SPEED
-            self.speed_input.setText(str(speed_float))  # Correct the UI
-
-        # 5. Gather all parameters
+            self.speed_input.setText(str(speed_float))
         selected_model = self.model_combo.currentText()
         instructions_text = ""
         if selected_model == config.GPT_4O_MINI_TTS_MODEL:
             instructions_text = self.instructions_edit.toPlainText().strip()
-
         params = {
             "api_key": self._api_key,
             "text": text_to_speak,
@@ -699,17 +849,11 @@ class TTSWindow(QMainWindow):
             "instructions": instructions_text,
             "retain_files": self.retain_files_action.isChecked(),
         }
-        logger.info(
-            f"Starting TTS process with parameters: { {k: v if k != 'api_key' else '***' for k,v in params.items()} }"
-        )  # Log params safely
-
-        # 6. Disable UI elements and start processing
+        params_redacted = {k: ("***" if k == "api_key" else v) for k, v in params.items()}
+        logger.info("Starting TTS with parameters: %s", params_redacted)
         self._set_ui_enabled(False)
-        self.progress_bar.setValue(0)  # Reset progress bar
-
-        # Create and start the TTS processor thread
+        self.progress_bar.setValue(0)
         self.tts_processor = TTSProcessor(params)
-        # Connect signals from this specific processor instance
         self.tts_processor.progress_updated.connect(self.progress_updated.emit)
         self.tts_processor.tts_complete.connect(self.tts_complete.emit)
         self.tts_processor.tts_error.connect(self.tts_error.emit)
@@ -724,67 +868,66 @@ class TTSWindow(QMainWindow):
         self.format_combo.setEnabled(enabled)
         self.instructions_edit.setEnabled(
             enabled and self.model_combo.currentText() == config.GPT_4O_MINI_TTS_MODEL
-        )  # Keep instruction logic
+        )
         self.manage_presets_button.setEnabled(
             enabled and self.model_combo.currentText() == config.GPT_4O_MINI_TTS_MODEL
         )
         self.path_entry.setEnabled(enabled)
         self.select_path_button.setEnabled(enabled)
         self.create_button.setEnabled(enabled)
-        # Maybe disable menu items too?
-        self.menuBar().setEnabled(enabled)
-
-    # --- TTS Process Callbacks ---
+        with suppress(Exception):
+            self.menuBar().setEnabled(enabled)
 
     @pyqtSlot(str)
     def _handle_tts_success(self, message: str):
-        """Handles the successful completion of the TTS process."""
+        """Handles successful completion of the TTS process."""
         logger.info(f"TTS process completed successfully: {message}")
         self._set_ui_enabled(True)
-        self.progress_bar.setValue(100)  # Ensure it reaches 100%
+        self.progress_bar.setValue(100)
         self._show_message("TTS Complete", message, level="info")
+        try:
+            mb = MessageBox("Open Folder?", "Open the output folder now?", self)
+            if mb.exec() == 1:
+                self._open_containing_folder(self.path_entry.text().strip())
+        except Exception:
+            pass
 
     @pyqtSlot(str)
     def _handle_tts_error(self, error_message: str):
         """Handles errors that occurred during the TTS process."""
         logger.error(f"TTS process failed: {error_message}")
         self._set_ui_enabled(True)
-        self.progress_bar.setValue(0)  # Reset progress on error
-        # Add more detail to error messages if possible
-        self._show_message(
-            "TTS Error", f"An error occurred:\n{error_message}", level="critical"
-        )
-
-    # --- Utility Methods ---
+        self.progress_bar.setValue(0)
+        self._show_message("TTS Error", f"An error occurred:\n{error_message}", level="critical")
 
     def _show_message(self, title: str, message: str, level: str = "info"):
-        """Displays a message box with appropriate icon."""
-        logger.info(
-            f"Displaying message box: Title='{title}', Level='{level}', Message='{message[:100]}...'"
-        )
-        if level == "info":
-            QMessageBox.information(self, title, message)
-        elif level == "warning":
-            QMessageBox.warning(self, title, message)
-        elif level == "critical":
-            QMessageBox.critical(self, title, message)
-        else:
-            QMessageBox.information(self, title, message)  # Default to info
+        """Displays a Fluent InfoBar with appropriate style."""
+        _show_infobar(self, title, message, level)
+
+    def _open_containing_folder(self, path: str):
+        """Open the OS file manager at the output folder."""
+        try:
+            folder = os.path.dirname(path) or "."
+            if sys.platform.startswith("win"):
+                os.startfile(folder)  # type: ignore[attr-defined]
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", folder])
+            else:
+                subprocess.Popen(["xdg-open", folder])
+        except Exception as e:
+            logger.warning("Failed to open folder: %s", e)
 
     def closeEvent(self, event):
-        """Handle window close event."""
-        # Optional: Add confirmation if TTS is running
-        if self.tts_processor and self.tts_processor.isRunning():
-            reply = QMessageBox.question(
-                self,
+        """Handle window close event safely even if no processor was created."""
+        proc = getattr(self, "tts_processor", None)
+        if proc is not None and hasattr(proc, "isRunning") and proc.isRunning():
+            mb = MessageBox(
                 "Confirm Exit",
                 "TTS generation is in progress. Are you sure you want to exit?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No,
+                self,
             )
-            if reply == QMessageBox.StandardButton.Yes:
+            if mb.exec() == 1:
                 logger.info("User confirmed exit during active TTS process.")
-                # Optionally try to stop the thread gracefully if implemented
                 event.accept()
             else:
                 event.ignore()
@@ -792,3 +935,48 @@ class TTSWindow(QMainWindow):
         else:
             logger.info("Application closing.")
             event.accept()
+
+
+# --- Helpers (Fluent notifications) ---
+def _show_infobar(parent, title: str, message: str, level: str = "info"):
+    """Show a transient InfoBar in the top-right corner."""
+    level = (level or "info").lower()
+    try:
+        if level in ("success", "ok", "info"):
+            InfoBar.success(
+                title,
+                message,
+                parent=parent,
+                position=InfoBarPosition.TOP_RIGHT,
+                duration=3500,
+                closable=True,
+            )
+        elif level in ("warning", "warn"):
+            InfoBar.warning(
+                title,
+                message,
+                parent=parent,
+                position=InfoBarPosition.TOP_RIGHT,
+                duration=4500,
+                closable=True,
+            )
+        else:
+            InfoBar.error(
+                title,
+                message,
+                parent=parent,
+                position=InfoBarPosition.TOP_RIGHT,
+                duration=6000,
+                closable=True,
+            )
+    except Exception:
+        # Fallback to modal message boxes if InfoBar fails
+        try:
+            if level in ("success", "ok", "info"):
+                QMessageBox.information(parent, title, message)
+            elif level in ("warning", "warn"):
+                QMessageBox.warning(parent, title, message)
+            else:
+                QMessageBox.critical(parent, title, message)
+        except Exception:
+            pass

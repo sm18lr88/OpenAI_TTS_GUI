@@ -1,14 +1,30 @@
-import os
-import time
 import logging
+import os
+import random
 import subprocess
+import sys
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from openai import (
+    APIConnectionError,
+    APIError,
+    APITimeoutError,
+    OpenAI,
+    OpenAIError,
+    RateLimitError,
+)
 from PyQt6.QtCore import QThread, pyqtSignal
-from openai import OpenAI, RateLimitError, APIError, OpenAIError
 
-import config  # Import configuration
-from utils import split_text, concatenate_audio_files, cleanup_files
+import config
+from utils import (
+    cleanup_files,
+    concatenate_audio_files,
+    sha256_text,
+    split_text,
+    write_sidecar_metadata,
+)
 
-# Setup logger for this module
 logger = logging.getLogger(__name__)
 
 
@@ -32,9 +48,15 @@ class TTSProcessor(QThread):
         """The main execution method for the thread."""
         logger.info("TTSProcessor thread started.")
         try:
-            self.client = OpenAI(
-                api_key=self.params["api_key"]
-            )  # Initialize client here
+            # Initialize client here with timeout and optional base URL
+            # Timeout docs: https://pypi.org/project/openai/ (Timeouts section)
+            kwargs = {
+                "api_key": self.params["api_key"],
+                "timeout": getattr(config, "OPENAI_TIMEOUT", 60.0),
+            }
+            if getattr(config, "OPENAI_BASE_URL", None):
+                kwargs["base_url"] = config.OPENAI_BASE_URL
+            self.client = OpenAI(**kwargs)
 
             text = self.params["text"]
             output_path = self.params["output_path"]
@@ -54,55 +76,96 @@ class TTSProcessor(QThread):
             logger.info(f"Processing {total_chunks} text chunks.")
             self.progress_updated.emit(1)  # Indicate start
 
-            output_dir = os.path.dirname(output_path)
+            # Ensure output directory exists for chunk files & final output
+            output_dir = os.path.dirname(output_path) or "."
+            os.makedirs(output_dir, exist_ok=True)
             base_filename = os.path.splitext(os.path.basename(output_path))[0]
 
             # Process each chunk
-            for i, chunk in enumerate(chunks):
-                chunk_start_time = time.time()
-                logger.info(f"Processing chunk {i+1}/{total_chunks}...")
-
-                temp_filename = os.path.join(
-                    output_dir, f"{base_filename}_chunk_{i+1}.{response_format}"
-                )
-                self.temp_files.append(temp_filename)
-
-                success = self._save_chunk_with_retries(
-                    chunk,
-                    temp_filename,
-                    model,
-                    voice,
-                    response_format,
-                    speed,
-                    instructions,
-                )
-
-                if not success:
-                    # Error message handled within _save_chunk_with_retries
-                    # No need to emit another error here, just stop.
-                    return  # Exit the run method
-
-                chunk_duration = time.time() - chunk_start_time
-                logger.info(f"Chunk {i+1} processed in {chunk_duration:.2f} seconds.")
-
-                # Update progress (avoid reaching 100% until concatenation)
-                progress = int(
-                    ((i + 1) / total_chunks) * 95
-                )  # Cap at 95% before concat
-                self.progress_updated.emit(progress)
+            chunk_meta = []
+            if getattr(config, "PARALLELISM", 1) > 1:
+                logger.info("Parallel chunk generation enabled: %d", config.PARALLELISM)
+                files_by_idx = {}
+                for i, chunk in enumerate(chunks, start=1):
+                    temp_filename = os.path.join(
+                        output_dir, f"{base_filename}_chunk_{i}.{response_format}"
+                    )
+                    self.temp_files.append(temp_filename)
+                    files_by_idx[i] = (chunk, temp_filename)
+                completed = 0
+                with ThreadPoolExecutor(max_workers=config.PARALLELISM) as ex:
+                    fut_map = {
+                        ex.submit(
+                            self._save_chunk_with_retries,
+                            chunk,
+                            fname,
+                            model,
+                            voice,
+                            response_format,
+                            speed,
+                            instructions,
+                            chunk_meta,
+                        ): i
+                        for i, (chunk, fname) in files_by_idx.items()
+                    }
+                    for fut in as_completed(fut_map):
+                        ok = fut.result()
+                        if not ok:
+                            return
+                        completed += 1
+                        self.progress_updated.emit(int((completed / total_chunks) * 95))
+            else:
+                for i, chunk in enumerate(chunks, start=1):
+                    chunk_start_time = time.time()
+                    logger.info(f"Processing chunk {i}/{total_chunks}...")
+                    temp_filename = os.path.join(
+                        output_dir, f"{base_filename}_chunk_{i}.{response_format}"
+                    )
+                    self.temp_files.append(temp_filename)
+                    success = self._save_chunk_with_retries(
+                        chunk,
+                        temp_filename,
+                        model,
+                        voice,
+                        response_format,
+                        speed,
+                        instructions,
+                        chunk_meta,
+                    )
+                    if not success:
+                        return
+                    chunk_duration = time.time() - chunk_start_time
+                    logger.info("Chunk %d processed in %.2f seconds.", i, chunk_duration)
+                    self.progress_updated.emit(int((i / total_chunks) * 95))
 
             # Concatenate audio files
             logger.info("Concatenating audio chunks...")
             concatenate_audio_files(self.temp_files, output_path)
             self.progress_updated.emit(100)  # Signal completion
             logger.info(f"TTS generation complete. Output saved to: {output_path}")
+            # Sidecar metadata for reproducibility
+            sidecar = {
+                "app": config.env_snapshot(),
+                "model": model,
+                "voice": voice,
+                "response_format": response_format,
+                "speed": speed,
+                "instructions_hash": sha256_text(instructions or ""),
+                "chunk_size": config.MAX_CHUNK_SIZE,
+                "retain_files": retain_files,
+                "request_meta": chunk_meta,
+            }
+            try:
+                write_sidecar_metadata(output_path, sidecar)
+            except Exception as se:
+                logger.warning(f"Failed to write sidecar metadata: {se}")
             self.tts_complete.emit(f"TTS audio saved successfully to:\n{output_path}")
 
         except (
+            OSError,
             ValueError,
             FileNotFoundError,
             subprocess.CalledProcessError,
-            IOError,
         ) as e:  # <--- Error was caught here
             logger.exception(f"Error during TTS processing setup or concatenation: {e}")
             self.tts_error.emit(f"Processing failed: {e}")
@@ -128,6 +191,7 @@ class TTSProcessor(QThread):
         response_format: str,
         speed: float,
         instructions: str | None,
+        chunk_meta_accum: list,
     ) -> bool:
         """Attempts to generate and save a single TTS chunk with retries."""
         logger.info(f"Attempting to generate audio for chunk, saving to {filename}")
@@ -147,29 +211,58 @@ class TTSProcessor(QThread):
         for attempt in range(config.MAX_RETRIES):
             try:
                 logger.debug(
-                    f"API call attempt {attempt + 1}/{config.MAX_RETRIES} for {os.path.basename(filename)}"
+                    "API call attempt %d/%d for %s",
+                    attempt + 1,
+                    config.MAX_RETRIES,
+                    os.path.basename(filename),
                 )
                 start_time = time.time()
 
-                response = self.client.audio.speech.create(**api_params)
+                # Prefer streaming-to-file for better memory behavior
+                with self.client.audio.speech.with_streaming_response.create(
+                    **api_params
+                ) as response:
+                    # extract headers / ids if available
+                    req_id = None
+                    model_hdr = None
+                    try:
+                        hdrs = getattr(response, "response", None)
+                        if hdrs and getattr(hdrs, "headers", None):
+                            req_id = hdrs.headers.get("x-request-id")
+                            model_hdr = hdrs.headers.get("openai-model")
+                    except Exception:
+                        pass
+                    response.stream_to_file(filename)
+                if req_id or model_hdr:
+                    chunk_meta_accum.append(
+                        {"request_id": req_id, "model_header": model_hdr, "file": filename}
+                    )
 
                 api_call_duration = time.time() - start_time
                 logger.debug(f"API call successful in {api_call_duration:.2f} seconds.")
-
-                # Write the audio content to the file
-                with open(filename, "wb") as file:
-                    # response.stream_to_file(filename) # Efficient way if available/needed
-                    file.write(response.content)
 
                 logger.info(f"Successfully saved chunk to {filename}")
                 return True
 
             except RateLimitError as e:
-                wait_time = config.RETRY_DELAY * (attempt + 1)  # Simple linear backoff
+                wait_time = _compute_backoff(e, attempt)
                 logger.warning(
-                    f"Rate limit hit on attempt {attempt + 1}. Retrying in {wait_time} seconds... Error: {e}"
+                    "Rate limit on attempt %d. Retrying in %.2fs... Error: %s",
+                    attempt + 1,
+                    wait_time,
+                    e,
                 )
                 time.sleep(wait_time)  # Wait before retrying
+
+            except (APITimeoutError, APIConnectionError) as e:
+                wait_time = _compute_backoff(e, attempt)
+                logger.warning(
+                    "Timeout/connection issue on attempt %d. Retrying in %.2fs... Error: %s",
+                    attempt + 1,
+                    wait_time,
+                    e,
+                )
+                time.sleep(wait_time)
 
             except APIError as e:
                 # Catch other specific API errors (e.g., server error, bad request)
@@ -178,15 +271,13 @@ class TTSProcessor(QThread):
                 )
                 # Decide if retryable. 5xx errors might be, 4xx usually not.
                 if e.status_code >= 500 and attempt < config.MAX_RETRIES - 1:
-                    wait_time = config.RETRY_DELAY * (attempt + 1)
+                    wait_time = _compute_backoff(e, attempt)
                     logger.warning(
-                        f"Server error likely transient. Retrying in {wait_time} seconds..."
+                        f"Server error likely transient. Retrying in {wait_time:.2f}s..."
                     )
                     time.sleep(wait_time)
                 else:
-                    self.tts_error.emit(
-                        f"API Error: {e.message} (Status code: {e.status_code})"
-                    )
+                    self.tts_error.emit(f"API Error: {e.message} (Status code: {e.status_code})")
                     return False  # Non-retryable or final attempt failed
 
             except OpenAIError as e:  # Catch broader OpenAI errors
@@ -195,7 +286,7 @@ class TTSProcessor(QThread):
                 self.tts_error.emit(f"OpenAI Error: {e}")
                 return False
 
-            except IOError as e:
+            except OSError as e:
                 logger.exception(
                     f"File I/O error saving chunk {filename} on attempt {attempt+1}: {e}"
                 )
@@ -211,10 +302,67 @@ class TTSProcessor(QThread):
                 return False  # Unexpected error, stop processing
 
         # If loop finishes without returning True, all retries failed
-        logger.error(
-            f"Failed to save chunk {filename} after {config.MAX_RETRIES} attempts."
-        )
+        logger.error(f"Failed to save chunk {filename} after {config.MAX_RETRIES} attempts.")
         self.tts_error.emit(
-            f"Failed to generate audio chunk after multiple retries. See logs for details."
+            "Failed to generate audio chunk after multiple retries. See logs for details."
         )
         return False
+
+
+def _compute_backoff(e: Exception, attempt: int) -> float:
+    """Exponential backoff with jitter and Retry-After honor when available."""
+    # Retry-After (seconds) if provided
+    try:
+        resp = getattr(e, "response", None)
+        if resp and getattr(resp, "headers", None):
+            ra = resp.headers.get("retry-after")
+            if ra:
+                try:
+                    return float(ra)
+                except ValueError:
+                    pass
+    except Exception:
+        pass
+    base = max(1.0, float(getattr(config, "RETRY_DELAY", 5)))
+    # exponential: base * 2^attempt plus jitter up to 20% of that
+    delay = base * (2**attempt)
+    jitter = random.uniform(0, 0.2 * delay)
+    return delay + jitter
+
+
+if __name__ == "__main__":
+    # Simple CLI passthrough (kept minimal; use cli.py entry point for full CLI)
+    import argparse
+
+    from utils import read_api_key
+
+    parser = argparse.ArgumentParser(description="OpenAI TTS (module mode)")
+    parser.add_argument("--in", dest="infile", required=True, help="Input text file")
+    parser.add_argument("--out", dest="outfile", required=True, help="Output audio path")
+    parser.add_argument("--model", default="tts-1")
+    parser.add_argument("--voice", default="alloy")
+    parser.add_argument("--format", default="mp3")
+    parser.add_argument("--speed", type=float, default=1.0)
+    parser.add_argument("--instructions", default="")
+    args = parser.parse_args()
+
+    api_key = read_api_key()
+    if not api_key:
+        print("Missing OPENAI API key.", file=sys.stderr)
+        sys.exit(1)
+    with open(args.infile, encoding="utf-8") as f:
+        text = f.read()
+    params = {
+        "api_key": api_key,
+        "text": text,
+        "output_path": args.outfile,
+        "model": args.model,
+        "voice": args.voice,
+        "response_format": args.format,
+        "speed": float(args.speed),
+        "instructions": args.instructions,
+        "retain_files": False,
+    }
+    # Run in the current thread (synchronous) using same helpers
+    tp = TTSProcessor(params)
+    tp.run()

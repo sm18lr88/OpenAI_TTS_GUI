@@ -1,11 +1,63 @@
 [project]
 name = "OpenAI_TTS_GUI"
-version = "0.4.0"
+version = "0.7.0"
 description = "GUI for OpenAI's TTS"
 readme = "README.md"
 requires-python = ">=3.10"
+authors = [{ name = "sm18lr88", email = "smgithub@fastmail.us" }]
+urls = { Homepage = "https://github.com/sm18lr88/OpenAI_TTS_GUI" }
+# Main production dependencies
 dependencies = [
-    "logging>=0.4.9.6",
-    "openai>=1.69.0",
-    "pyqt6>=6.8.1",
+    "openai>=1.69,<2",
+    "pyqt6>=6.8,<7",
+    "PyQt6-Fluent-Widgets[full]>=1.4,<2",
+    "keyring>=24,<26",
+    "platformdirs>=4.2,<6",
 ]
+
+[project.scripts]
+openai-tts = "cli:main"
+
+# Standard location for all optional dependencies, including development tools
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "pytest-qt>=4.4",
+  "pytest-cov>=5.0",
+  "pytest-benchmark>=5.1",
+  "pytest-mock>=3.14",
+  "pytest-timeout>=2.3",
+  "pytest-xdist>=3.6",
+  "ruff>=0.5",
+  "black>=24.8",
+  "mypy>=1.10",
+  "pyinstaller>=6.10",
+  "pyinstrument>=5.1",
+  "py-spy>=0.3.14",
+]
+
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["cli", "config", "gui", "main", "tts", "utils"]
+
+# --- Tool Configurations ---
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-q --import-mode=importlib" # importlib mode is often more robust
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+lint.select = ["E","F","I","UP","B","SIM"] # A good, modern default set
+
+[tool.black]
+line-length = 100
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
