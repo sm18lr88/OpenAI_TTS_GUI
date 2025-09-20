@@ -1,7 +1,7 @@
 import types
 
-import config
-from tts import _compute_backoff
+from openai_tts_gui import config
+from openai_tts_gui.tts import _compute_backoff
 
 
 class DummyResp:
@@ -22,7 +22,7 @@ def test_backoff_honors_retry_after():
 
 def test_backoff_exponential_no_jitter(monkeypatch):
     # Remove jitter for determinism
-    monkeypatch.setattr("tts.random.uniform", lambda a, b: 0.0)
+    monkeypatch.setattr("openai_tts_gui.tts.random.uniform", lambda a, b: 0.0)
     base = max(1.0, float(getattr(config, "RETRY_DELAY", 5)))
     # attempt 0 -> base * 2**0
     assert _compute_backoff(DummyErr(), 0) == base

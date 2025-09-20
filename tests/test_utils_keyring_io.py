@@ -1,5 +1,4 @@
-import config
-import utils
+from openai_tts_gui import config, utils
 
 
 def test_save_and_read_api_key_via_keyring(monkeypatch, tmp_path):

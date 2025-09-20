@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from tts import TTSProcessor
+from openai_tts_gui.tts import TTSProcessor
 
 
 def test_tts_run_happy_no_network(monkeypatch, tmp_path):
@@ -25,7 +25,8 @@ def test_tts_run_happy_no_network(monkeypatch, tmp_path):
 
     # Concatenation -> just write the output file
     monkeypatch.setattr(
-        "tts.concatenate_audio_files", lambda files, outp: Path(outp).write_bytes(b"\x00")
+        "openai_tts_gui.tts.concatenate_audio_files",
+        lambda files, outp: Path(outp).write_bytes(b"\x00"),
     )
     monkeypatch.setattr(TTSProcessor, "_save_chunk_with_retries", fake_save, raising=True)
 

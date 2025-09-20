@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from cli import main as cli_main
+from openai_tts_gui.cli import main as cli_main
 
 
 def test_cli_happy_path(monkeypatch, tmp_path):
@@ -9,7 +9,7 @@ def test_cli_happy_path(monkeypatch, tmp_path):
     infile.write_text("hello world", encoding="utf-8")
 
     # Pretend we have a valid API key
-    monkeypatch.setattr("utils.read_api_key", lambda: "sk-test-123")
+    monkeypatch.setattr("openai_tts_gui.utils.read_api_key", lambda: "sk-test-123")
 
     # Stub the TTSProcessor to avoid network and to create an output file
     class DummyTP:
@@ -20,7 +20,7 @@ def test_cli_happy_path(monkeypatch, tmp_path):
             Path(self.params["output_path"]).parent.mkdir(parents=True, exist_ok=True)
             Path(self.params["output_path"]).write_bytes(b"fake-audio")
 
-    monkeypatch.setattr("cli.TTSProcessor", DummyTP)
+    monkeypatch.setattr("openai_tts_gui.cli.TTSProcessor", DummyTP)
 
     rc = cli_main(["--in", str(infile), "--out", str(outfile)])
     assert rc == 0

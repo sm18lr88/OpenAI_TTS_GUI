@@ -17,7 +17,7 @@ except Exception:
     keyring = None
     _KEYRING_AVAILABLE = False
 
-import config  # Import the configuration
+from . import config  # Import the configuration
 
 # Setup logger for this module
 logger = logging.getLogger(__name__)

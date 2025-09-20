@@ -3,11 +3,11 @@ import sys
 
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
-import config
+from . import config
 
 # Now import GUI after config is available
-from gui import TTSWindow
-from utils import preflight_check
+from .gui import TTSWindow
+from .utils import preflight_check
 
 
 # --- Compatibility shim: provide Theme/setTheme so tests can monkeypatch them

@@ -16,8 +16,8 @@ from openai import (
 )
 from PyQt6.QtCore import QThread, pyqtSignal
 
-import config
-from utils import (
+from . import config
+from .utils import (
     cleanup_files,
     concatenate_audio_files,
     sha256_text,

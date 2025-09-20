@@ -1,0 +1,2 @@
+[console_scripts]
+openai-tts = openai_tts_gui.cli:main

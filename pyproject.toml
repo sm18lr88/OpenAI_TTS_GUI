@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-openai-tts = "cli:main"
+openai-tts = "openai_tts_gui.cli:main"
 
 # Standard location for all optional dependencies, including development tools
 [project.optional-dependencies]
@@ -40,7 +40,10 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["cli", "config", "gui", "main", "tts", "utils"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 # --- Tool Configurations ---
 
@@ -48,6 +51,7 @@ py-modules = ["cli", "config", "gui", "main", "tts", "utils"]
 minversion = "7.0"
 addopts = "-q --import-mode=importlib" # importlib mode is often more robust
 testpaths = ["tests"]
+pythonpath = ["src"]
 
 [tool.ruff]
 line-length = 100

@@ -15,8 +15,8 @@ import tempfile
 import wave
 from pathlib import Path
 
-import config
-from utils import concatenate_audio_files, split_text
+from openai_tts_gui import config
+from openai_tts_gui.utils import concatenate_audio_files, split_text
 
 
 def _mk_text(chars=400_000) -> str:
