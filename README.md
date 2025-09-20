@@ -3,7 +3,7 @@
 * Easily use high quality, cheap TTS.
 * Long text is supported. 
 
-<image src='https://github.com/user-attachments/assets/8d54652f-b856-4e86-8d65-9c866285a02d' width='650'>
+<image src='https://github.com/user-attachments/assets/6a70fa4f-d127-4c9f-bb70-66165e5b5a7b' width='900'>
 
 ## Features
 
