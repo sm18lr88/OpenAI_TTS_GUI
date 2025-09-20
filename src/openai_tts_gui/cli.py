@@ -1,9 +1,8 @@
 import argparse
 import sys
 
-import config
-import utils
-from tts import TTSProcessor
+from . import config, utils
+from .tts import TTSProcessor
 
 
 def main(argv=None):

@@ -1,9 +1,8 @@
 import random
 
 import pytest
-
-import config
-from utils import split_text
+from openai_tts_gui import config
+from openai_tts_gui.utils import split_text
 
 
 def test_empty_returns_empty_list():

@@ -1,3 +1,30 @@
+Metadata-Version: 2.4
+Name: OpenAI_TTS_GUI
+Version: 0.7.0
+Summary: GUI for OpenAI's TTS
+Author-email: sm18lr88 <smgithub@fastmail.us>
+Project-URL: Homepage, https://github.com/sm18lr88/OpenAI_TTS_GUI
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: openai<2,>=1.69
+Requires-Dist: pyqt6<7,>=6.8
+Requires-Dist: keyring<26,>=24
+Requires-Dist: platformdirs<6,>=4.2
+Provides-Extra: dev
+Requires-Dist: pytest>=8.3; extra == "dev"
+Requires-Dist: pytest-qt>=4.4; extra == "dev"
+Requires-Dist: pytest-cov>=5.0; extra == "dev"
+Requires-Dist: pytest-benchmark>=5.1; extra == "dev"
+Requires-Dist: pytest-mock>=3.14; extra == "dev"
+Requires-Dist: pytest-timeout>=2.3; extra == "dev"
+Requires-Dist: pytest-xdist>=3.6; extra == "dev"
+Requires-Dist: ruff>=0.5; extra == "dev"
+Requires-Dist: black>=24.8; extra == "dev"
+Requires-Dist: mypy>=1.10; extra == "dev"
+Requires-Dist: pyinstaller>=6.10; extra == "dev"
+Requires-Dist: pyinstrument>=5.1; extra == "dev"
+Requires-Dist: py-spy>=0.3.14; extra == "dev"
+
 # OpenAI TTS GUI
 
 * Easily use high quality, cheap TTS.

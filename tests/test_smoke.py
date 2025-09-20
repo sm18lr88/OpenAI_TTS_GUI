@@ -5,8 +5,7 @@ import tempfile
 import wave
 
 import pytest
-
-from utils import concatenate_audio_files, preflight_check, split_text
+from openai_tts_gui.utils import concatenate_audio_files, preflight_check, split_text
 
 
 def test_chunker_roundtrip():

@@ -1,4 +1,4 @@
-from gui import TTSWindow
+from openai_tts_gui.gui import TTSWindow
 
 
 def test_window_boots(qtbot):

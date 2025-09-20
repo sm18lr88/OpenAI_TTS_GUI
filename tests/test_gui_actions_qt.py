@@ -1,5 +1,5 @@
-import config
-from gui import TTSWindow
+from openai_tts_gui import config
+from openai_tts_gui.gui import TTSWindow
 
 
 def test_update_instructions_toggle(qtbot):
@@ -40,7 +40,9 @@ def test_select_save_path_mocked_dialog(qtbot, monkeypatch, tmp_path):
     w.show()
     # Mock the dialog to return a specific path
     target = str(tmp_path / "chosen.wav")
-    monkeypatch.setattr("gui.QFileDialog.getSaveFileName", lambda *a, **k: (target, ""))
+    monkeypatch.setattr(
+        "openai_tts_gui.gui.QFileDialog.getSaveFileName", lambda *a, **k: (target, "")
+    )
     # Ensure format is wav so extension isn't changed
     idx = w.format_combo.findText("wav")
     w.format_combo.setCurrentIndex(idx)

@@ -3,7 +3,7 @@ import math
 import struct
 import wave
 
-from utils import concatenate_audio_files, read_api_key
+from openai_tts_gui.utils import concatenate_audio_files, read_api_key
 
 
 def _sine_wav(path, seconds=0.1, freq=440.0, rate=48000):
@@ -33,5 +33,5 @@ def test_read_api_key_prefers_env(monkeypatch, tmp_path):
     # Even if file exists, env var should win
     file = tmp_path / "api_key.enc"
     file.write_text("ignored\n", encoding="utf-8")
-    monkeypatch.setattr("utils.config.API_KEY_FILE", str(file))
+    monkeypatch.setattr("openai_tts_gui.utils.config.API_KEY_FILE", str(file))
     assert read_api_key() == "env_key"

@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 from contextlib import suppress
+from textwrap import dedent
 
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction, QDoubleValidator
@@ -23,14 +24,15 @@ from PyQt6.QtWidgets import (
     QSizePolicy,
     QSplitter,
     QStackedWidget,
+    QTextBrowser,
     QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
-import config
-from tts import TTSProcessor
-from utils import (
+from . import config
+from .tts import TTSProcessor
+from .utils import (
     get_ffmpeg_version,
     load_presets,
     read_api_key,
@@ -187,13 +189,23 @@ class TTSWindow(QMainWindow):
         splitter.addWidget(controls_widget)
         splitter.setSizes([int(self.height() * 0.6), int(self.height() * 0.4)])
 
-        # About page (simple stacked; we’ll switch via Help ▸ About)
+        # About page (simple stacked; we'll switch via Help -> About)
         self.about_page = QWidget()
         about_layout = QVBoxLayout(self.about_page)
-        about_layout.setContentsMargins(12, 12, 12, 12)
-        self.about_text = QTextEdit()
+        about_layout.setContentsMargins(24, 24, 24, 24)
+        about_layout.setSpacing(16)
+
+        self.about_text = QTextBrowser()
+        self.about_text.setOpenExternalLinks(True)
         self.about_text.setReadOnly(True)
         about_layout.addWidget(self.about_text)
+
+        back_row = QHBoxLayout()
+        back_row.addStretch()
+        self.about_back_button = QPushButton("Back to Application")
+        self.about_back_button.clicked.connect(self._show_main_page)
+        back_row.addWidget(self.about_back_button)
+        about_layout.addLayout(back_row)
 
         self.stack = QStackedWidget()
         self.stack.addWidget(splitter)
@@ -227,6 +239,7 @@ class TTSWindow(QMainWindow):
         # Help
         help_menu = menubar.addMenu("Help")
         help_menu.addAction(QAction("About", self, triggered=self._show_about_page))
+        help_menu.addAction(QAction("Back to Application", self, triggered=self._show_main_page))
 
     def _setup_text_area(self) -> QWidget:
         w = QWidget()
@@ -424,19 +437,55 @@ class TTSWindow(QMainWindow):
     @pyqtSlot()
     def _show_about_page(self):
         snap = config.env_snapshot()
-        ffv = get_ffmpeg_version()
-        text = (
-            f"{config.APP_NAME} {config.APP_VERSION}\n\n"
-            f"Python: {snap.get('python')}\n"
-            f"Platform: {snap.get('platform')}\n"
-            f"OpenAI: {snap.get('openai')}\n"
-            f"PyQt6: {snap.get('pyqt6')}\n"
-            f"FFmpeg: {ffv}\n"
-            f"Log: {config.LOG_FILE}\n"
-            f"Data dir: {config.DATA_DIR}"
-        )
-        self.about_text.setPlainText(text)
+        ffv = get_ffmpeg_version() or "Unavailable"
+        log_path = str(config.LOG_FILE)
+        data_dir = str(config.DATA_DIR)
+        text = dedent(
+            f"""
+            <h2>{config.APP_NAME} {config.APP_VERSION}</h2>
+            <p>
+                OpenAI TTS GUI converts text into speech via OpenAI's TTS service.
+                Fine-tune voices, models, and export formats without scripting.
+            </p>
+            <h3>Highlights</h3>
+            <ul>
+                <li>Pick an OpenAI voice, tweak speed, and export in your preferred format.</li>
+                <li>Save reusable instruction presets for guidance-capable models.</li>
+                <li>Monitor generation progress and optionally keep intermediate chunks.</li>
+            </ul>
+            <h3>Quick Tips</h3>
+            <ul>
+                <li>
+                    Add the API key under <em>API Key > Set/Update API Key</em> before generating.
+                </li>
+                <li>
+                    Use the preset manager to store prompt snippets for recurring work.
+                </li>
+                <li>
+                    See README.md for workflow examples and troubleshooting tips.
+                </li>
+            </ul>
+            <h3>Environment Details</h3>
+            <p>Helpful when reporting an issue or collaborating:</p>
+            <ul>
+                <li><strong>Python</strong>: {snap.get("python") or "Unknown"}</li>
+                <li><strong>Platform</strong>: {snap.get("platform") or "Unknown"}</li>
+                <li><strong>OpenAI</strong>: {snap.get("openai") or "Unknown"}</li>
+                <li><strong>PyQt6</strong>: {snap.get("pyqt6") or "Unknown"}</li>
+                <li><strong>FFmpeg</strong>: {ffv}</li>
+                <li><strong>Log File</strong>: <code>{log_path}</code></li>
+                <li><strong>Data Directory</strong>: <code>{data_dir}</code></li>
+            </ul>
+            """
+        ).strip()
+        self.about_text.setHtml(text)
         self.stack.setCurrentWidget(self.about_page)
+        self.about_back_button.setFocus()
+
+    @pyqtSlot()
+    def _show_main_page(self):
+        self.stack.setCurrentIndex(0)
+        self.text_edit.setFocus()
 
     # --- Actions ---
 

@@ -1,6 +1,5 @@
+import openai_tts_gui.main as main
 import pytest
-
-import main
 
 
 def test_main_starts_and_exits_cleanly(monkeypatch):

@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from utils import _parse_ffmpeg_semver, write_sidecar_metadata
+from openai_tts_gui.utils import _parse_ffmpeg_semver, write_sidecar_metadata
 
 
 def test_write_sidecar(tmp_path):
