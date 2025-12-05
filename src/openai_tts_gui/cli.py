@@ -1,4 +1,5 @@
 import argparse
+import logging
 import sys
 
 from . import config, utils
@@ -23,6 +24,12 @@ def main(argv=None):
     parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--instructions", default="")
     parser.add_argument("--retain-files", action="store_true")
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Set logging level for CLI run",
+    )
     # --version is handled early above; keep the flag so argparse doesn't error on unknown
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     args = parser.parse_args(argv)
@@ -47,6 +54,8 @@ def main(argv=None):
 
     with open(args.infile, encoding="utf-8") as f:
         text = f.read()
+
+    logging.basicConfig(level=getattr(logging, args.log_level))
 
     params = {
         "api_key": api_key,

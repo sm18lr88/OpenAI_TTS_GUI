@@ -18,7 +18,7 @@ if not exist .venv (
 )
 
 echo Syncing dependencies with uv...
-uv sync
+uv sync --locked
 if errorlevel 1 exit /b 1
 
 set "UV_PY=.venv\Scripts\python.exe"

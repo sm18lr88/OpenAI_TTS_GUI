@@ -16,7 +16,7 @@ if [ ! -d ".venv" ]; then
 fi
 
 echo "Syncing dependencies with uv..."
-uv sync
+uv sync --locked
 
 PY_MAC=".venv/bin/python"
 if [ ! -x "$PY_MAC" ]; then

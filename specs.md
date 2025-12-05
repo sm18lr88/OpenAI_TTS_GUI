@@ -3,7 +3,7 @@
 ## Inputs
 - Text: UTF-8 string (arbitrary length; split into chunks of `MAX_CHUNK_SIZE`).
 - Model: one of `config.TTS_MODELS`.
-- Voice: one of `config.TTS_VOICES`.
+- Voice: one of `config.TTS_VOICES` (alloy, ash, ballad, cedar, coral, echo, fable, marin, onyx, nova, sage, shimmer, verse).
 - Format: one of `config.TTS_FORMATS`.
 - Speed: float in [`MIN_SPEED`, `MAX_SPEED`].
 - Instructions: optional (applies only to `config.GPT_4O_MINI_TTS_MODEL`).
@@ -12,7 +12,7 @@
 ## Behavior
 1. Preflight: verify `ffmpeg` present and >= `FFMPEG_MIN_VERSION`.
 2. Split text into chunks honoring sentence boundaries when possible.
-3. For each chunk: call OpenAI audio.speech with streaming-to-file; exponential backoff with jitter; honor `Retry-After` when present.
+3. For each chunk: call OpenAI audio.speech with `stream_format="audio"` streaming-to-file; exponential backoff with jitter; honor `Retry-After` when present.
 4. Concatenate chunks with `ffmpeg -f concat`, forcing consistent output params:
    - sample rate `OUTPUT_SAMPLE_RATE`, channels `OUTPUT_CHANNELS`, bitrate `OUTPUT_BITRATE` (where applicable).
 5. On success: write sidecar JSON `<output>.json` with environment snapshot, parameters, and request IDs.
@@ -34,6 +34,7 @@
 
 ## Env / Versions
 - Snapshot fields: app name/version, Python, platform, `openai`, `PyQt6`, ffmpeg first line.
+- OpenAI Python SDK v2.9.0; PyQt6 v6.10.0.
 
 ## CLI
 `openai-tts --in text.txt --out out.mp3 --model tts-1 --voice alloy --format mp3 --speed 1.0`

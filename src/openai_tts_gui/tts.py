@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from openai import (
     APIConnectionError,
     APIError,
+    APIStatusError,
     APITimeoutError,
     OpenAI,
     OpenAIError,
@@ -37,6 +38,7 @@ class TTSProcessor(QThread):
     progress_updated = pyqtSignal(int)  # Percentage (0-100)
     tts_complete = pyqtSignal(str)  # Success message
     tts_error = pyqtSignal(str)  # Error message
+    status_update = pyqtSignal(str)  # Status / retry info
 
     def __init__(self, params: dict, parent=None):
         super().__init__(parent)
@@ -50,13 +52,16 @@ class TTSProcessor(QThread):
         try:
             # Initialize client here with timeout and optional base URL
             # Timeout docs: https://pypi.org/project/openai/ (Timeouts section)
-            kwargs = {
-                "api_key": self.params["api_key"],
-                "timeout": getattr(config, "OPENAI_TIMEOUT", 60.0),
-            }
-            if getattr(config, "OPENAI_BASE_URL", None):
-                kwargs["base_url"] = config.OPENAI_BASE_URL
-            self.client = OpenAI(**kwargs)
+            api_key_param = str(self.params.get("api_key") or "")
+            timeout_value = float(getattr(config, "OPENAI_TIMEOUT", 60.0))
+            base_url_value = (
+                config.OPENAI_BASE_URL if getattr(config, "OPENAI_BASE_URL", None) else None
+            )
+            self.client = OpenAI(
+                api_key=api_key_param or None,
+                timeout=timeout_value,
+                base_url=base_url_value,
+            )
 
             text = self.params["text"]
             output_path = self.params["output_path"]
@@ -153,6 +158,7 @@ class TTSProcessor(QThread):
                 "instructions_hash": sha256_text(instructions or ""),
                 "chunk_size": config.MAX_CHUNK_SIZE,
                 "retain_files": retain_files,
+                "stream_format": getattr(config, "STREAM_FORMAT", None),
                 "request_meta": chunk_meta,
             }
             try:
@@ -196,6 +202,10 @@ class TTSProcessor(QThread):
         """Attempts to generate and save a single TTS chunk with retries."""
         logger.info(f"Attempting to generate audio for chunk, saving to {filename}")
 
+        if self.client is None:
+            self.tts_error.emit("OpenAI client not initialized.")
+            return False
+
         # Prepare API call parameters
         api_params = {
             "model": model,
@@ -204,6 +214,9 @@ class TTSProcessor(QThread):
             "response_format": response_format,
             "speed": speed,
         }
+        stream_format = getattr(config, "STREAM_FORMAT", "audio")
+        if stream_format:
+            api_params["stream_format"] = stream_format
         # Only include instructions if the model supports it and they are provided
         if model == config.GPT_4O_MINI_TTS_MODEL and instructions:
             api_params["instructions"] = instructions
@@ -223,13 +236,15 @@ class TTSProcessor(QThread):
                     **api_params
                 ) as response:
                     # extract headers / ids if available
-                    req_id = None
+                    req_id = getattr(response, "request_id", None)
                     model_hdr = None
                     try:
-                        hdrs = getattr(response, "response", None)
-                        if hdrs and getattr(hdrs, "headers", None):
-                            req_id = hdrs.headers.get("x-request-id")
-                            model_hdr = hdrs.headers.get("openai-model")
+                        raw_resp = getattr(response, "response", None) or getattr(
+                            response, "http_response", None
+                        )
+                        if raw_resp and getattr(raw_resp, "headers", None):
+                            req_id = req_id or raw_resp.headers.get("x-request-id")
+                            model_hdr = raw_resp.headers.get("openai-model")
                     except Exception:
                         pass
                     response.stream_to_file(filename)
@@ -252,6 +267,7 @@ class TTSProcessor(QThread):
                     wait_time,
                     e,
                 )
+                self.status_update.emit(f"Rate limit; retrying in {wait_time:.1f}s")
                 time.sleep(wait_time)  # Wait before retrying
 
             except (APITimeoutError, APIConnectionError) as e:
@@ -262,23 +278,47 @@ class TTSProcessor(QThread):
                     wait_time,
                     e,
                 )
+                self.status_update.emit(f"Connection issue; retrying in {wait_time:.1f}s")
                 time.sleep(wait_time)
 
-            except APIError as e:
-                # Catch other specific API errors (e.g., server error, bad request)
+            except APIStatusError as e:
+                status = getattr(e, "status_code", None)
+                req_id = getattr(e, "request_id", None)
+                message = getattr(e, "message", str(e))
                 logger.error(
-                    f"OpenAI API error on attempt {attempt + 1}: {e.status_code} - {e.message}"
+                    "OpenAI API status error on attempt %d: %s %s (request id: %s)",
+                    attempt + 1,
+                    status,
+                    message,
+                    req_id,
                 )
                 # Decide if retryable. 5xx errors might be, 4xx usually not.
-                if e.status_code >= 500 and attempt < config.MAX_RETRIES - 1:
+                if status and status >= 500 and attempt < config.MAX_RETRIES - 1:
                     wait_time = _compute_backoff(e, attempt)
                     logger.warning(
-                        f"Server error likely transient. Retrying in {wait_time:.2f}s..."
+                        "Server error likely transient. Retrying in %.2fs (request id: %s)...",
+                        wait_time,
+                        req_id,
+                    )
+                    self.status_update.emit(
+                        f"Server error {status}; retrying in {wait_time:.1f}s"
                     )
                     time.sleep(wait_time)
                 else:
-                    self.tts_error.emit(f"API Error: {e.message} (Status code: {e.status_code})")
+                    detail = f"API Error: {message}"
+                    if status:
+                        detail += f" (Status code: {status})"
+                    if req_id:
+                        detail += f" [request id: {req_id}]"
+                    self.tts_error.emit(detail)
                     return False  # Non-retryable or final attempt failed
+
+            except APIError as e:
+                # Catch other specific API errors (e.g., malformed responses)
+                message = getattr(e, "message", str(e))
+                logger.error("OpenAI API error on attempt %d: %s", attempt + 1, message)
+                self.tts_error.emit(f"OpenAI API Error: {message}")
+                return False
 
             except OpenAIError as e:  # Catch broader OpenAI errors
                 logger.error(f"General OpenAI error on attempt {attempt + 1}: {e}")
@@ -334,7 +374,7 @@ if __name__ == "__main__":
     # Simple CLI passthrough (kept minimal; use cli.py entry point for full CLI)
     import argparse
 
-    from utils import read_api_key
+    from .utils import read_api_key
 
     parser = argparse.ArgumentParser(description="OpenAI TTS (module mode)")
     parser.add_argument("--in", dest="infile", required=True, help="Input text file")
