@@ -21,6 +21,14 @@ jobs:
       - name: Install ffmpeg (macOS)
         if: matrix.os == 'macos-latest'
         run: brew install ffmpeg
+      - name: Discover Qt plugin path (macOS)
+        if: matrix.os == 'macos-latest'
+        id: qtpath-macos
+        run: |
+          echo "qt_plugin_path=$(python - <<'PY'
+import PyQt6, os
+print(os.path.join(os.path.dirname(PyQt6.__file__), 'Qt6', 'plugins'))
+PY)" >> $GITHUB_OUTPUT
       - name: Install ffmpeg (Windows)
         if: matrix.os == 'windows-latest'
         run: choco install ffmpeg --no-progress
@@ -43,6 +51,7 @@ jobs:
           PYTEST_ADDOPTS: "-q"
           QT_QPA_PLATFORM: "offscreen"
           XDG_RUNTIME_DIR: "/tmp"
+          QT_PLUGIN_PATH: ${{ matrix.os == 'windows-latest' && format('{0}\\Lib\\site-packages\\PyQt6\\Qt6\\plugins', env.PythonLocation) || (matrix.os == 'macos-latest' && steps.qtpath-macos.outputs.qt_plugin_path || '') }}
         run: uv run pytest
 
   build-windows:
@@ -61,6 +70,8 @@ jobs:
       - name: Sync deps
         run: uv sync --extra dev --python 3.12
       - name: PyInstaller build
+        env:
+          QT_PLUGIN_PATH: ${{ format('{0}\\Lib\\site-packages\\PyQt6\\Qt6\\plugins', env.PythonLocation) }}
         run: uv run pyinstaller --noconfirm openai_tts.spec
       - name: Archive artifact
         uses: actions/upload-artifact@v4
