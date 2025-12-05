@@ -4,20 +4,25 @@ import json
 import logging
 import os
 import platform
+import re
 import subprocess
 import time
 from itertools import cycle
 from pathlib import Path
+from typing import Any
 
+from . import config  # Import the configuration
+
+keyring: Any | None
 try:
     import keyring  # OS keyring (Windows Credential Manager, macOS Keychain, etc.)
 
     _KEYRING_AVAILABLE = True
 except Exception:
-    keyring = None
+    keyring: Any | None = None
     _KEYRING_AVAILABLE = False
 
-from . import config  # Import the configuration
+_BOUNDARY_RE = re.compile(r"[\.?!;:](?=\s|$)")
 
 # Setup logger for this module
 logger = logging.getLogger(__name__)
@@ -56,31 +61,16 @@ def split_text(text, chunk_size=config.MAX_CHUNK_SIZE):
 
         # Try to find the last sentence-ending punctuation within the chunk
         split_index = -1
-        best_punct_index = -1
-        for punct in [".", "?", "!", ";", ":"]:
-            try:
-                # Find the last occurrence of the punctuation
-                last_punct_index = chunk.rindex(punct)
-                # Ensure it's followed by space or newline, or is at the very end
-                if last_punct_index + 1 < len(chunk):
-                    if chunk[last_punct_index + 1].isspace():
-                        best_punct_index = max(best_punct_index, last_punct_index)
-                elif last_punct_index + 1 == len(chunk):  # Punctuation at the end of chunk
-                    best_punct_index = max(best_punct_index, last_punct_index)
-
-            except ValueError:
-                continue  # Punctuation not found in this chunk
-
-        if best_punct_index != -1:
-            split_index = best_punct_index + 1  # Split after the punctuation
+        punct_match = None
+        for m in _BOUNDARY_RE.finditer(chunk):
+            punct_match = m
+        if punct_match:
+            split_index = punct_match.end()
 
         # If no sentence end found, try splitting at the last space
         if split_index == -1:
-            try:
-                space_index = chunk.rindex(" ")
-                split_index = space_index + 1  # Split after the space
-            except ValueError:
-                # No space found, force split at chunk_size
+            split_index = chunk.rfind(" ") + 1
+            if split_index == 0:
                 split_index = chunk_size
                 logger.warning(
                     f"Forced split at index {current_pos + split_index} without space/punctuation"
@@ -145,9 +135,12 @@ def read_api_key(filename: str | None = None) -> str | None:
         return api_key_env
 
     # OS keyring (preferred when available)
-    if getattr(config, "USE_KEYRING", False) and _KEYRING_AVAILABLE:
+    if getattr(config, "USE_KEYRING", False) and _KEYRING_AVAILABLE and keyring is not None:
         try:
-            key = keyring.get_password("OpenAI_TTS_GUI", "OPENAI_API_KEY")
+            if hasattr(keyring, "get_password"):
+                key = keyring.get_password("OpenAI_TTS_GUI", "OPENAI_API_KEY")
+            else:
+                key = None
             if key:
                 logger.info("Using API key from OS keyring.")
                 return key
@@ -199,11 +192,12 @@ def save_api_key(api_key: str, filename: str | None = None) -> bool:
     filename = filename or config.API_KEY_FILE
     # Try to store in OS keyring first (best practice for Windows/macOS/Linux)
     keyring_ok = False
-    if getattr(config, "USE_KEYRING", False) and _KEYRING_AVAILABLE:
+    if getattr(config, "USE_KEYRING", False) and _KEYRING_AVAILABLE and keyring is not None:
         try:
-            keyring.set_password("OpenAI_TTS_GUI", "OPENAI_API_KEY", api_key)
-            keyring_ok = True
-            logger.info("API key saved to OS keyring (OpenAI_TTS_GUI/OPENAI_API_KEY).")
+            if hasattr(keyring, "set_password"):
+                keyring.set_password("OpenAI_TTS_GUI", "OPENAI_API_KEY", api_key)
+                keyring_ok = True
+                logger.info("API key saved to OS keyring (OpenAI_TTS_GUI/OPENAI_API_KEY).")
         except Exception as e:
             logger.warning(f"Failed to save API key to keyring: {e}")
 

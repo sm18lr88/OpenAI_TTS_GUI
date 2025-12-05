@@ -1,0 +1,5 @@
+# Prevent test and profiling assets from being included in release archives
+tests/ export-ignore
+tests/** export-ignore
+tools/profile_split_concat.py export-ignore
+.pytest_tmp/ export-ignore

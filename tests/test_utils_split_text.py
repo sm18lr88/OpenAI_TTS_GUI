@@ -1,6 +1,7 @@
 import random
 
 import pytest
+
 from openai_tts_gui import config
 from openai_tts_gui.utils import split_text
 
@@ -45,4 +46,11 @@ def test_sentence_boundaries_preferred():
     # Heuristic: many (not all) chunks should end with punctuation or space
     ratio = sum(1 for c in chunks if c[-1] in ".!?:; \n\t") / len(chunks)
     assert ratio >= 0.5
+    assert "".join(chunks).strip() == text.strip()
+
+
+def test_sentence_boundary_regex_handles_punctuation_then_space():
+    text = "alpha. beta gamma"
+    chunks = split_text(text, chunk_size=6)
+    assert chunks[0].endswith(".")
     assert "".join(chunks).strip() == text.strip()

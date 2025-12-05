@@ -8,7 +8,7 @@
 ## Features
 
 - Models: `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`
-- Voices: All standard OpenAI TTS options
+- Voices: All standard OpenAI TTS options (alloy, ash, ballad, cedar, coral, echo, fable, marin, onyx, nova, sage, shimmer, verse)
 - Format/Speed: MP3, Opus, AAC, FLAC, WAV, PCM; 0.25x-4.0x
 - Instructions: Custom voice instructions for `gpt-4o-mini-tts`
 - Presets: you can save or load your custom instructions
@@ -19,12 +19,15 @@
 - Retention: retain individual mp3 chunks if desired
 - Sidecar: JSON metadata written next to outputs for reproducibility
 - CLI: `openai-tts --in text.txt --out out.mp3 --model tts-1`
+- Stream-aware: uses `stream_format="audio"` for low-memory downloads; request IDs are recorded in sidecars
+- One-click debug: copy request IDs and open log folder from the GUI
 
 ## Requirements
 
 - [**Python**](https://www.python.org/downloads/)
 - [**ffmpeg**](https://www.ffmpeg.org/download.html)
 - [**An OpenAI API key**](https://platform.openai.com/signup)
+- Windows users: if your `%TEMP%` is locked down, tests and temp files will be written under `.pytest_tmp`
 
 ## Installation
 
@@ -83,7 +86,7 @@ Artifacts will appear in `dist/`.
    ```
 3. **CLI (headless):**
    ```bash
-   openai-tts --in text.txt --out out.mp3 --model tts-1 --voice alloy --format mp3 --speed 1.0
+   openai-tts --in text.txt --out out.mp3 --model tts-1 --voice alloy --format mp3 --speed 1.0 --log-level INFO
    ```
 ### Optional concurrency
 Set `TTS_PARALLELISM` to enable parallel chunk generation (default = 1 / off):
@@ -92,8 +95,14 @@ Set `TTS_PARALLELISM` to enable parallel chunk generation (default = 1 / off):
 set TTS_PARALLELISM=4   # Windows PowerShell: $env:TTS_PARALLELISM=4
 ```
 
+### Development & QA
+- Style/lint: `uv run ruff check`
+- Types: `uv run ty check`
+- Tests: `uv run pytest` (uses repo-local `.pytest_tmp` for temp files)
+- Build (Windows): `uv run pyinstaller --noconfirm openai_tts.spec`
+
 ## Troubleshooting
-- **FFmpeg**: Ensure it’s on PATH or configured in `config.py`. The app performs a preflight check on startup.
+- **FFmpeg**: Ensure it's on PATH or configured in `config.py`. The app performs a preflight check on startup.
 - **Keys**: OS keyring is used when available; `api_key.enc` is a fallback.
 - **Logs & Data**: Logs at the path shown in **About**; presets and app data live under the per-user data directory.
 
@@ -124,8 +133,9 @@ set TTS_PARALLELISM=4   # Windows PowerShell: $env:TTS_PARALLELISM=4
 
 ## Versions / Notes
 
-- OpenAI Python SDK `==1.69.0`.
-- PyQt6 `==6.8.1`.
+- OpenAI Python SDK `==2.9.0`.
+- PyQt6 `==6.10.0`.
+- Streams audio via `stream_format="audio"` (OpenAI Python v2 default).
 
 ## Support
 

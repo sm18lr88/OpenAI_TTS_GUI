@@ -9,7 +9,7 @@ from PyQt6.QtGui import QColor
 
 # --- General Settings ---
 APP_NAME = "OpenAI TTS"
-APP_VERSION = "0.7.0"
+APP_VERSION = "0.8.0"
 # per-user app data directory
 DATA_DIR = user_data_dir(APP_NAME, appauthor=False)
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -31,9 +31,11 @@ TTS_VOICES = [
     "alloy",
     "ash",
     "ballad",
+    "cedar",
     "coral",
     "echo",
     "fable",
+    "marin",
     "onyx",
     "nova",
     "sage",
@@ -44,9 +46,13 @@ TTS_FORMATS = ["mp3", "opus", "aac", "flac", "wav", "pcm"]
 DEFAULT_SPEED = 1.0
 MIN_SPEED = 0.25
 MAX_SPEED = 4.0
-MAX_CHUNK_SIZE = 4096
+MAX_CHUNK_SIZE = 4096  # Matches OpenAI audio.speech input limit (chars) as of v2.9
 MAX_RETRIES = 3
 RETRY_DELAY = 5  # seconds
+# Force raw audio streaming instead of SSE; keep configurable for advanced users
+STREAM_FORMAT = os.getenv("TTS_STREAM_FORMAT", "audio") or "audio"
+if STREAM_FORMAT not in {"audio", "sse"}:
+    STREAM_FORMAT = "audio"
 # Optional parallelism: 1 disables, >1 enables parallel chunk generation
 PARALLELISM = int(os.getenv("TTS_PARALLELISM", "1"))
 PARALLELISM = max(1, min(PARALLELISM, 8))

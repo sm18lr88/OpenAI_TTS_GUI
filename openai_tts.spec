@@ -41,8 +41,9 @@ hidden = [
     name for name in collect_submodules("PyQt6")
     if not _is_excluded(name)
 ]
+hidden += collect_submodules("openai")
 
-datas = collect_data_files("PyQt6")
+datas = collect_data_files("PyQt6") + collect_data_files("openai")
 
 block_cipher = None
 

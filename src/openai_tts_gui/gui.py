@@ -1,4 +1,5 @@
 # gui.py
+import json
 import logging
 import os
 import subprocess
@@ -7,8 +8,9 @@ from contextlib import suppress
 from textwrap import dedent
 
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QAction, QDoubleValidator
+from PyQt6.QtGui import QAction, QCloseEvent, QDoubleValidator
 from PyQt6.QtWidgets import (
+    QApplication,
     QComboBox,
     QDialog,
     QFileDialog,
@@ -18,12 +20,15 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QMainWindow,
+    QMenu,
+    QMenuBar,
     QMessageBox,
     QProgressBar,
     QPushButton,
     QSizePolicy,
     QSplitter,
     QStackedWidget,
+    QStatusBar,
     QTextBrowser,
     QTextEdit,
     QVBoxLayout,
@@ -61,7 +66,7 @@ class PresetDialog(QDialog):
         self.load_presets()
 
     def _setup_ui(self):
-        self.layout = QVBoxLayout(self)
+        self.main_layout = QVBoxLayout(self)
         self.preset_list = QListWidget()
         self.preset_list.setToolTip("Double-click to load.")
 
@@ -74,9 +79,9 @@ class PresetDialog(QDialog):
         button_layout.addWidget(self.save_button)
         button_layout.addWidget(self.delete_button)
 
-        self.layout.addWidget(QLabel("Available Presets:"))
-        self.layout.addWidget(self.preset_list)
-        self.layout.addLayout(button_layout)
+        self.main_layout.addWidget(QLabel("Available Presets:"))
+        self.main_layout.addWidget(self.preset_list)
+        self.main_layout.addLayout(button_layout)
 
     def _connect_signals(self):
         self.load_button.clicked.connect(self.load_selected)
@@ -202,6 +207,9 @@ class TTSWindow(QMainWindow):
 
         back_row = QHBoxLayout()
         back_row.addStretch()
+        self.open_log_button = QPushButton("Open Log Folder")
+        self.open_log_button.clicked.connect(lambda: self._open_containing_folder(config.LOG_FILE))
+        back_row.addWidget(self.open_log_button)
         self.about_back_button = QPushButton("Back to Application")
         self.about_back_button.clicked.connect(self._show_main_page)
         back_row.addWidget(self.about_back_button)
@@ -217,29 +225,41 @@ class TTSWindow(QMainWindow):
         self.update_counts()
         self.update_instructions_enabled()
 
-        self.statusBar().showMessage("Ready")
+        status_bar = self.statusBar()
+        if status_bar:
+            status_bar.showMessage("Ready")
 
     def _setup_menubar(self):
-        menubar = self.menuBar()
+        menubar: QMenuBar | None = self.menuBar()
+        if menubar is None:
+            return
 
         # Settings
-        settings_menu = menubar.addMenu("Settings")
-        self.retain_files_action = QAction("Retain intermediate chunk files", self, checkable=True)
-        settings_menu.addAction(self.retain_files_action)
+        settings_menu: QMenu | None = menubar.addMenu("Settings")
+        self.retain_files_action = QAction("Retain intermediate chunk files", self)
+        self.retain_files_action.setCheckable(True)
+        if settings_menu is not None:
+            settings_menu.addAction(self.retain_files_action)
 
         # API Key
-        api_menu = menubar.addMenu("API Key")
-        api_menu.addAction(
-            QAction("Reload from secure store", self, triggered=self._load_api_key_from_file)
-        )
-        api_menu.addAction(
-            QAction("Set/Update API Key...", self, triggered=self._set_custom_api_key)
-        )
+        api_menu: QMenu | None = menubar.addMenu("API Key")
+        reload_action = QAction("Reload from secure store", self)
+        reload_action.triggered.connect(self._load_api_key_from_file)
+        set_key_action = QAction("Set/Update API Key...", self)
+        set_key_action.triggered.connect(self._set_custom_api_key)
+        if api_menu is not None:
+            api_menu.addAction(reload_action)
+            api_menu.addAction(set_key_action)
 
         # Help
-        help_menu = menubar.addMenu("Help")
-        help_menu.addAction(QAction("About", self, triggered=self._show_about_page))
-        help_menu.addAction(QAction("Back to Application", self, triggered=self._show_main_page))
+        help_menu: QMenu | None = menubar.addMenu("Help")
+        about_action = QAction("About", self)
+        about_action.triggered.connect(self._show_about_page)
+        back_action = QAction("Back to Application", self)
+        back_action.triggered.connect(self._show_main_page)
+        if help_menu is not None:
+            help_menu.addAction(about_action)
+            help_menu.addAction(back_action)
 
     def _setup_text_area(self) -> QWidget:
         w = QWidget()
@@ -325,6 +345,10 @@ class TTSWindow(QMainWindow):
 
         self.create_button = QPushButton("Create TTS")
         action_row.addWidget(self.create_button)
+        self.copy_ids_button = QPushButton("Copy Request IDs")
+        self.copy_ids_button.setEnabled(False)
+        self.copy_ids_button.clicked.connect(self._copy_request_ids)
+        action_row.addWidget(self.copy_ids_button)
         layout.addLayout(action_row)
 
         return w
@@ -392,7 +416,9 @@ class TTSWindow(QMainWindow):
         }.get(level, logger.info)
         logger_fn("%s: %s", title, message)
         with suppress(Exception):
-            self.statusBar().showMessage(f"{title}: {message}", 5000)
+            status_bar: QStatusBar | None = self.statusBar()
+            if status_bar is not None:
+                status_bar.showMessage(f"{title}: {message}", 5000)
         # Only show modal if not under pytest/CI
         if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
             if level == "warning":
@@ -584,6 +610,7 @@ class TTSWindow(QMainWindow):
         self.tts_processor.progress_updated.connect(self.progress_updated.emit)
         self.tts_processor.tts_complete.connect(self.tts_complete.emit)
         self.tts_processor.tts_error.connect(self.tts_error.emit)
+        self.tts_processor.status_update.connect(self._handle_status_update)
         self.tts_processor.start()
 
     def _set_ui_enabled(self, enabled: bool):
@@ -602,12 +629,15 @@ class TTSWindow(QMainWindow):
         self.select_path_button.setEnabled(enabled)
         self.create_button.setEnabled(enabled)
         with suppress(Exception):
-            self.menuBar().setEnabled(enabled)
+            menubar: QMenuBar | None = self.menuBar()
+            if menubar is not None:
+                menubar.setEnabled(enabled)
 
     @pyqtSlot(str)
     def _handle_tts_success(self, message: str):
         self._set_ui_enabled(True)
         self.progress_bar.setValue(100)
+        self.copy_ids_button.setEnabled(True)
         self._notify("TTS Complete", message)
         if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
             r = QMessageBox.question(
@@ -623,7 +653,50 @@ class TTSWindow(QMainWindow):
     def _handle_tts_error(self, error_message: str):
         self._set_ui_enabled(True)
         self.progress_bar.setValue(0)
+        self.copy_ids_button.setEnabled(True)
         self._notify("TTS Error", error_message, level="critical")
+
+    @pyqtSlot(str)
+    def _handle_status_update(self, status: str):
+        with suppress(Exception):
+            status_bar: QStatusBar | None = self.statusBar()
+            if status_bar is not None:
+                status_bar.showMessage(status, 5000)
+
+    @pyqtSlot()
+    def _copy_request_ids(self):
+        """Load request IDs from the sidecar and copy to clipboard for support/debug."""
+        output_path = (self.path_entry.text() or "").strip()
+        if not output_path:
+            self._notify("No Output", "Generate TTS first to copy request IDs.", level="warning")
+            return
+        sidecar = output_path + ".json"
+        try:
+            with open(sidecar, encoding="utf-8") as f:
+                data = json.load(f)
+            reqs = [
+                r.get("request_id")
+                for r in data.get("request_meta", [])
+                if r.get("request_id")
+            ]
+            if not reqs:
+                self._notify("No Request IDs", "No request IDs found in sidecar.", level="warning")
+                return
+            ids_text = "\n".join(reqs)
+            clip = QApplication.clipboard()
+            if clip is not None:
+                clip.setText(ids_text)
+                self._notify("Copied", "Request IDs copied to clipboard.")
+            else:
+                self._notify("Copy Failed", "Clipboard unavailable.", level="warning")
+        except FileNotFoundError:
+            self._notify(
+                "Sidecar Missing",
+                "Sidecar file not found for this output.",
+                level="warning",
+            )
+        except Exception as e:
+            self._notify("Copy Failed", str(e), level="critical")
 
     def _open_containing_folder(self, path: str):
         try:
@@ -637,7 +710,7 @@ class TTSWindow(QMainWindow):
         except Exception as e:
             logger.warning("Failed to open folder: %s", e)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QCloseEvent | None) -> None:  # type: ignore[override]
         proc = getattr(self, "tts_processor", None)
         if proc is not None and hasattr(proc, "isRunning") and proc.isRunning():
             r = QMessageBox.question(
@@ -647,8 +720,10 @@ class TTSWindow(QMainWindow):
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
             if r == QMessageBox.StandardButton.Yes:
-                event.accept()
+                if event is not None:
+                    event.accept()
             else:
-                event.ignore()
-        else:
-            event.accept()
+                if event is not None:
+                    event.ignore()
+                return
+        super().closeEvent(event if event is not None else QCloseEvent())

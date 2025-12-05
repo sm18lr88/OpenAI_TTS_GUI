@@ -21,10 +21,16 @@ from openai_tts_gui.utils import concatenate_audio_files, split_text
 
 def _mk_text(chars=400_000) -> str:
     words = ["lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipiscing", "elit"]
-    parts = []
-    while len(" ".join(parts)) < chars:
-        parts.append(random.choice(words) + random.choice([".", "!", "?", ":", ";", ""]))
-    return " ".join(parts)
+    punct = [".", "!", "?", ":", ";", ""]
+    avg_len = 6  # rough average per token with punctuation
+    needed = max(1, chars // avg_len)
+    parts = [f"{random.choice(words)}{random.choice(punct)}" for _ in range(needed)]
+    text = " ".join(parts)
+    # Ensure we slightly exceed the requested length to avoid undershoot
+    if len(text) < chars:
+        extra = [f"{random.choice(words)}{random.choice(punct)}" for _ in range(needed // 10 + 1)]
+        text = " ".join(parts + extra)
+    return text[: chars + 128]  # small cushion
 
 
 def _sine_wav(path: str, seconds: float = 0.05, freq: float = 440.0, rate: int = 48000) -> None:
