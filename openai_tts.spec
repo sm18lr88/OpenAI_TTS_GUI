@@ -1,49 +1,27 @@
 # PyInstaller spec for OpenAI TTS GUI (native PyQt6 only)
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+from PyInstaller.utils.hooks import collect_data_files
 
-EXCLUDED_QT_MODULES = (
-    "PyQt6.QtWebEngineCore",
-    "PyQt6.QtWebEngineQuick",
-    "PyQt6.QtWebView",
-    "PyQt6.QtQml",
-    "PyQt6.QtQuick",
-    "PyQt6.QtQuick3D",
-    "PyQt6.QtQmlXmlListModel",
-    "PyQt6.Qt3DCore",
-    "PyQt6.Qt3DRender",
-    "PyQt6.Qt3DInput",
-    "PyQt6.Qt3DAnimation",
-    "PyQt6.QtDesigner",
-    "PyQt6.QtHelp",
-    "PyQt6.QtTest",
-    "PyQt6.QtPdf",
-    "PyQt6.QtPdfWidgets",
-    "PyQt6.QtNfc",
-    "PyQt6.QtBluetooth",
-    "PyQt6.QtSerialPort",
-    "PyQt6.QtOpenGL",
-    "PyQt6.QtSvg",
-    "PyQt6.QtSvgWidgets",
-    "PyQt6.QtRemoteObjects",
-    "PyQt6.QtSensors",
-)
-
-
-def _is_excluded(module_name: str) -> bool:
-    """Return True when the PyQt6 submodule is intentionally left out."""
-    return any(
-        module_name == excluded or module_name.startswith(excluded + ".")
-        for excluded in EXCLUDED_QT_MODULES
-    )
-
-
-hidden = [
-    name for name in collect_submodules("PyQt6")
-    if not _is_excluded(name)
+# Restrict to the Qt modules we actually use to avoid pulling in optional
+# plugins that emit missing-DLL warnings on Windows runners.
+REQUIRED_QT_MODULES = [
+    "PyQt6.QtCore",
+    "PyQt6.QtGui",
+    "PyQt6.QtWidgets",
 ]
-hidden += collect_submodules("openai")
 
-datas = collect_data_files("PyQt6") + collect_data_files("openai")
+hidden = REQUIRED_QT_MODULES
+# Only bundle the Qt plugin categories required for widget apps; avoid heavy/optional
+# plugins (3D, multimedia, QML) that trigger missing-DLL warnings on CI.
+datas = collect_data_files(
+    "PyQt6",
+    includes=[
+        "Qt6/plugins/platforms/*",
+        "Qt6/plugins/styles/*",
+        "Qt6/plugins/iconengines/*",
+        "Qt6/plugins/imageformats/*",
+        "Qt6/translations/*",
+    ],
+)
 
 block_cipher = None
 
@@ -54,7 +32,7 @@ a = Analysis(
     datas=datas,
     hiddenimports=hidden,
     hookspath=[],
-    excludes=list(EXCLUDED_QT_MODULES),
+    excludes=[],
 )
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
