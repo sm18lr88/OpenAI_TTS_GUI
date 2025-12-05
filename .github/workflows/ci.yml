@@ -17,7 +17,14 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxcb-xinerama0 libxkbcommon-x11-0 libgl1 libegl1 ffmpeg
+          sudo apt-get install -y \
+            libxcb-xinerama0 \
+            libxkbcommon-x11-0 \
+            libgl1 \
+            libegl1-mesa \
+            libgl1-mesa-glx \
+            ffmpeg \
+            xvfb
       - name: Install ffmpeg (macOS)
         if: matrix.os == 'macos-latest'
         run: brew install ffmpeg
@@ -52,7 +59,13 @@ PY)" >> $GITHUB_OUTPUT
           QT_QPA_PLATFORM: "offscreen"
           XDG_RUNTIME_DIR: "/tmp"
           QT_PLUGIN_PATH: ${{ matrix.os == 'windows-latest' && format('{0}\\Lib\\site-packages\\PyQt6\\Qt6\\plugins', env.PythonLocation) || (matrix.os == 'macos-latest' && steps.qtpath-macos.outputs.qt_plugin_path || '') }}
-        run: uv run pytest
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            xvfb-run -a uv run pytest
+          else
+            uv run pytest
+          fi
 
   build-windows:
     runs-on: windows-latest
