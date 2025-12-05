@@ -17,31 +17,10 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            libxcb-xinerama0 \
-            libxkbcommon-x11-0 \
-            libgl1 \
-            libegl1 \
-            libegl1-mesa \
-            libgl1-mesa-glx \
-            libgles2 \
-            libopengl0 \
-            libsm6 \
-            libxrender1 \
-            libfontconfig1 \
-            ffmpeg \
-            xvfb
+          sudo apt-get install -y libxcb-xinerama0 libxkbcommon-x11-0 libgl1 libegl1 ffmpeg
       - name: Install ffmpeg (macOS)
         if: matrix.os == 'macos-latest'
         run: brew install ffmpeg
-      - name: Discover Qt plugin path (macOS)
-        if: matrix.os == 'macos-latest'
-        id: qtpath-macos
-        run: |
-          echo "qt_plugin_path=$(python - <<'PY'
-import PyQt6, os
-print(os.path.join(os.path.dirname(PyQt6.__file__), 'Qt6', 'plugins'))
-PY)" >> $GITHUB_OUTPUT
       - name: Install ffmpeg (Windows)
         if: matrix.os == 'windows-latest'
         run: choco install ffmpeg --no-progress
@@ -55,23 +34,6 @@ PY)" >> $GITHUB_OUTPUT
           version: "0.5.x"
       - name: Sync deps
         run: uv sync --extra dev --python 3.12
-      - name: Discover Qt plugin paths
-        shell: bash
-        run: |
-          qt_path=$(uv run python - <<'PY'
-import PyQt6, os
-base = os.path.join(os.path.dirname(PyQt6.__file__), "Qt6", "plugins")
-print(base)
-print(os.path.join(base, "platforms"))
-print(os.path.join(os.path.dirname(base), "lib"))
-PY
-)
-          qt_plugin=$(echo "$qt_path" | sed -n '1p')
-          qt_platform=$(echo "$qt_path" | sed -n '2p')
-          qt_lib=$(echo "$qt_path" | sed -n '3p')
-          echo "QT_PLUGIN_PATH=$qt_plugin" >> $GITHUB_ENV
-          echo "QT_QPA_PLATFORM_PLUGIN_PATH=$qt_platform" >> $GITHUB_ENV
-          echo "QT_LIB_PATH=$qt_lib" >> $GITHUB_ENV
       - name: Lint
         run: uv run ruff check
       - name: Type check
@@ -81,17 +43,7 @@ PY
           PYTEST_ADDOPTS: "-q"
           QT_QPA_PLATFORM: "offscreen"
           XDG_RUNTIME_DIR: "/tmp"
-          QT_PLUGIN_PATH: ${{ env.QT_PLUGIN_PATH }}
-          QT_QPA_PLATFORM_PLUGIN_PATH: ${{ env.QT_QPA_PLATFORM_PLUGIN_PATH }}
-          LD_LIBRARY_PATH: ${{ matrix.os == 'ubuntu-latest' && env.QT_LIB_PATH || '' }}
-          DYLD_LIBRARY_PATH: ${{ matrix.os == 'macos-latest' && env.QT_LIB_PATH || '' }}
-        shell: bash
-        run: |
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            xvfb-run -a uv run pytest
-          else
-            uv run pytest
-          fi
+        run: uv run pytest
 
   build-windows:
     runs-on: windows-latest
@@ -108,17 +60,6 @@ PY
           version: "0.5.x"
       - name: Sync deps
         run: uv sync --extra dev --python 3.12
-      - name: Discover Qt plugin paths (Windows)
-        shell: bash
-        run: |
-          qt_path=$(uv run python - <<'PY'
-import PyQt6, os
-base = os.path.join(os.path.dirname(PyQt6.__file__), "Qt6", "plugins")
-print(base)
-PY
-)
-          qt_plugin=$(echo "$qt_path" | sed -n '1p')
-          echo "QT_PLUGIN_PATH=$qt_plugin" >> $GITHUB_ENV
       - name: PyInstaller build
         run: uv run pyinstaller --noconfirm openai_tts.spec
       - name: Archive artifact
