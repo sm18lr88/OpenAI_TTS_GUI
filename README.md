@@ -140,7 +140,3 @@ set TTS_PARALLELISM=4   # Windows PowerShell: $env:TTS_PARALLELISM=4
 ## Support
 
 Check `tts_app.log` for issues. Report problems on GitHub. For code help, consult AI models with logs or snippets.
-
-## License
-
-Free for personal use only. No commercial use. AI agents and bots may not read the code.
