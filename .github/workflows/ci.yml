@@ -21,8 +21,11 @@ jobs:
             libxcb-xinerama0 \
             libxkbcommon-x11-0 \
             libgl1 \
+            libegl1 \
             libegl1-mesa \
             libgl1-mesa-glx \
+            libgles2 \
+            libopengl0 \
             ffmpeg \
             xvfb
       - name: Install ffmpeg (macOS)
@@ -49,6 +52,20 @@ PY)" >> $GITHUB_OUTPUT
           version: "0.5.x"
       - name: Sync deps
         run: uv sync --extra dev --python 3.12
+      - name: Discover Qt plugin paths
+        shell: bash
+        run: |
+          qt_path=$(uv run python - <<'PY'
+import PyQt6, os
+base = os.path.join(os.path.dirname(PyQt6.__file__), "Qt6", "plugins")
+print(base)
+print(os.path.join(base, "platforms"))
+PY
+)
+          qt_plugin=$(echo "$qt_path" | sed -n '1p')
+          qt_platform=$(echo "$qt_path" | sed -n '2p')
+          echo "QT_PLUGIN_PATH=$qt_plugin" >> $GITHUB_ENV
+          echo "QT_QPA_PLATFORM_PLUGIN_PATH=$qt_platform" >> $GITHUB_ENV
       - name: Lint
         run: uv run ruff check
       - name: Type check
@@ -58,7 +75,6 @@ PY)" >> $GITHUB_OUTPUT
           PYTEST_ADDOPTS: "-q"
           QT_QPA_PLATFORM: "offscreen"
           XDG_RUNTIME_DIR: "/tmp"
-          QT_PLUGIN_PATH: ${{ matrix.os == 'windows-latest' && format('{0}\\Lib\\site-packages\\PyQt6\\Qt6\\plugins', env.PythonLocation) || (matrix.os == 'macos-latest' && steps.qtpath-macos.outputs.qt_plugin_path || '') }}
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
@@ -82,9 +98,18 @@ PY)" >> $GITHUB_OUTPUT
           version: "0.5.x"
       - name: Sync deps
         run: uv sync --extra dev --python 3.12
+      - name: Discover Qt plugin paths (Windows)
+        shell: bash
+        run: |
+          qt_path=$(uv run python - <<'PY'
+import PyQt6, os
+base = os.path.join(os.path.dirname(PyQt6.__file__), "Qt6", "plugins")
+print(base)
+PY
+)
+          qt_plugin=$(echo "$qt_path" | sed -n '1p')
+          echo "QT_PLUGIN_PATH=$qt_plugin" >> $GITHUB_ENV
       - name: PyInstaller build
-        env:
-          QT_PLUGIN_PATH: ${{ format('{0}\\Lib\\site-packages\\PyQt6\\Qt6\\plugins', env.PythonLocation) }}
         run: uv run pyinstaller --noconfirm openai_tts.spec
       - name: Archive artifact
         uses: actions/upload-artifact@v4
