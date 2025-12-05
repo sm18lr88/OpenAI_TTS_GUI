@@ -13,6 +13,11 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
+      - name: Install Qt runtime deps (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxcb-xinerama0 libxkbcommon-x11-0 libgl1
       - name: Install Python
         uses: actions/setup-python@v5
         with:
@@ -22,7 +27,7 @@ jobs:
         with:
           version: "0.5.x"
       - name: Sync deps
-        run: uv sync --extra dev --python 3.12
+        run: uv sync --locked --extra dev --python 3.12
       - name: Lint
         run: uv run ruff check
       - name: Type check
@@ -30,6 +35,8 @@ jobs:
       - name: Tests
         env:
           PYTEST_ADDOPTS: "-q"
+          QT_QPA_PLATFORM: "offscreen"
+          XDG_RUNTIME_DIR: "/tmp"
         run: uv run pytest
 
   build-windows:
@@ -46,7 +53,7 @@ jobs:
         with:
           version: "0.5.x"
       - name: Sync deps
-        run: uv sync --extra dev --python 3.12
+        run: uv sync --locked --extra dev --python 3.12
       - name: PyInstaller build
         run: uv run pyinstaller --noconfirm openai_tts.spec
       - name: Archive artifact
