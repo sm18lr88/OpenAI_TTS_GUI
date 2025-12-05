@@ -17,7 +17,13 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxcb-xinerama0 libxkbcommon-x11-0 libgl1
+          sudo apt-get install -y libxcb-xinerama0 libxkbcommon-x11-0 libgl1 ffmpeg
+      - name: Install ffmpeg (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install ffmpeg
+      - name: Install ffmpeg (Windows)
+        if: matrix.os == 'windows-latest'
+        run: choco install ffmpeg --no-progress
       - name: Install Python
         uses: actions/setup-python@v5
         with:
@@ -27,7 +33,7 @@ jobs:
         with:
           version: "0.5.x"
       - name: Sync deps
-        run: uv sync --locked --extra dev --python 3.12
+        run: uv sync --extra dev --python 3.12
       - name: Lint
         run: uv run ruff check
       - name: Type check
@@ -53,7 +59,7 @@ jobs:
         with:
           version: "0.5.x"
       - name: Sync deps
-        run: uv sync --locked --extra dev --python 3.12
+        run: uv sync --extra dev --python 3.12
       - name: PyInstaller build
         run: uv run pyinstaller --noconfirm openai_tts.spec
       - name: Archive artifact
