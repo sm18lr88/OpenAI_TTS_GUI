@@ -2,8 +2,11 @@ import argparse
 import logging
 import sys
 
-from . import config, utils
-from .tts import TTSProcessor
+from . import config
+from .config import settings
+from .errors import TTSError
+from .keystore import read_api_key
+from .tts import TTSService
 
 
 def main(argv=None):
@@ -11,16 +14,18 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     if "--version" in argv:
-        print(f"{config.APP_NAME} {config.APP_VERSION}")
+        print(f"{settings.APP_NAME} {settings.APP_VERSION}")
         return 0
 
-    parser = argparse.ArgumentParser(description="OpenAI TTS CLI")
-    # Allow --version to run standalone; validate required args only when not --version
+    parser = argparse.ArgumentParser(
+        prog="openai-tts",
+        description="Generate speech audio from text via OpenAI TTS API.",
+    )
     parser.add_argument("--in", dest="infile", help="Input text file")
     parser.add_argument("--out", dest="outfile", help="Output audio path")
-    parser.add_argument("--model", default="tts-1")
-    parser.add_argument("--voice", default="alloy")
-    parser.add_argument("--format", default="mp3", choices=config.TTS_FORMATS)
+    parser.add_argument("--model", default="tts-1", choices=settings.TTS_MODELS)
+    parser.add_argument("--voice", default="alloy", choices=settings.TTS_VOICES)
+    parser.add_argument("--format", default="mp3", choices=settings.TTS_FORMATS)
     parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--instructions", default="")
     parser.add_argument("--retain-files", action="store_true")
@@ -28,17 +33,14 @@ def main(argv=None):
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Set logging level for CLI run",
+        help="Logging verbosity",
     )
-    # --version is handled early above; keep the flag so argparse doesn't error on unknown
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     args = parser.parse_args(argv)
 
-    # If someone passed --version alongside required args, honor early return too
     if args.version:
-        print(f"{config.APP_NAME} {config.APP_VERSION}")
+        print(f"{settings.APP_NAME} {settings.APP_VERSION}")
         return 0
-    # Enforce required args only when not --version
     if not args.infile or not args.outfile:
         parser.print_usage(sys.stderr)
         print(
@@ -47,7 +49,7 @@ def main(argv=None):
         )
         return 2
 
-    api_key = utils.read_api_key()
+    api_key = read_api_key()
     if not api_key:
         print("Missing OPENAI API key.", file=sys.stderr)
         return 1
@@ -57,21 +59,26 @@ def main(argv=None):
 
     logging.basicConfig(level=getattr(logging, args.log_level))
 
-    params = {
-        "api_key": api_key,
-        "text": text,
-        "output_path": args.outfile,
-        "model": args.model,
-        "voice": args.voice,
-        "response_format": args.format,
-        "speed": float(args.speed),
-        "instructions": args.instructions,
-        "retain_files": bool(args.retain_files),
-    }
+    try:
+        service = TTSService(
+            api_key=api_key,
+            base_url=settings.OPENAI_BASE_URL,
+            timeout=settings.OPENAI_TIMEOUT,
+        )
+        service.generate(
+            text=text,
+            output_path=args.outfile,
+            model=args.model,
+            voice=args.voice,
+            response_format=args.format,
+            speed=float(args.speed),
+            instructions=args.instructions,
+            retain_files=bool(args.retain_files),
+        )
+    except TTSError as e:
+        print(f"TTS failed: {e}", file=sys.stderr)
+        return 1
 
-    # Run synchronously via thread.run()
-    tp = TTSProcessor(params)
-    tp.run()
     return 0
 
 

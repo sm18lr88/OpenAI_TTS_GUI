@@ -4,38 +4,24 @@ import os
 import subprocess
 import sys
 from contextlib import suppress
-from textwrap import dedent
 
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QAction, QCloseEvent, QDoubleValidator
+from PyQt6.QtCore import QTimer, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import (
     QApplication,
-    QComboBox,
     QFileDialog,
-    QHBoxLayout,
     QInputDialog,
-    QLabel,
     QLineEdit,
     QMainWindow,
-    QMenu,
     QMenuBar,
     QMessageBox,
-    QProgressBar,
-    QPushButton,
-    QSizePolicy,
-    QSplitter,
-    QStackedWidget,
     QStatusBar,
-    QTextBrowser,
-    QTextEdit,
-    QVBoxLayout,
-    QWidget,
 )
 
 from ..config import settings
-from ..core.ffmpeg import get_ffmpeg_version
 from ..core.text import split_text
 from ..keystore import read_api_key, save_api_key
+from ._layout import about_html, build_central_widget, build_menubar
 from .dialogs import PresetDialog
 from .workers import TTSWorker
 
@@ -68,41 +54,10 @@ class TTSWindow(QMainWindow):
         self.setWindowTitle(settings.APP_NAME)
         self.resize(settings.DEFAULT_WINDOW_WIDTH, settings.DEFAULT_WINDOW_HEIGHT)
 
-        splitter = QSplitter(Qt.Orientation.Vertical)
-        text_widget = self._setup_text_area()
-        controls_widget = self._setup_controls_area()
-        splitter.addWidget(text_widget)
-        splitter.addWidget(controls_widget)
-        splitter.setSizes([int(self.height() * 0.6), int(self.height() * 0.4)])
-
-        self.about_page = QWidget()
-        about_layout = QVBoxLayout(self.about_page)
-        about_layout.setContentsMargins(24, 24, 24, 24)
-        about_layout.setSpacing(16)
-
-        self.about_text = QTextBrowser()
-        self.about_text.setOpenExternalLinks(True)
-        self.about_text.setReadOnly(True)
-        about_layout.addWidget(self.about_text)
-
-        back_row = QHBoxLayout()
-        back_row.addStretch()
-        self.open_log_button = QPushButton("Open Log Folder")
-        self.open_log_button.clicked.connect(
-            lambda: self._open_containing_folder(settings.LOG_FILE)
-        )
-        back_row.addWidget(self.open_log_button)
-        self.about_back_button = QPushButton("Back to Application")
-        self.about_back_button.clicked.connect(self._show_main_page)
-        back_row.addWidget(self.about_back_button)
-        about_layout.addLayout(back_row)
-
-        self.stack = QStackedWidget()
-        self.stack.addWidget(splitter)
-        self.stack.addWidget(self.about_page)
+        self.stack = build_central_widget(self)
         self.setCentralWidget(self.stack)
+        build_menubar(self)
 
-        self._setup_menubar()
         self._connect_signals()
         self.update_counts()
         self.update_instructions_enabled()
@@ -110,131 +65,6 @@ class TTSWindow(QMainWindow):
         status_bar = self.statusBar()
         if status_bar:
             status_bar.showMessage("Ready")
-
-    def _setup_menubar(self):
-        menubar: QMenuBar | None = self.menuBar()
-        if menubar is None:
-            return
-
-        settings_menu: QMenu | None = menubar.addMenu("Settings")
-        self.retain_files_action = QAction("Retain intermediate chunk files", self)
-        self.retain_files_action.setCheckable(True)
-        if settings_menu is not None:
-            settings_menu.addAction(self.retain_files_action)
-
-        api_menu: QMenu | None = menubar.addMenu("API Key")
-        reload_action = QAction("Reload from secure store", self)
-        reload_action.triggered.connect(self._load_api_key_from_file)
-        set_key_action = QAction("Set/Update API Key...", self)
-        set_key_action.triggered.connect(self._set_custom_api_key)
-        if api_menu is not None:
-            api_menu.addAction(reload_action)
-            api_menu.addAction(set_key_action)
-
-        help_menu: QMenu | None = menubar.addMenu("Help")
-        about_action = QAction("About", self)
-        about_action.triggered.connect(self._show_about_page)
-        back_action = QAction("Back to Application", self)
-        back_action.triggered.connect(self._show_main_page)
-        if help_menu is not None:
-            help_menu.addAction(about_action)
-            help_menu.addAction(back_action)
-
-    def _setup_text_area(self) -> QWidget:
-        w = QWidget()
-        layout = QVBoxLayout(w)
-        layout.setContentsMargins(12, 12, 12, 8)
-        layout.setSpacing(8)
-
-        layout.addWidget(QLabel("Text for TTS:"))
-        self.text_edit = QTextEdit()
-        self.text_edit.setPlaceholderText("Enter the text you want to convert to speech...")
-        layout.addWidget(self.text_edit)
-
-        counts = QHBoxLayout()
-        self.char_count_label = QLabel("Character Count: 0")
-        self.chunk_count_label = QLabel(f"Chunks (max {settings.MAX_CHUNK_SIZE} chars): 0")
-        counts.addWidget(self.char_count_label)
-        counts.addStretch()
-        counts.addWidget(self.chunk_count_label)
-        layout.addLayout(counts)
-        return w
-
-    def _setup_controls_area(self) -> QWidget:
-        w = QWidget()
-        layout = QVBoxLayout(w)
-        layout.setContentsMargins(12, 8, 12, 12)
-        layout.setSpacing(10)
-
-        row = QHBoxLayout()
-        row.addWidget(QLabel("Model:"))
-        self.model_combo = QComboBox()
-        self.model_combo.addItems(settings.TTS_MODELS)
-        row.addWidget(self.model_combo)
-
-        row.addWidget(QLabel("Voice:"))
-        self.voice_combo = QComboBox()
-        self.voice_combo.addItems(settings.TTS_VOICES)
-        row.addWidget(self.voice_combo)
-
-        row.addWidget(QLabel("Speed:"))
-        self.speed_input = QLineEdit(str(settings.DEFAULT_SPEED))
-        self.speed_input.setValidator(
-            QDoubleValidator(settings.MIN_SPEED, settings.MAX_SPEED, 2, self)
-        )
-        self.speed_input.setMaximumWidth(60)
-        row.addWidget(self.speed_input)
-
-        row.addWidget(QLabel("Format:"))
-        self.format_combo = QComboBox()
-        self.format_combo.addItems(settings.TTS_FORMATS)
-        row.addWidget(self.format_combo)
-        layout.addLayout(row)
-
-        instr_row = QHBoxLayout()
-        left = QVBoxLayout()
-        self.instructions_label = QLabel("Instructions:")
-        self.manage_presets_button = QPushButton("Presets")
-        left.addWidget(self.instructions_label)
-        left.addWidget(self.manage_presets_button)
-        left.addStretch()
-        instr_row.addLayout(left)
-
-        self.instructions_edit = QTextEdit()
-        self.instructions_edit.setPlaceholderText(
-            f"Provide guidance on voice/tone/pacing (only affects "
-            f"'{settings.GPT_4O_MINI_TTS_MODEL}')..."
-        )
-        self.instructions_edit.setMinimumHeight(60)
-        self.instructions_edit.setSizePolicy(
-            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
-        )
-        instr_row.addWidget(self.instructions_edit, 1)
-        layout.addLayout(instr_row, 1)
-
-        path_row = QHBoxLayout()
-        path_row.addWidget(QLabel("Save As:"))
-        self.path_entry = QLineEdit()
-        self.path_entry.setPlaceholderText("Select output file path...")
-        path_row.addWidget(self.path_entry)
-        self.select_path_button = QPushButton("Browse...")
-        path_row.addWidget(self.select_path_button)
-        layout.addLayout(path_row)
-
-        action_row = QHBoxLayout()
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setValue(0)
-        action_row.addWidget(self.progress_bar)
-
-        self.create_button = QPushButton("Create TTS")
-        action_row.addWidget(self.create_button)
-        self.copy_ids_button = QPushButton("Copy Request IDs")
-        self.copy_ids_button.setEnabled(False)
-        self.copy_ids_button.clicked.connect(self._copy_request_ids)
-        action_row.addWidget(self.copy_ids_button)
-        layout.addLayout(action_row)
-
-        return w
 
     def _connect_signals(self):
         self.text_edit.textChanged.connect(self.update_counts)
@@ -337,42 +167,7 @@ class TTSWindow(QMainWindow):
 
     @pyqtSlot()
     def _show_about_page(self):
-        snap = settings.env_snapshot()
-        ffv = get_ffmpeg_version() or "Unavailable"
-        log_path = str(settings.LOG_FILE)
-        data_dir = str(settings.DATA_DIR)
-        text = dedent(
-            f"""
-            <h2>{settings.APP_NAME} {settings.APP_VERSION}</h2>
-            <p>
-                OpenAI TTS GUI converts text into speech via OpenAI's TTS service.
-                Fine-tune voices, models, and export formats without scripting.
-            </p>
-            <h3>Highlights</h3>
-            <ul>
-                <li>Pick an OpenAI voice, tweak speed, and export in your preferred format.</li>
-                <li>Save reusable instruction presets for guidance-capable models.</li>
-                <li>Monitor generation progress and optionally keep intermediate chunks.</li>
-            </ul>
-            <h3>Quick Tips</h3>
-            <ul>
-                <li>Add the API key under <em>API Key &gt; Set/Update</em>.</li>
-                <li>Use the preset manager to store prompt snippets for recurring work.</li>
-                <li>See README.md for workflow examples and troubleshooting tips.</li>
-            </ul>
-            <h3>Environment Details</h3>
-            <ul>
-                <li><strong>Python</strong>: {snap.get("python") or "Unknown"}</li>
-                <li><strong>Platform</strong>: {snap.get("platform") or "Unknown"}</li>
-                <li><strong>OpenAI</strong>: {snap.get("openai") or "Unknown"}</li>
-                <li><strong>PyQt6</strong>: {snap.get("pyqt6") or "Unknown"}</li>
-                <li><strong>FFmpeg</strong>: {ffv}</li>
-                <li><strong>Log File</strong>: <code>{log_path}</code></li>
-                <li><strong>Data Directory</strong>: <code>{data_dir}</code></li>
-            </ul>
-            """
-        ).strip()
-        self.about_text.setHtml(text)
+        self.about_text.setHtml(about_html())
         self.stack.setCurrentWidget(self.about_page)
         self.about_back_button.setFocus()
 
