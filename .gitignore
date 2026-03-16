@@ -1,10 +1,10 @@
 __pycache__/
 *.pyc
+*.pyo
 .venv/
 venv/
 build/
 dist/
-*.spec
 .benchmarks/
 htmlcov/
 reports/
@@ -13,3 +13,13 @@ profiling/
 .ruff_cache/
 *.egg-info/
 .pytest_tmp/
+.sisyphus/
+.mypy_cache/
+.env
+.idea/
+.vscode/
+*.log
+nul
+api_key.txt
+api_key.enc
+*.enc

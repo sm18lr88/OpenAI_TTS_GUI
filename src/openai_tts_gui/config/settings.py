@@ -8,7 +8,7 @@ from platformdirs import user_data_dir
 
 # --- General Settings ---
 APP_NAME = "OpenAI TTS"
-APP_VERSION = "0.8.0"
+APP_VERSION = "1.0.0"
 # per-user app data directory
 DATA_DIR = user_data_dir(APP_NAME, appauthor=False)
 LOG_FILE = os.path.join(DATA_DIR, "tts_app.log")
