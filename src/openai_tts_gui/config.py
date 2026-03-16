@@ -157,67 +157,67 @@ def build_stylesheet(theme):
     # Retained for fallback/non-Fluent mode. When Fluent is enabled we skip this.
     return f"""
         QWidget {{
-            background-color: {theme['background'].name()};
-            color: {theme['text'].name()};
+            background-color: {theme["background"].name()};
+            color: {theme["text"].name()};
         }}
         QMainWindow, QDialog {{
-            background-color: {theme['background'].name()};
+            background-color: {theme["background"].name()};
         }}
         QTextEdit, QLineEdit, QComboBox, QListWidget {{
-            background-color: {theme['widget_background'].name()};
-            color: {theme['text'].name()};
-            border: 1px solid {theme['border'].name()};
+            background-color: {theme["widget_background"].name()};
+            color: {theme["text"].name()};
+            border: 1px solid {theme["border"].name()};
             padding: 2px;
         }}
         QPushButton {{
-            background-color: {theme['button_background'].name()};
-            color: {theme['button_text'].name()};
-            border: 1px solid {theme['border'].name()};
+            background-color: {theme["button_background"].name()};
+            color: {theme["button_text"].name()};
+            border: 1px solid {theme["border"].name()};
             padding: 5px;
             min-width: 80px;
         }}
         QPushButton:hover {{
-            background-color: {theme['widget_background'].name()};
+            background-color: {theme["widget_background"].name()};
         }}
         QPushButton:pressed {{
-            background-color: {theme['border'].name()};
+            background-color: {theme["border"].name()};
         }}
         QMenuBar {{
-            background-color: {theme['widget_background'].name()};
-            color: {theme['text'].name()};
+            background-color: {theme["widget_background"].name()};
+            color: {theme["text"].name()};
         }}
         QMenuBar::item:selected {{
-            background-color: {theme['button_background'].name()};
+            background-color: {theme["button_background"].name()};
         }}
         QMenu {{
-            background-color: {theme['widget_background'].name()};
-            color: {theme['text'].name()};
+            background-color: {theme["widget_background"].name()};
+            color: {theme["text"].name()};
         }}
         QMenu::item:selected {{
-            background-color: {theme['button_background'].name()};
+            background-color: {theme["button_background"].name()};
         }}
         QProgressBar {{
-            border: 1px solid {theme['border'].name()};
+            border: 1px solid {theme["border"].name()};
             text-align: center;
-            color: {theme['text'].name()};
-            background-color: {theme['widget_background'].name()};
+            color: {theme["text"].name()};
+            background-color: {theme["widget_background"].name()};
         }}
         QProgressBar::chunk {{
-            background-color: {theme['progress_bar_chunk'].name()};
+            background-color: {theme["progress_bar_chunk"].name()};
             width: 10px; /* Or adjust as needed */
             margin: 0.5px;
         }}
         QLabel {{
-             color: {theme['text'].name()}; /* Ensure labels also get the text color */
+             color: {theme["text"].name()}; /* Ensure labels also get the text color */
         }}
         QSplitter::handle {{
-             background-color: {theme['border'].name()};
+             background-color: {theme["border"].name()};
              height: 3px; /* Or width depending on orientation */
         }}
         QToolTip {{
-             background-color: {theme['widget_background'].name()};
-             color: {theme['text'].name()};
-             border: 1px solid {theme['border'].name()};
+             background-color: {theme["widget_background"].name()};
+             color: {theme["text"].name()};
+             border: 1px solid {theme["border"].name()};
         }}
     """
 

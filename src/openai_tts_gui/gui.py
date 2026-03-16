@@ -675,9 +675,7 @@ class TTSWindow(QMainWindow):
             with open(sidecar, encoding="utf-8") as f:
                 data = json.load(f)
             reqs = [
-                r.get("request_id")
-                for r in data.get("request_meta", [])
-                if r.get("request_id")
+                r.get("request_id") for r in data.get("request_meta", []) if r.get("request_id")
             ]
             if not reqs:
                 self._notify("No Request IDs", "No request IDs found in sidecar.", level="warning")
