@@ -7,7 +7,7 @@ from .tts import TTSProcessor
 
 
 def main(argv=None):
-    # Be robust: allow --version without requiring --in/--out
+    config.ensure_directories()
     if argv is None:
         argv = sys.argv[1:]
     if "--version" in argv:

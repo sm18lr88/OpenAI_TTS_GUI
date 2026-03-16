@@ -4,14 +4,10 @@ import sys
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from . import config
-
-# Now import GUI after config is available
 from .gui import TTSWindow
 from .utils import preflight_check
 
 
-# --- Compatibility shim: provide Theme/setTheme so tests can monkeypatch them
-# without depending on qfluentwidgets. These are no-ops at runtime.
 class _DummyTheme:
     DARK = "dark"
     LIGHT = "light"
@@ -23,14 +19,14 @@ def setTheme(*_args, **_kwargs):
 
 Theme = _DummyTheme()
 
-# --- Logging Setup ---
-# Basic configuration (can be enhanced with rotation, etc.)
+config.ensure_directories()
+
 logging.basicConfig(
     level=config.LOGGING_LEVEL,
     format=config.LOGGING_FORMAT,
     handlers=[
-        logging.FileHandler(config.LOG_FILE, mode="a", encoding="utf-8"),  # Log to file
-        logging.StreamHandler(sys.stdout),  # Also log to console
+        logging.FileHandler(config.LOG_FILE, mode="a", encoding="utf-8"),
+        logging.StreamHandler(sys.stdout),
     ],
 )
 # Silence overly chatty httpx/openai debug logs unless explicitly enabled
