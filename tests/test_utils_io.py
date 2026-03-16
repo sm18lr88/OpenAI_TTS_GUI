@@ -33,5 +33,5 @@ def test_read_api_key_prefers_env(monkeypatch, tmp_path):
     # Even if file exists, env var should win
     file = tmp_path / "api_key.enc"
     file.write_text("ignored\n", encoding="utf-8")
-    monkeypatch.setattr("openai_tts_gui.utils.config.API_KEY_FILE", str(file))
+    monkeypatch.setattr("openai_tts_gui.config.settings.API_KEY_FILE", str(file))
     assert read_api_key() == "env_key"
