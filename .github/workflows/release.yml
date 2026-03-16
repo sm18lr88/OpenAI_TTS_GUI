@@ -101,6 +101,30 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          body: |
+            ## OpenAI TTS v1.0.0
+
+            Desktop GUI and CLI for generating speech audio from text using OpenAI's TTS API.
+
+            ### What's New
+            - **Modernized dark UI** — Fusion style with a polished dark theme
+            - **Restructured codebase** — feature-based modules, clean separation of concerns
+            - **Pure-Python TTS engine** — core logic decoupled from the GUI framework
+            - **Domain error handling** — clear, actionable error messages
+            - **Windows installer** — one-click setup with Start Menu and Desktop shortcuts
+            - **Python 3.12+** required
+
+            ### Downloads
+            | File | Description |
+            |---|---|
+            | `OpenAI-TTS-Setup.exe` | Windows installer (recommended) |
+            | `OpenAI-TTS-portable.zip` | Portable Windows build — extract and run |
+            | `OpenAI-TTS-macos.zip` | macOS build |
+
+            ### Requirements
+            - An [OpenAI API key](https://platform.openai.com/api-keys)
+            - [FFmpeg](https://ffmpeg.org/download.html) installed and on PATH
+
           files: |
             artifacts/OpenAI-TTS-Setup.exe
             artifacts/OpenAI-TTS-portable.zip
