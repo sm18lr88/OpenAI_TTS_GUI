@@ -61,3 +61,4 @@ lint.select = ["E","F","I","UP","B","SIM"] # A good, modern default set
 [tool.mypy]
 python_version = "3.12"
 ignore_missing_imports = true
+
