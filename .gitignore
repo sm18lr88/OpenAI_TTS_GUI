@@ -11,3 +11,5 @@ reports/
 profiling/
 .pytest_cache/
 .ruff_cache/
+*.egg-info/
+.pytest_tmp/

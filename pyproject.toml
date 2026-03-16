@@ -28,7 +28,6 @@ dev = [
   "pytest-timeout>=2.4,<3",
   "pytest-xdist>=3.8,<4",
   "ruff>=0.14,<0.15",
-  "black>=25.11,<26",
   "mypy>=1.19,<2",
   "pyinstaller>=6.17,<7",
   "pyinstrument>=5.1,<6",
@@ -58,9 +57,6 @@ pythonpath = ["src"]
 line-length = 100
 target-version = "py310"
 lint.select = ["E","F","I","UP","B","SIM"] # A good, modern default set
-
-[tool.black]
-line-length = 100
 
 [tool.mypy]
 python_version = "3.10"

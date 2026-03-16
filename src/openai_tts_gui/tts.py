@@ -300,9 +300,7 @@ class TTSProcessor(QThread):
                         wait_time,
                         req_id,
                     )
-                    self.status_update.emit(
-                        f"Server error {status}; retrying in {wait_time:.1f}s"
-                    )
+                    self.status_update.emit(f"Server error {status}; retrying in {wait_time:.1f}s")
                     time.sleep(wait_time)
                 else:
                     detail = f"API Error: {message}"
@@ -328,7 +326,7 @@ class TTSProcessor(QThread):
 
             except OSError as e:
                 logger.exception(
-                    f"File I/O error saving chunk {filename} on attempt {attempt+1}: {e}"
+                    f"File I/O error saving chunk {filename} on attempt {attempt + 1}: {e}"
                 )
                 self.tts_error.emit(f"File saving error: {e}")
                 return False  # Likely permissions or disk space issue, don't retry
