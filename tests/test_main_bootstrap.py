@@ -20,6 +20,7 @@ def test_main_starts_and_exits_cleanly(monkeypatch):
     monkeypatch.setattr(main, "TTSWindow", DummyWin)
     monkeypatch.setattr(main, "preflight_check", lambda: (True, "ffmpeg OK"))
     monkeypatch.setattr(main, "setTheme", lambda *a, **k: None)
+    monkeypatch.setattr(main, "apply_fusion_dark", lambda app: None)
 
     # Capture sys.exit
     with pytest.raises(SystemExit) as e:

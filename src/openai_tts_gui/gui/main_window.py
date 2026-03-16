@@ -143,7 +143,8 @@ class TTSWindow(QMainWindow):
     def _setup_text_area(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
-        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setContentsMargins(12, 12, 12, 8)
+        layout.setSpacing(8)
 
         layout.addWidget(QLabel("Text for TTS:"))
         self.text_edit = QTextEdit()
@@ -162,7 +163,8 @@ class TTSWindow(QMainWindow):
     def _setup_controls_area(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
-        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setContentsMargins(12, 8, 12, 12)
+        layout.setSpacing(10)
 
         row = QHBoxLayout()
         row.addWidget(QLabel("Model:"))
