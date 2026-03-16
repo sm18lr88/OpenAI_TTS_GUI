@@ -4,8 +4,8 @@ import sys
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from . import config
+from .core.ffmpeg import preflight_check
 from .gui import TTSWindow
-from .utils import preflight_check
 
 
 class _DummyTheme:
