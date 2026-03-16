@@ -9,7 +9,26 @@ REQUIRED_QT_MODULES = [
     "PyQt6.QtWidgets",
 ]
 
-hidden = REQUIRED_QT_MODULES
+hidden = REQUIRED_QT_MODULES + [
+    "openai_tts_gui.config",
+    "openai_tts_gui.config.settings",
+    "openai_tts_gui.config.theme",
+    "openai_tts_gui.core",
+    "openai_tts_gui.core.text",
+    "openai_tts_gui.core.audio",
+    "openai_tts_gui.core.ffmpeg",
+    "openai_tts_gui.core.metadata",
+    "openai_tts_gui.tts",
+    "openai_tts_gui.tts._service",
+    "openai_tts_gui.keystore",
+    "openai_tts_gui.presets",
+    "openai_tts_gui.gui",
+    "openai_tts_gui.gui.main_window",
+    "openai_tts_gui.gui.dialogs",
+    "openai_tts_gui.gui.workers",
+    "openai_tts_gui.gui._layout",
+    "openai_tts_gui.errors",
+]
 # Only bundle the Qt plugin categories required for widget apps; avoid heavy/optional
 # plugins (3D, multimedia, QML) that trigger missing-DLL warnings on CI.
 datas = collect_data_files(
