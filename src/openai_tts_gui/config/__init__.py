@@ -38,6 +38,7 @@ from .settings import (  # noqa: F401
     TTS_MODELS,
     TTS_VOICES,
     USE_KEYRING,
+    ensure_directories,
     env_snapshot,
 )
 from .theme import (  # noqa: F401
@@ -86,6 +87,7 @@ __all__ = [
     "CODEC_PARAMS",
     "LOGGING_LEVEL",
     "LOGGING_FORMAT",
+    "ensure_directories",
     "env_snapshot",
     "DARK_THEME",
     "LIGHT_THEME",

@@ -11,13 +11,16 @@ APP_NAME = "OpenAI TTS"
 APP_VERSION = "0.8.0"
 # per-user app data directory
 DATA_DIR = user_data_dir(APP_NAME, appauthor=False)
-os.makedirs(DATA_DIR, exist_ok=True)
 LOG_FILE = os.path.join(DATA_DIR, "tts_app.log")
 PRESETS_FILE = os.path.join(DATA_DIR, "presets.json")
-API_KEY_FILE = os.path.join(DATA_DIR, "api_key.enc")  # obfuscated fallback file path
-# default output directory (created on demand)
+API_KEY_FILE = os.path.join(DATA_DIR, "api_key.enc")
 DEFAULT_OUTPUT_DIR = os.path.expanduser(os.path.join("~", "Music", "OpenAI-TTS"))
-os.makedirs(DEFAULT_OUTPUT_DIR, exist_ok=True)
+
+
+def ensure_directories():
+    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(DEFAULT_OUTPUT_DIR, exist_ok=True)
+
 
 # --- OpenAI Client Settings ---
 OPENAI_TIMEOUT = 60.0  # seconds
