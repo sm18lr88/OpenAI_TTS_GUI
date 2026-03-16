@@ -35,12 +35,10 @@ jobs:
         shell: pwsh
         run: |
           $nsis = "C:\Program Files (x86)\NSIS\makensis.exe"
-          if (Test-Path $nsis) {
-            & $nsis installer.nsi
-          } else {
+          if (-not (Test-Path $nsis)) {
             choco install nsis --no-progress -y
-            makensis installer.nsi
           }
+          & "C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
 
       - name: Zip portable
         shell: pwsh
