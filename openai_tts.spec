@@ -45,7 +45,7 @@ datas = collect_data_files(
 block_cipher = None
 
 a = Analysis(
-    ["src/openai_tts_gui/main.py"],
+    ["scripts/pyinstaller_entry.py"],
     pathex=["src"],
     binaries=[],
     datas=datas,

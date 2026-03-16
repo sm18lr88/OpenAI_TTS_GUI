@@ -62,6 +62,19 @@ QPushButton:pressed {{
     background-color: {ACCENT_PRESSED};
     color: #FFFFFF;
 }}
+QPushButton#primaryButton {{
+    background-color: {ACCENT};
+    color: #FFFFFF;
+    border: 1px solid {ACCENT};
+    font-weight: bold;
+}}
+QPushButton#primaryButton:hover {{
+    background-color: {ACCENT_HOVER};
+    border-color: {ACCENT_HOVER};
+}}
+QPushButton#primaryButton:pressed {{
+    background-color: {ACCENT_PRESSED};
+}}
 QMenuBar {{
     background-color: #181825;
     color: #CDD6F4;

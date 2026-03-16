@@ -112,6 +112,7 @@ def build_controls_area(window) -> QWidget:
     action_row.addWidget(window.progress_bar)
 
     window.create_button = QPushButton("Create TTS")
+    window.create_button.setObjectName("primaryButton")
     action_row.addWidget(window.create_button)
     window.copy_ids_button = QPushButton("Copy Request IDs")
     window.copy_ids_button.setEnabled(False)
