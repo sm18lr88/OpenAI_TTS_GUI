@@ -41,7 +41,8 @@ def test_select_save_path_mocked_dialog(qtbot, monkeypatch, tmp_path):
     # Mock the dialog to return a specific path
     target = str(tmp_path / "chosen.wav")
     monkeypatch.setattr(
-        "openai_tts_gui.gui.QFileDialog.getSaveFileName", lambda *a, **k: (target, "")
+        "openai_tts_gui.gui.main_window.QFileDialog.getSaveFileName",
+        lambda *a, **k: (target, ""),
     )
     # Ensure format is wav so extension isn't changed
     idx = w.format_combo.findText("wav")

@@ -1,4 +1,3 @@
-# gui.py
 import json
 import logging
 import os
@@ -12,13 +11,11 @@ from PyQt6.QtGui import QAction, QCloseEvent, QDoubleValidator
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
-    QDialog,
     QFileDialog,
     QHBoxLayout,
     QInputDialog,
     QLabel,
     QLineEdit,
-    QListWidget,
     QMainWindow,
     QMenu,
     QMenuBar,
@@ -35,133 +32,17 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from . import config
-from .tts import TTSProcessor
-from .utils import (
-    get_ffmpeg_version,
-    load_presets,
-    read_api_key,
-    save_api_key,
-    save_presets,
-    split_text,
-)
+from ..config import settings
+from ..core.ffmpeg import get_ffmpeg_version
+from ..core.text import split_text
+from ..keystore import read_api_key, save_api_key
+from .dialogs import PresetDialog
+from .workers import TTSWorker
 
 logger = logging.getLogger(__name__)
 
 
-class PresetDialog(QDialog):
-    """Dialog for managing instruction presets."""
-
-    preset_selected = pyqtSignal(str)
-
-    def __init__(self, current_instructions: str, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Manage Instruction Presets")
-        self.setMinimumWidth(400)
-        self._current_instructions = current_instructions
-        self._presets = {}
-
-        self._setup_ui()
-        self._connect_signals()
-        self.load_presets()
-
-    def _setup_ui(self):
-        self.main_layout = QVBoxLayout(self)
-        self.preset_list = QListWidget()
-        self.preset_list.setToolTip("Double-click to load.")
-
-        button_layout = QHBoxLayout()
-        self.load_button = QPushButton("Load Selected")
-        self.save_button = QPushButton("Save Current Instructions")
-        self.delete_button = QPushButton("Delete Selected")
-
-        button_layout.addWidget(self.load_button)
-        button_layout.addWidget(self.save_button)
-        button_layout.addWidget(self.delete_button)
-
-        self.main_layout.addWidget(QLabel("Available Presets:"))
-        self.main_layout.addWidget(self.preset_list)
-        self.main_layout.addLayout(button_layout)
-
-    def _connect_signals(self):
-        self.load_button.clicked.connect(self.load_selected)
-        self.save_button.clicked.connect(self.save_current)
-        self.delete_button.clicked.connect(self.delete_selected)
-        self.preset_list.itemDoubleClicked.connect(self.load_selected)
-
-    def load_presets(self):
-        self._presets = load_presets()
-        self.preset_list.clear()
-        for name in sorted(self._presets.keys(), key=str.lower):
-            self.preset_list.addItem(name)
-        logger.debug("Preset dialog updated with %d presets.", len(self._presets))
-
-    @pyqtSlot()
-    def load_selected(self):
-        item = self.preset_list.currentItem()
-        if not item:
-            QMessageBox.warning(self, "No Selection", "Please select a preset to load.")
-            return
-        name = item.text()
-        self.preset_selected.emit(self._presets.get(name, ""))
-        self.accept()
-
-    @pyqtSlot()
-    def save_current(self):
-        name, ok = QInputDialog.getText(
-            self,
-            "Save Preset",
-            "Enter a name for the current instructions:",
-        )
-        if not ok:
-            return
-        name = (name or "").strip()
-        if not name:
-            QMessageBox.warning(self, "Invalid Name", "Preset name cannot be empty.")
-            return
-        if name in self._presets:
-            r = QMessageBox.question(
-                self,
-                "Overwrite Preset?",
-                f"A preset named '{name}' exists. Overwrite?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            )
-            if r != QMessageBox.StandardButton.Yes:
-                return
-
-        self._presets[name] = self._current_instructions
-        if save_presets(self._presets):
-            self.load_presets()
-            QMessageBox.information(self, "Preset Saved", f"Preset '{name}' saved.")
-        else:
-            QMessageBox.critical(self, "Error", "Failed to save presets file.")
-
-    @pyqtSlot()
-    def delete_selected(self):
-        item = self.preset_list.currentItem()
-        if not item:
-            QMessageBox.warning(self, "No Selection", "Please select a preset to delete.")
-            return
-        name = item.text()
-        r = QMessageBox.question(
-            self,
-            "Confirm Deletion",
-            f"Delete preset '{name}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if r != QMessageBox.StandardButton.Yes:
-            return
-        if name in self._presets:
-            del self._presets[name]
-            if save_presets(self._presets):
-                self.load_presets()
-            else:
-                QMessageBox.critical(self, "Error", "Failed to save presets file after deletion.")
-
-
 class TTSWindow(QMainWindow):
-    """Main window for the OpenAI TTS application (native widgets)."""
-
     tts_complete = pyqtSignal(str)
     tts_error = pyqtSignal(str)
     progress_updated = pyqtSignal(int)
@@ -184,8 +65,8 @@ class TTSWindow(QMainWindow):
             logger.warning("No API key found on initialization.")
 
     def _init_ui(self):
-        self.setWindowTitle(config.APP_NAME)
-        self.resize(config.DEFAULT_WINDOW_WIDTH, config.DEFAULT_WINDOW_HEIGHT)
+        self.setWindowTitle(settings.APP_NAME)
+        self.resize(settings.DEFAULT_WINDOW_WIDTH, settings.DEFAULT_WINDOW_HEIGHT)
 
         splitter = QSplitter(Qt.Orientation.Vertical)
         text_widget = self._setup_text_area()
@@ -194,7 +75,6 @@ class TTSWindow(QMainWindow):
         splitter.addWidget(controls_widget)
         splitter.setSizes([int(self.height() * 0.6), int(self.height() * 0.4)])
 
-        # About page (simple stacked; we'll switch via Help -> About)
         self.about_page = QWidget()
         about_layout = QVBoxLayout(self.about_page)
         about_layout.setContentsMargins(24, 24, 24, 24)
@@ -208,7 +88,9 @@ class TTSWindow(QMainWindow):
         back_row = QHBoxLayout()
         back_row.addStretch()
         self.open_log_button = QPushButton("Open Log Folder")
-        self.open_log_button.clicked.connect(lambda: self._open_containing_folder(config.LOG_FILE))
+        self.open_log_button.clicked.connect(
+            lambda: self._open_containing_folder(settings.LOG_FILE)
+        )
         back_row.addWidget(self.open_log_button)
         self.about_back_button = QPushButton("Back to Application")
         self.about_back_button.clicked.connect(self._show_main_page)
@@ -234,14 +116,12 @@ class TTSWindow(QMainWindow):
         if menubar is None:
             return
 
-        # Settings
         settings_menu: QMenu | None = menubar.addMenu("Settings")
         self.retain_files_action = QAction("Retain intermediate chunk files", self)
         self.retain_files_action.setCheckable(True)
         if settings_menu is not None:
             settings_menu.addAction(self.retain_files_action)
 
-        # API Key
         api_menu: QMenu | None = menubar.addMenu("API Key")
         reload_action = QAction("Reload from secure store", self)
         reload_action.triggered.connect(self._load_api_key_from_file)
@@ -251,7 +131,6 @@ class TTSWindow(QMainWindow):
             api_menu.addAction(reload_action)
             api_menu.addAction(set_key_action)
 
-        # Help
         help_menu: QMenu | None = menubar.addMenu("Help")
         about_action = QAction("About", self)
         about_action.triggered.connect(self._show_about_page)
@@ -273,7 +152,7 @@ class TTSWindow(QMainWindow):
 
         counts = QHBoxLayout()
         self.char_count_label = QLabel("Character Count: 0")
-        self.chunk_count_label = QLabel(f"Chunks (max {config.MAX_CHUNK_SIZE} chars): 0")
+        self.chunk_count_label = QLabel(f"Chunks (max {settings.MAX_CHUNK_SIZE} chars): 0")
         counts.addWidget(self.char_count_label)
         counts.addStretch()
         counts.addWidget(self.chunk_count_label)
@@ -288,23 +167,25 @@ class TTSWindow(QMainWindow):
         row = QHBoxLayout()
         row.addWidget(QLabel("Model:"))
         self.model_combo = QComboBox()
-        self.model_combo.addItems(config.TTS_MODELS)
+        self.model_combo.addItems(settings.TTS_MODELS)
         row.addWidget(self.model_combo)
 
         row.addWidget(QLabel("Voice:"))
         self.voice_combo = QComboBox()
-        self.voice_combo.addItems(config.TTS_VOICES)
+        self.voice_combo.addItems(settings.TTS_VOICES)
         row.addWidget(self.voice_combo)
 
         row.addWidget(QLabel("Speed:"))
-        self.speed_input = QLineEdit(str(config.DEFAULT_SPEED))
-        self.speed_input.setValidator(QDoubleValidator(config.MIN_SPEED, config.MAX_SPEED, 2, self))
+        self.speed_input = QLineEdit(str(settings.DEFAULT_SPEED))
+        self.speed_input.setValidator(
+            QDoubleValidator(settings.MIN_SPEED, settings.MAX_SPEED, 2, self)
+        )
         self.speed_input.setMaximumWidth(60)
         row.addWidget(self.speed_input)
 
         row.addWidget(QLabel("Format:"))
         self.format_combo = QComboBox()
-        self.format_combo.addItems(config.TTS_FORMATS)
+        self.format_combo.addItems(settings.TTS_FORMATS)
         row.addWidget(self.format_combo)
         layout.addLayout(row)
 
@@ -320,7 +201,7 @@ class TTSWindow(QMainWindow):
         self.instructions_edit = QTextEdit()
         self.instructions_edit.setPlaceholderText(
             f"Provide guidance on voice/tone/pacing (only affects "
-            f"'{config.GPT_4O_MINI_TTS_MODEL}')..."
+            f"'{settings.GPT_4O_MINI_TTS_MODEL}')..."
         )
         self.instructions_edit.setMinimumHeight(60)
         self.instructions_edit.setSizePolicy(
@@ -364,8 +245,6 @@ class TTSWindow(QMainWindow):
         self.tts_complete.connect(self._handle_tts_success)
         self.tts_error.connect(self._handle_tts_error)
 
-    # --- API Key Management ---
-
     @pyqtSlot()
     def _load_api_key_from_file(self):
         key = read_api_key()
@@ -405,10 +284,7 @@ class TTSWindow(QMainWindow):
                 level="warning",
             )
 
-    # --- UI helpers ---
-
     def _notify(self, title: str, message: str, level: str = "info"):
-        """Log + status-bar message; avoid modal dialogs during tests."""
         logger_fn = {
             "info": logger.info,
             "warning": logger.warning,
@@ -419,7 +295,6 @@ class TTSWindow(QMainWindow):
             status_bar: QStatusBar | None = self.statusBar()
             if status_bar is not None:
                 status_bar.showMessage(f"{title}: {message}", 5000)
-        # Only show modal if not under pytest/CI
         if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
             if level == "warning":
                 QMessageBox.warning(self, title, message)
@@ -428,19 +303,19 @@ class TTSWindow(QMainWindow):
             else:
                 QMessageBox.information(self, title, message)
 
-    # --- Counts / enablement ---
-
     @pyqtSlot()
     def update_counts(self):
         text = self.text_edit.toPlainText()
         chars = len(text)
-        chunks = split_text(text, config.MAX_CHUNK_SIZE) if text else []
+        chunks = split_text(text, settings.MAX_CHUNK_SIZE) if text else []
         self.char_count_label.setText(f"Character Count: {chars}")
-        self.chunk_count_label.setText(f"Chunks (max {config.MAX_CHUNK_SIZE} chars): {len(chunks)}")
+        self.chunk_count_label.setText(
+            f"Chunks (max {settings.MAX_CHUNK_SIZE} chars): {len(chunks)}"
+        )
 
     @pyqtSlot()
     def update_instructions_enabled(self):
-        is_gpt4o_mini = self.model_combo.currentText() == config.GPT_4O_MINI_TTS_MODEL
+        is_gpt4o_mini = self.model_combo.currentText() == settings.GPT_4O_MINI_TTS_MODEL
         self.instructions_edit.setEnabled(is_gpt4o_mini)
         self.instructions_label.setEnabled(is_gpt4o_mini)
         self.manage_presets_button.setEnabled(is_gpt4o_mini)
@@ -451,24 +326,22 @@ class TTSWindow(QMainWindow):
         if not current_path:
             return
         path_base, _ = os.path.splitext(current_path)
-        new_ext = config.FORMAT_EXTENSION_MAP.get(selected_format, ".mp3")
+        new_ext = settings.FORMAT_EXTENSION_MAP.get(selected_format, ".mp3")
         self.path_entry.setText(path_base + new_ext)
 
     @pyqtSlot(int)
     def _update_progress_bar(self, value: int):
         self.progress_bar.setValue(value)
 
-    # --- About ---
-
     @pyqtSlot()
     def _show_about_page(self):
-        snap = config.env_snapshot()
+        snap = settings.env_snapshot()
         ffv = get_ffmpeg_version() or "Unavailable"
-        log_path = str(config.LOG_FILE)
-        data_dir = str(config.DATA_DIR)
+        log_path = str(settings.LOG_FILE)
+        data_dir = str(settings.DATA_DIR)
         text = dedent(
             f"""
-            <h2>{config.APP_NAME} {config.APP_VERSION}</h2>
+            <h2>{settings.APP_NAME} {settings.APP_VERSION}</h2>
             <p>
                 OpenAI TTS GUI converts text into speech via OpenAI's TTS service.
                 Fine-tune voices, models, and export formats without scripting.
@@ -481,18 +354,11 @@ class TTSWindow(QMainWindow):
             </ul>
             <h3>Quick Tips</h3>
             <ul>
-                <li>
-                    Add the API key under <em>API Key > Set/Update API Key</em> before generating.
-                </li>
-                <li>
-                    Use the preset manager to store prompt snippets for recurring work.
-                </li>
-                <li>
-                    See README.md for workflow examples and troubleshooting tips.
-                </li>
+                <li>Add the API key under <em>API Key &gt; Set/Update</em>.</li>
+                <li>Use the preset manager to store prompt snippets for recurring work.</li>
+                <li>See README.md for workflow examples and troubleshooting tips.</li>
             </ul>
             <h3>Environment Details</h3>
-            <p>Helpful when reporting an issue or collaborating:</p>
             <ul>
                 <li><strong>Python</strong>: {snap.get("python") or "Unknown"}</li>
                 <li><strong>Platform</strong>: {snap.get("platform") or "Unknown"}</li>
@@ -513,16 +379,16 @@ class TTSWindow(QMainWindow):
         self.stack.setCurrentIndex(0)
         self.text_edit.setFocus()
 
-    # --- Actions ---
-
     @pyqtSlot()
     def select_save_path(self):
         selected_format = self.format_combo.currentText()
-        file_filter = config.FORMAT_FILTER_MAP.get(selected_format, config.FORMAT_FILTER_MAP["all"])
+        file_filter = settings.FORMAT_FILTER_MAP.get(
+            selected_format, settings.FORMAT_FILTER_MAP["all"]
+        )
         current_path = self.path_entry.text()
-        start_dir = os.path.dirname(current_path) if current_path else config.DEFAULT_OUTPUT_DIR
+        start_dir = os.path.dirname(current_path) if current_path else settings.DEFAULT_OUTPUT_DIR
         os.makedirs(start_dir, exist_ok=True)
-        default_ext = config.FORMAT_EXTENSION_MAP.get(selected_format, ".mp3")
+        default_ext = settings.FORMAT_EXTENSION_MAP.get(selected_format, ".mp3")
         start_path = os.path.join(start_dir, f"output{default_ext}")
 
         file_path, _ = QFileDialog.getSaveFileName(
@@ -531,7 +397,7 @@ class TTSWindow(QMainWindow):
         if not file_path:
             return
         _, ext = os.path.splitext(file_path)
-        required_ext = config.FORMAT_EXTENSION_MAP.get(selected_format, ".mp3")
+        required_ext = settings.FORMAT_EXTENSION_MAP.get(selected_format, ".mp3")
         if ext.lower() != required_ext.lower():
             file_path = os.path.splitext(file_path)[0] + required_ext
         self.path_entry.setText(file_path)
@@ -560,9 +426,9 @@ class TTSWindow(QMainWindow):
         output_path = (self.path_entry.text() or "").strip()
         if not output_path:
             selected_format = self.format_combo.currentText()
-            default_ext = config.FORMAT_EXTENSION_MAP.get(selected_format, ".mp3")
-            os.makedirs(config.DEFAULT_OUTPUT_DIR, exist_ok=True)
-            output_path = os.path.join(config.DEFAULT_OUTPUT_DIR, f"output{default_ext}")
+            default_ext = settings.FORMAT_EXTENSION_MAP.get(selected_format, ".mp3")
+            os.makedirs(settings.DEFAULT_OUTPUT_DIR, exist_ok=True)
+            output_path = os.path.join(settings.DEFAULT_OUTPUT_DIR, f"output{default_ext}")
             self.path_entry.setText(output_path)
 
         out_dir = os.path.dirname(output_path)
@@ -575,21 +441,21 @@ class TTSWindow(QMainWindow):
 
         try:
             speed_val = float(self.speed_input.text().strip())
-            if not (config.MIN_SPEED <= speed_val <= config.MAX_SPEED):
+            if not (settings.MIN_SPEED <= speed_val <= settings.MAX_SPEED):
                 raise ValueError("Speed out of range")
         except ValueError:
-            speed_val = config.DEFAULT_SPEED
+            speed_val = settings.DEFAULT_SPEED
             self.speed_input.setText(str(speed_val))
             self._notify(
                 "Invalid Speed",
-                f"Speed must be between {config.MIN_SPEED} and {config.MAX_SPEED}. "
-                f"Using {config.DEFAULT_SPEED}.",
+                f"Speed must be between {settings.MIN_SPEED} and {settings.MAX_SPEED}. "
+                f"Using {settings.DEFAULT_SPEED}.",
                 level="warning",
             )
 
         selected_model = self.model_combo.currentText()
         instructions_text = ""
-        if selected_model == config.GPT_4O_MINI_TTS_MODEL:
+        if selected_model == settings.GPT_4O_MINI_TTS_MODEL:
             instructions_text = self.instructions_edit.toPlainText().strip()
 
         params = {
@@ -606,7 +472,7 @@ class TTSWindow(QMainWindow):
 
         self._set_ui_enabled(False)
         self.progress_bar.setValue(0)
-        self.tts_processor = TTSProcessor(params)
+        self.tts_processor = TTSWorker(params)
         self.tts_processor.progress_updated.connect(self.progress_updated.emit)
         self.tts_processor.tts_complete.connect(self.tts_complete.emit)
         self.tts_processor.tts_error.connect(self.tts_error.emit)
@@ -620,10 +486,10 @@ class TTSWindow(QMainWindow):
         self.speed_input.setEnabled(enabled)
         self.format_combo.setEnabled(enabled)
         self.instructions_edit.setEnabled(
-            enabled and self.model_combo.currentText() == config.GPT_4O_MINI_TTS_MODEL
+            enabled and self.model_combo.currentText() == settings.GPT_4O_MINI_TTS_MODEL
         )
         self.manage_presets_button.setEnabled(
-            enabled and self.model_combo.currentText() == config.GPT_4O_MINI_TTS_MODEL
+            enabled and self.model_combo.currentText() == settings.GPT_4O_MINI_TTS_MODEL
         )
         self.path_entry.setEnabled(enabled)
         self.select_path_button.setEnabled(enabled)
@@ -665,7 +531,6 @@ class TTSWindow(QMainWindow):
 
     @pyqtSlot()
     def _copy_request_ids(self):
-        """Load request IDs from the sidecar and copy to clipboard for support/debug."""
         output_path = (self.path_entry.text() or "").strip()
         if not output_path:
             self._notify("No Output", "Generate TTS first to copy request IDs.", level="warning")
