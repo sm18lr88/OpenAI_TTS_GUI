@@ -1,6 +1,6 @@
 [project]
 name = "OpenAI_TTS_GUI"
-version = "0.8.0"
+version = "1.0.0"
 description = "GUI for OpenAI's TTS"
 readme = "README.md"
 requires-python = ">=3.12,<3.14"

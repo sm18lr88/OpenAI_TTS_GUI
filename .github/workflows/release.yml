@@ -1,62 +1,109 @@
-name: build
+name: Release
+
 on:
   push:
     tags:
       - "v*"
 
 concurrency:
-  group: bundle-${{ github.ref }}
+  group: release-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
-  bundle-windows:
+  build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.12"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
-      - name: Install runtime deps (no dev)
+      - name: Sync deps
+        run: uv sync --extra dev --python 3.12
+
+      - name: Build exe
+        run: uv run pyinstaller --noconfirm openai_tts.spec
+
+      - name: Build installer
+        shell: pwsh
         run: |
-          uv pip install --system .  # installs your package
-          uv pip install --system pyinstaller
+          $nsis = "C:\Program Files (x86)\NSIS\makensis.exe"
+          if (Test-Path $nsis) {
+            & $nsis installer.nsi
+          } else {
+            choco install nsis --no-progress -y
+            makensis installer.nsi
+          }
 
-      - name: Build
-        run: pyinstaller --noconfirm openai_tts.spec
+      - name: Zip portable
+        shell: pwsh
+        run: Compress-Archive -Path dist\OpenAI-TTS\* -DestinationPath dist\OpenAI-TTS-portable.zip
 
-      - name: Upload artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: OpenAI-TTS-windows
-          path: dist/**
+          path: |
+            dist/OpenAI-TTS-Setup.exe
+            dist/OpenAI-TTS-portable.zip
 
-  bundle-macos:
+  build-macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.12"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
-      - name: Install runtime deps (no dev)
-        run: |
-          uv pip install --system .  # installs your package
-          uv pip install --system pyinstaller
+      - name: Sync deps
+        run: uv sync --extra dev --python 3.12
 
       - name: Build
-        run: pyinstaller --noconfirm openai_tts.spec
+        run: uv run pyinstaller --noconfirm openai_tts.spec
+
+      - name: Zip app
+        run: cd dist && zip -r OpenAI-TTS-macos.zip OpenAI-TTS/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: OpenAI-TTS-macos
-          path: dist/**
+          path: dist/OpenAI-TTS-macos.zip
+
+  release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: OpenAI-TTS-windows
+          path: artifacts/
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: OpenAI-TTS-macos
+          path: artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/OpenAI-TTS-Setup.exe
+            artifacts/OpenAI-TTS-portable.zip
+            artifacts/OpenAI-TTS-macos.zip
