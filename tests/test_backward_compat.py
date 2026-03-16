@@ -8,10 +8,7 @@ and must continue to pass after the refactor.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
-
-import pytest
 
 from openai_tts_gui import config
 from openai_tts_gui.utils import decrypt_key, encrypt_key, load_presets, save_presets
