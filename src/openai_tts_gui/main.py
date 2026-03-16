@@ -4,6 +4,7 @@ import sys
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from . import config
+from .config.theme import apply_fusion_dark
 from .core.ffmpeg import preflight_check
 from .gui import TTSWindow
 
@@ -29,18 +30,15 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout),
     ],
 )
-# Silence overly chatty httpx/openai debug logs unless explicitly enabled
-# import logging as _logging; _logging.getLogger("httpx").setLevel(_logging.WARNING)
 
-logger = logging.getLogger(__name__)  # Get logger for main module
+logger = logging.getLogger(__name__)
 
 
-# --- Main Execution ---
 def main():
     logger.info(f"Starting {config.APP_NAME} application.")
     app = QApplication(sys.argv)
 
-    # Keep a harmless call so older code/tests can patch it; does nothing here.
+    apply_fusion_dark(app)
     setTheme(Theme.DARK)
 
     try:

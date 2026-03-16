@@ -44,6 +44,7 @@ from .settings import (  # noqa: F401
 from .theme import (  # noqa: F401
     DARK_THEME,
     LIGHT_THEME,
+    apply_fusion_dark,
     build_stylesheet,
 )
 
@@ -91,5 +92,6 @@ __all__ = [
     "env_snapshot",
     "DARK_THEME",
     "LIGHT_THEME",
+    "apply_fusion_dark",
     "build_stylesheet",
 ]
