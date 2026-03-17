@@ -1,6 +1,6 @@
 # OpenAI TTS GUI
 
-Desktop app and CLI for generating speech audio from text using OpenAI's TTS API. Handles long text automatically — no character limits.
+Easy-to-use, text-to-speech with OpenAI's api. Handles long text automatically — no character limits.
 
 ![Screenshot](docs/images/screenshot.png)
 
@@ -19,7 +19,7 @@ Desktop app and CLI for generating speech audio from text using OpenAI's TTS API
 - **Sidecar metadata**: JSON written next to every output for reproducibility
 - **CLI**: `openai-tts --in text.txt --out out.mp3`
 - **Request IDs**: copy from GUI for OpenAI support tickets
-- **Parallel processing**: set `TTS_PARALLELISM=4` for concurrent chunk generation
+- **Parallel processing**: set `TTS_PARALLELISM=4` for concurrent chunk generation   # Beta feature, may not work.
 
 ## Requirements
 
