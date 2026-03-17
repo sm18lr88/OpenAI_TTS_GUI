@@ -6,16 +6,24 @@ import sys
 from contextlib import suppress
 
 from PyQt6.QtCore import QTimer, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QCloseEvent
+from PyQt6.QtGui import QAction, QCloseEvent
 from PyQt6.QtWidgets import (
     QApplication,
+    QComboBox,
     QFileDialog,
     QInputDialog,
+    QLabel,
     QLineEdit,
     QMainWindow,
     QMenuBar,
     QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QStackedWidget,
     QStatusBar,
+    QTextBrowser,
+    QTextEdit,
+    QWidget,
 )
 
 from ..config import settings
@@ -33,10 +41,32 @@ class TTSWindow(QMainWindow):
     tts_error = pyqtSignal(str)
     progress_updated = pyqtSignal(int)
 
+    text_edit: QTextEdit
+    char_count_label: QLabel
+    chunk_count_label: QLabel
+    model_combo: QComboBox
+    voice_combo: QComboBox
+    speed_input: QLineEdit
+    format_combo: QComboBox
+    instructions_label: QLabel
+    instructions_edit: QTextEdit
+    manage_presets_button: QPushButton
+    path_entry: QLineEdit
+    select_path_button: QPushButton
+    progress_bar: QProgressBar
+    create_button: QPushButton
+    copy_ids_button: QPushButton
+    retain_files_action: QAction
+    about_text: QTextBrowser
+    about_back_button: QPushButton
+    open_log_button: QPushButton
+    about_page: QWidget
+    stack: QStackedWidget
+
     def __init__(self):
         super().__init__()
-        self._api_key = None
-        self.tts_processor = None
+        self._api_key: str | None = None
+        self.tts_processor: TTSWorker | None = None
 
         self._load_initial_api_key()
         self._init_ui()

@@ -8,14 +8,14 @@ from ._crypto import decrypt_key, encrypt_key
 
 logger = logging.getLogger(__name__)
 
-keyring: Any | None
+_keyring_mod: Any | None = None
+_KEYRING_AVAILABLE = False
 try:
-    import keyring
+    import keyring as _keyring_mod
 
     _KEYRING_AVAILABLE = True
 except Exception:
-    keyring = None
-    _KEYRING_AVAILABLE = False
+    pass
 
 
 def read_api_key(filename: str | None = None) -> str | None:
@@ -25,10 +25,10 @@ def read_api_key(filename: str | None = None) -> str | None:
         logger.info("Using API key from OPENAI_API_KEY environment variable.")
         return api_key_env
 
-    if getattr(settings, "USE_KEYRING", False) and _KEYRING_AVAILABLE and keyring is not None:
+    if getattr(settings, "USE_KEYRING", False) and _KEYRING_AVAILABLE and _keyring_mod is not None:
         try:
-            if hasattr(keyring, "get_password"):
-                key = keyring.get_password("OpenAI_TTS_GUI", "OPENAI_API_KEY")
+            if hasattr(_keyring_mod, "get_password"):
+                key = _keyring_mod.get_password("OpenAI_TTS_GUI", "OPENAI_API_KEY")
             else:
                 key = None
             if key:
@@ -69,10 +69,10 @@ def save_api_key(api_key: str, filename: str | None = None) -> bool:
         return False
     filename = filename or settings.API_KEY_FILE
     keyring_ok = False
-    if getattr(settings, "USE_KEYRING", False) and _KEYRING_AVAILABLE and keyring is not None:
+    if getattr(settings, "USE_KEYRING", False) and _KEYRING_AVAILABLE and _keyring_mod is not None:
         try:
-            if hasattr(keyring, "set_password"):
-                keyring.set_password("OpenAI_TTS_GUI", "OPENAI_API_KEY", api_key)
+            if hasattr(_keyring_mod, "set_password"):
+                _keyring_mod.set_password("OpenAI_TTS_GUI", "OPENAI_API_KEY", api_key)
                 keyring_ok = True
                 logger.info("API key saved to OS keyring (OpenAI_TTS_GUI/OPENAI_API_KEY).")
         except Exception as e:

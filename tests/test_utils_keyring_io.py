@@ -15,7 +15,7 @@ def test_save_and_read_api_key_via_keyring(monkeypatch, tmp_path):
         def get_password(service, user):
             return store.get((service, user))
 
-    monkeypatch.setattr(keystore_storage, "keyring", KR)
+    monkeypatch.setattr(keystore_storage, "_keyring_mod", KR)
     monkeypatch.setattr(keystore_storage, "_KEYRING_AVAILABLE", True)
     monkeypatch.setattr(settings, "USE_KEYRING", True)
     monkeypatch.setattr(settings, "API_KEY_FILE", str(tmp_path / "api_key.enc"))
