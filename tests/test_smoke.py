@@ -12,7 +12,7 @@ from openai_tts_gui.utils import concatenate_audio_files, preflight_check, split
 def test_chunker_roundtrip():
     text = "Hello world!  This is a test… 🚀 Newlines?\nYes!\nEnd."
     chunks = split_text(text, chunk_size=16)
-    assert "".join(chunks).replace("  ", " ").strip() == text.replace("  ", " ").strip()
+    assert "".join(chunks) == text
     assert all(len(c) <= 16 or c == chunks[-1] for c in chunks)
 
 

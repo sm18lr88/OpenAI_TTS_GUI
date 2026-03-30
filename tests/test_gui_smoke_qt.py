@@ -1,3 +1,7 @@
+import pytest
+
+pytest.importorskip("PyQt6")
+
 from openai_tts_gui.gui import TTSWindow
 
 

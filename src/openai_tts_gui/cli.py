@@ -1,22 +1,18 @@
+from __future__ import annotations
+
 import argparse
 import logging
+import math
 import sys
+from pathlib import Path
 
-from . import config
 from .config import settings
-from .errors import TTSError
+from .errors import ConfigError, TTSError
 from .keystore import read_api_key
 from .tts import TTSService
 
 
-def main(argv=None):
-    config.ensure_directories()
-    if argv is None:
-        argv = sys.argv[1:]
-    if "--version" in argv:
-        print(f"{settings.APP_NAME} {settings.APP_VERSION}")
-        return 0
-
+def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="openai-tts",
         description="Generate speech audio from text via OpenAI TTS API.",
@@ -36,15 +32,41 @@ def main(argv=None):
         help="Logging verbosity",
     )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
-    args = parser.parse_args(argv)
+    return parser
+
+
+def _print_version() -> None:
+    print(f"{settings.APP_NAME} {settings.APP_VERSION}")
+
+
+def main(argv: list[str] | None = None) -> int:
+    settings.ensure_directories()
+    args_list = list(sys.argv[1:] if argv is None else argv)
+
+    if "--version" in args_list:
+        _print_version()
+        return 0
+
+    parser = _build_parser()
+    args = parser.parse_args(args_list)
 
     if args.version:
-        print(f"{settings.APP_NAME} {settings.APP_VERSION}")
+        _print_version()
         return 0
+
     if not args.infile or not args.outfile:
         parser.print_usage(sys.stderr)
         print(
             f"{parser.prog}: error: the following arguments are required: --in, --out",
+            file=sys.stderr,
+        )
+        return 2
+
+    if not math.isfinite(args.speed) or not (
+        settings.MIN_SPEED <= args.speed <= settings.MAX_SPEED
+    ):
+        print(
+            f"Invalid speed: must be between {settings.MIN_SPEED} and {settings.MAX_SPEED}.",
             file=sys.stderr,
         )
         return 2
@@ -54,10 +76,13 @@ def main(argv=None):
         print("Missing OPENAI API key.", file=sys.stderr)
         return 1
 
-    with open(args.infile, encoding="utf-8") as f:
-        text = f.read()
+    try:
+        text = Path(args.infile).read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        print(f"Failed to read input file: {exc}", file=sys.stderr)
+        return 1
 
-    logging.basicConfig(level=getattr(logging, args.log_level))
+    logging.basicConfig(level=getattr(logging, args.log_level), force=True)
 
     try:
         service = TTSService(
@@ -67,7 +92,7 @@ def main(argv=None):
         )
         service.generate(
             text=text,
-            output_path=args.outfile,
+            output_path=str(args.outfile),
             model=args.model,
             voice=args.voice,
             response_format=args.format,
@@ -75,8 +100,11 @@ def main(argv=None):
             instructions=args.instructions,
             retain_files=bool(args.retain_files),
         )
-    except TTSError as e:
-        print(f"TTS failed: {e}", file=sys.stderr)
+    except ConfigError as exc:
+        print(f"Invalid configuration: {exc}", file=sys.stderr)
+        return 2
+    except TTSError as exc:
+        print(f"TTS failed: {exc}", file=sys.stderr)
         return 1
 
     return 0

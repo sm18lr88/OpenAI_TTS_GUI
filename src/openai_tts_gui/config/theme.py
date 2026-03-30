@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from PyQt6.QtGui import QColor, QPalette
 from PyQt6.QtWidgets import QApplication
 
@@ -12,6 +14,8 @@ DARK_THEME = {
     "button_background": QColor("#363648"),
     "button_text": QColor("#CDD6F4"),
     "border": QColor("#45475A"),
+    "status_background": QColor("#181825"),
+    "status_text": QColor("#A6ADC8"),
     "progress_bar_chunk": QColor(ACCENT),
 }
 
@@ -22,22 +26,40 @@ LIGHT_THEME = {
     "button_background": QColor("#DCE0E8"),
     "button_text": QColor("#4C4F69"),
     "border": QColor("#BCC0CC"),
+    "status_background": QColor("#DCE0E8"),
+    "status_text": QColor("#4C4F69"),
     "progress_bar_chunk": QColor(ACCENT),
 }
 
-DARK_QSS = f"""
+
+def _theme_color(theme: dict[str, QColor], key: str) -> str:
+    return theme[key].name()
+
+
+def _build_qss(theme: dict[str, QColor]) -> str:
+    background = _theme_color(theme, "background")
+    text = _theme_color(theme, "text")
+    widget_background = _theme_color(theme, "widget_background")
+    button_background = _theme_color(theme, "button_background")
+    button_text = _theme_color(theme, "button_text")
+    border = _theme_color(theme, "border")
+    status_background = _theme_color(theme, "status_background")
+    status_text = _theme_color(theme, "status_text")
+    progress_chunk = _theme_color(theme, "progress_bar_chunk")
+
+    return f"""
 QMainWindow, QDialog {{
-    background-color: #1E1E2E;
+    background-color: {background};
 }}
 QWidget {{
-    background-color: #1E1E2E;
-    color: #CDD6F4;
+    background-color: {background};
+    color: {text};
     font-size: 13px;
 }}
 QTextEdit, QLineEdit, QComboBox, QListWidget {{
-    background-color: #282838;
-    color: #CDD6F4;
-    border: 1px solid #45475A;
+    background-color: {widget_background};
+    color: {text};
+    border: 1px solid {border};
     border-radius: 6px;
     padding: 4px 8px;
     selection-background-color: {ACCENT};
@@ -47,15 +69,14 @@ QComboBox::drop-down {{
     padding-right: 8px;
 }}
 QPushButton {{
-    background-color: #363648;
-    color: #CDD6F4;
-    border: 1px solid #45475A;
+    background-color: {button_background};
+    color: {button_text};
+    border: 1px solid {border};
     border-radius: 6px;
     padding: 6px 16px;
     min-width: 80px;
 }}
 QPushButton:hover {{
-    background-color: #45475A;
     border-color: {ACCENT};
 }}
 QPushButton:pressed {{
@@ -76,19 +97,19 @@ QPushButton#primaryButton:pressed {{
     background-color: {ACCENT_PRESSED};
 }}
 QMenuBar {{
-    background-color: #181825;
-    color: #CDD6F4;
-    border-bottom: 1px solid #313244;
+    background-color: {status_background};
+    color: {text};
+    border-bottom: 1px solid {border};
     padding: 2px;
 }}
 QMenuBar::item:selected {{
-    background-color: #45475A;
+    background-color: {border};
     border-radius: 4px;
 }}
 QMenu {{
-    background-color: #282838;
-    color: #CDD6F4;
-    border: 1px solid #45475A;
+    background-color: {widget_background};
+    color: {text};
+    border: 1px solid {border};
     border-radius: 8px;
     padding: 4px;
 }}
@@ -101,50 +122,50 @@ QMenu::item:selected {{
     color: #FFFFFF;
 }}
 QProgressBar {{
-    border: 1px solid #45475A;
+    border: 1px solid {border};
     border-radius: 6px;
     text-align: center;
-    color: #CDD6F4;
-    background-color: #282838;
+    color: {text};
+    background-color: {widget_background};
     height: 20px;
 }}
 QProgressBar::chunk {{
-    background-color: {ACCENT};
+    background-color: {progress_chunk};
     border-radius: 5px;
 }}
 QLabel {{
-    color: #CDD6F4;
+    color: {text};
     background-color: transparent;
 }}
 QSplitter::handle {{
-    background-color: #313244;
+    background-color: {border};
     height: 2px;
 }}
 QToolTip {{
-    background-color: #313244;
-    color: #CDD6F4;
-    border: 1px solid #45475A;
+    background-color: {widget_background};
+    color: {text};
+    border: 1px solid {border};
     border-radius: 6px;
     padding: 4px 8px;
 }}
 QStatusBar {{
-    background-color: #181825;
-    color: #A6ADC8;
-    border-top: 1px solid #313244;
+    background-color: {status_background};
+    color: {status_text};
+    border-top: 1px solid {border};
 }}
 QTextBrowser {{
-    background-color: #282838;
-    color: #CDD6F4;
-    border: 1px solid #45475A;
+    background-color: {widget_background};
+    color: {text};
+    border: 1px solid {border};
     border-radius: 6px;
 }}
 QScrollBar:vertical {{
-    background: #1E1E2E;
+    background: {background};
     width: 10px;
     border-radius: 5px;
 }}
 QScrollBar::handle:vertical {{
-    background: #45475A;
+    background: {border};
     border-radius: 5px;
     min-height: 24px;
 }}
@@ -154,14 +175,20 @@ QScrollBar::handle:vertical:hover {{
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
     height: 0px;
 }}
-"""
+""".strip()
+
+
+DARK_QSS = _build_qss(DARK_THEME)
+LIGHT_QSS = _build_qss(LIGHT_THEME)
 
 
 def build_stylesheet(theme):
+    if theme == LIGHT_THEME:
+        return LIGHT_QSS
     return DARK_QSS
 
 
-def apply_fusion_dark(app: QApplication):
+def apply_fusion_dark(app: QApplication) -> None:
     app.setStyle("Fusion")
     palette = QPalette()
     palette.setColor(QPalette.ColorRole.Window, QColor("#1E1E2E"))

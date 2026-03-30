@@ -1,5 +1,7 @@
 !include "MUI2.nsh"
 
+!define APP_VERSION "1.2.0"
+
 Name "OpenAI TTS"
 OutFile "dist\OpenAI-TTS-Setup.exe"
 InstallDir "$PROGRAMFILES\OpenAI-TTS"
@@ -31,7 +33,7 @@ Section "Install"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\OpenAI-TTS" \
         "UninstallString" '"$INSTDIR\Uninstall.exe"'
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\OpenAI-TTS" \
-        "DisplayVersion" "0.8.0"
+        "DisplayVersion" "${APP_VERSION}"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\OpenAI-TTS" \
         "Publisher" "OpenAI TTS Project"
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\OpenAI-TTS" \

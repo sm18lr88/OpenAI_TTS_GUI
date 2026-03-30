@@ -1,9 +1,11 @@
+import pytest
+
+pytest.importorskip("pytest_benchmark")
+
 import math
 import random
 import struct
 import wave
-
-import pytest
 
 from openai_tts_gui import config
 from openai_tts_gui.utils import concatenate_audio_files, split_text

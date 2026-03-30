@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import html
 from textwrap import dedent
 
 from PyQt6.QtCore import Qt
@@ -21,7 +24,6 @@ from PyQt6.QtWidgets import (
 )
 
 from ..config import settings
-from ..core.ffmpeg import get_ffmpeg_version
 
 
 def build_text_area(window) -> QWidget:
@@ -38,9 +40,11 @@ def build_text_area(window) -> QWidget:
     counts = QHBoxLayout()
     window.char_count_label = QLabel("Character Count: 0")
     window.chunk_count_label = QLabel(f"Chunks (max {settings.MAX_CHUNK_SIZE} chars): 0")
+    window.parallelism_label = QLabel(f"Parallel workers: up to {settings.PARALLELISM}")
     counts.addWidget(window.char_count_label)
-    counts.addStretch()
     counts.addWidget(window.chunk_count_label)
+    counts.addWidget(window.parallelism_label)
+    counts.addStretch()
     layout.addLayout(counts)
     return w
 
@@ -114,11 +118,19 @@ def build_controls_area(window) -> QWidget:
     window.create_button = QPushButton("Create TTS")
     window.create_button.setObjectName("primaryButton")
     action_row.addWidget(window.create_button)
+
+    window.cancel_button = QPushButton("Cancel")
+    window.cancel_button.setEnabled(False)
+    action_row.addWidget(window.cancel_button)
+
     window.copy_ids_button = QPushButton("Copy Request IDs")
     window.copy_ids_button.setEnabled(False)
     window.copy_ids_button.clicked.connect(window._copy_request_ids)
     action_row.addWidget(window.copy_ids_button)
     layout.addLayout(action_row)
+
+    window.parallelism_status_label = QLabel("Active chunk workers: idle")
+    layout.addWidget(window.parallelism_status_label)
 
     return w
 
@@ -170,7 +182,10 @@ def build_menubar(window):
     settings_menu: QMenu | None = menubar.addMenu("Settings")
     window.retain_files_action = QAction("Retain intermediate chunk files", window)
     window.retain_files_action.setCheckable(True)
+    window.parallelism_action = QAction("Chunk parallelism...", window)
+    window.parallelism_action.triggered.connect(window._set_parallelism)
     if settings_menu is not None:
+        settings_menu.addAction(window.parallelism_action)
         settings_menu.addAction(window.retain_files_action)
 
     api_menu: QMenu | None = menubar.addMenu("API Key")
@@ -193,10 +208,13 @@ def build_menubar(window):
 
 
 def about_html() -> str:
+    from ..core.ffmpeg import get_ffmpeg_version
+
     snap = settings.env_snapshot()
-    ffv = get_ffmpeg_version() or "Unavailable"
-    return dedent(f"""
-        <h2>{settings.APP_NAME} {settings.APP_VERSION}</h2>
+    ffv = html.escape(get_ffmpeg_version() or "Unavailable")
+    return dedent(
+        f"""
+        <h2>{html.escape(settings.APP_NAME)} {html.escape(settings.APP_VERSION)}</h2>
         <p>
             OpenAI TTS GUI converts text into speech via OpenAI's TTS service.
             Fine-tune voices, models, and export formats without scripting.
@@ -205,22 +223,36 @@ def about_html() -> str:
         <ul>
             <li>Pick an OpenAI voice, tweak speed, and export in your preferred format.</li>
             <li>Save reusable instruction presets for guidance-capable models.</li>
-            <li>Monitor generation progress and optionally keep intermediate chunks.</li>
+            <li>Monitor generation progress, cancel work in flight, and optionally keep chunks.</li>
         </ul>
         <h3>Quick Tips</h3>
         <ul>
             <li>Add the API key under <em>API Key &gt; Set/Update</em>.</li>
             <li>Use the preset manager to store prompt snippets.</li>
+            <li>Adjust chunk parallelism under <em>Settings &gt; Chunk parallelism</em>.</li>
             <li>See README.md for workflow examples.</li>
+        </ul>
+        <h3>Parallel Processing Risks</h3>
+        <ul>
+            <li>
+                Higher parallelism can trigger OpenAI rate limits,
+                especially on smaller or non-corporate accounts.
+            </li>
+            <li>
+                When rate limits hit, the app slows itself down and retries,
+                so larger values are not always faster.
+            </li>
+            <li>Start with 2 or 3 workers and only increase if your runs stay stable.</li>
         </ul>
         <h3>Environment</h3>
         <ul>
-            <li><strong>Python</strong>: {snap.get("python") or "Unknown"}</li>
-            <li><strong>Platform</strong>: {snap.get("platform") or "Unknown"}</li>
-            <li><strong>OpenAI</strong>: {snap.get("openai") or "Unknown"}</li>
-            <li><strong>PyQt6</strong>: {snap.get("pyqt6") or "Unknown"}</li>
+            <li><strong>Python</strong>: {html.escape(snap.get("python") or "Unknown")}</li>
+            <li><strong>Platform</strong>: {html.escape(snap.get("platform") or "Unknown")}</li>
+            <li><strong>OpenAI</strong>: {html.escape(snap.get("openai") or "Unknown")}</li>
+            <li><strong>PyQt6</strong>: {html.escape(snap.get("pyqt6") or "Unknown")}</li>
             <li><strong>FFmpeg</strong>: {ffv}</li>
-            <li><strong>Log</strong>: <code>{settings.LOG_FILE}</code></li>
-            <li><strong>Data</strong>: <code>{settings.DATA_DIR}</code></li>
+            <li><strong>Log</strong>: <code>{html.escape(settings.LOG_FILE)}</code></li>
+            <li><strong>Data</strong>: <code>{html.escape(settings.DATA_DIR)}</code></li>
         </ul>
-    """).strip()
+        """
+    ).strip()

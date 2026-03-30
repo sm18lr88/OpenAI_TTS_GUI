@@ -8,7 +8,7 @@
 src/openai_tts_gui/
   config/      → Application settings (pure Python) and Qt theme definitions
   core/        → Text chunking, audio concatenation, ffmpeg operations, sidecar metadata
-  tts/         → TTS service (pure Python, no Qt) — calls OpenAI API with retry/backoff
+  tts/         → TTS service (pure Python, no Qt) — chunk scheduling, service-owned retry/backoff, ordered finalization
   keystore/    → API key storage — OS keyring, encrypted file fallback, env var
   presets/     → Instruction preset persistence (JSON file)
   gui/         → PyQt6 UI — main window, dialogs, layout, Qt thread worker
@@ -33,6 +33,7 @@ cli  ──→ config/settings (NO Qt)
 - `config/theme` requires PyQt6 — only imported by gui/
 - `core/` has zero Qt imports — pure Python logic
 - `tts/_service` has zero Qt imports — pure Python, uses callbacks
+- `tts/_service` owns OpenAI retry policy for synthesis runs and disables SDK retries for this path
 - `gui/workers` wraps TTSService in a QThread for non-blocking UI
 - `keystore/` and `presets/` are standalone, depend only on config/settings
 
@@ -43,12 +44,16 @@ Import only from `__init__.py` interfaces. Internal files prefixed with `_`.
 ```
 [User] → [TTSWindow (gui/)] → signal → [TTSWorker (QThread)]
                                               ↓
-                                     [TTSService (tts/)]
-                                         ↓         ↓
-                               [OpenAI API]   [core/audio → ffmpeg]
-                                                    ↓
-                                           [output.mp3 + sidecar.json]
+                                      [TTSService (tts/)]
+                                          ↓         ↓
+                                [OpenAI API]   [core/audio → ffmpeg]
+                                                     ↓
+                                            [output.mp3 + sidecar.json]
 ```
+
+During multi-chunk runs, `TTSService` keeps manifest order separate from completion order. Parallel workers may finish out of order, but concat and sidecar `request_meta` are finalized only after one successful result exists for every expected chunk index.
+
+Rate limiting is coordinated inside a single run: `429` responses can reduce the active worker cap and impose a shared cooldown, while retry delays prefer `retry-after-ms`, then `retry-after`, then exponential fallback. Failed or cancelled runs do not emit success sidecars or final audio outputs.
 
 ## How to Run
 
@@ -59,6 +64,7 @@ uv run pytest tests/test_smoke.py # Single test file
 uv run ruff check                # Lint
 uv run ruff format --check .     # Format check
 uv run ty check                  # Type check
+uv run pyinstaller --noconfirm openai_tts.spec # Build Windows app bundle
 python -m openai_tts_gui         # Launch GUI
 openai-tts --in f.txt --out o.mp3 # CLI
 ```

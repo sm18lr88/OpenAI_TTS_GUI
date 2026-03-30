@@ -7,7 +7,7 @@ def test_main_starts_and_exits_cleanly(monkeypatch):
     # Avoid opening a real window or running a real event loop
     class DummyApp:
         def __init__(self, argv):
-            pass
+            self.argv = argv
 
         def exec(self):
             return 0
@@ -16,13 +16,24 @@ def test_main_starts_and_exits_cleanly(monkeypatch):
         def show(self):
             pass
 
-    monkeypatch.setattr(main, "QApplication", DummyApp)
-    monkeypatch.setattr(main, "TTSWindow", DummyWin)
-    monkeypatch.setattr(main, "preflight_check", lambda: (True, "ffmpeg OK"))
-    monkeypatch.setattr(main, "setTheme", lambda *a, **k: None)
-    monkeypatch.setattr(main, "apply_fusion_dark", lambda app: None)
+    class DummyMessageBox:
+        @staticmethod
+        def critical(*args, **kwargs):
+            return None
 
-    # Capture sys.exit
-    with pytest.raises(SystemExit) as e:
+    monkeypatch.setattr(main, "configure_logging", lambda: None)
+    monkeypatch.setattr(
+        main,
+        "_load_gui_symbols",
+        lambda: (
+            DummyApp,
+            DummyMessageBox,
+            type("DummyTimer", (), {"singleShot": staticmethod(lambda *_args, **_kwargs: None)}),
+            lambda app: None,
+            DummyWin,
+        ),
+    )
+
+    with pytest.raises(SystemExit) as exc:
         main.main()
-    assert e.value.code == 0
+    assert exc.value.code == 0
