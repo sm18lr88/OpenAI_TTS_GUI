@@ -20,9 +20,7 @@ def _find_split_offset(
         char = text[index]
         if char in _WHITESPACE_BOUNDARIES:
             return index + 1 - current_pos
-        if char in _PUNCTUATION_BOUNDARIES and (
-            index + 1 == end_pos or text[index + 1].isspace()
-        ):
+        if char in _PUNCTUATION_BOUNDARIES and (index + 1 == end_pos or text[index + 1].isspace()):
             return index + 1 - current_pos
 
     return -1
