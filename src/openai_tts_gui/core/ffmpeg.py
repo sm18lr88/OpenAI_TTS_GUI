@@ -1,18 +1,33 @@
+from __future__ import annotations
+
 import re
 import subprocess
+from functools import lru_cache
 
 from ..config import settings
+from ..errors import FFmpegError, FFmpegNotFoundError
+
+
+@lru_cache(maxsize=1)
+def _run_ffmpeg_version() -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [settings.FFMPEG_COMMAND, "-version"],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=15,
+    )
+
+
+def _first_version_line(result: subprocess.CompletedProcess[str]) -> str:
+    output = result.stdout or result.stderr or ""
+    first = output.splitlines()[0].strip() if output else ""
+    return first or "unknown"
 
 
 def get_ffmpeg_version() -> str:
     try:
-        result = subprocess.run(
-            [settings.FFMPEG_COMMAND, "-version"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.stdout.splitlines()[0].strip()
+        return _first_version_line(_run_ffmpeg_version())
     except Exception:
         return "unknown"
 
@@ -33,27 +48,28 @@ def parse_ffmpeg_semver(line: str) -> tuple[int, int, int] | None:
 
 def preflight_check() -> tuple[bool, str]:
     try:
-        result = subprocess.run(
-            [settings.FFMPEG_COMMAND, "-version"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        first = result.stdout.splitlines()[0].strip()
+        result = _run_ffmpeg_version()
+        first = _first_version_line(result)
         ver = parse_ffmpeg_semver(first)
         if ver is None:
-            low = first.lower()
-            if "git" in low or "gyan.dev" in low or "full_build" in low:
-                return True, first
             return True, first
-        ok = tuple(ver) >= tuple(settings.FFMPEG_MIN_VERSION)
+        ok = ver >= tuple(settings.FFMPEG_MIN_VERSION)
         if not ok:
             min_req = ".".join(map(str, settings.FFMPEG_MIN_VERSION))
-            return (False, f"ffmpeg too old: found {first}, require >= {min_req}")
+            return False, f"ffmpeg too old: found {first}, require >= {min_req}"
         return True, first
     except FileNotFoundError:
         return False, "ffmpeg not found in PATH. Please install ffmpeg."
-    except subprocess.CalledProcessError as e:
-        return False, f"ffmpeg invocation failed: {e}"
-    except Exception as e:
-        return False, f"ffmpeg check error: {e}"
+    except subprocess.CalledProcessError as exc:
+        return False, f"ffmpeg invocation failed: {exc}"
+    except Exception as exc:
+        return False, f"ffmpeg check error: {exc}"
+
+
+def require_preflight() -> str:
+    ok, detail = preflight_check()
+    if ok:
+        return detail
+    if "not found" in detail.lower():
+        raise FFmpegNotFoundError(detail)
+    raise FFmpegError(detail)

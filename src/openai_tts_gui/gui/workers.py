@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import logging
+import threading
+from typing import Any
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from ..config import settings
-from ..tts._service import TTSService
+from ..errors import TTSError
+from ..tts import TTSService
 
 logger = logging.getLogger(__name__)
 
@@ -13,41 +18,56 @@ class TTSWorker(QThread):
     tts_complete = pyqtSignal(str)
     tts_error = pyqtSignal(str)
     status_update = pyqtSignal(str)
+    parallelism_updated = pyqtSignal(int, int)
 
-    def __init__(self, params: dict, parent=None):
+    def __init__(self, params: dict[str, Any], parent=None):
         super().__init__(parent)
         self.params = params
+        self._cancel_event = threading.Event()
 
-    def run(self):
+    def cancel(self) -> None:
+        self._cancel_event.set()
+        self.requestInterruption()
+
+    def run(self) -> None:
         try:
             api_key = str(self.params.get("api_key") or "")
-            timeout_value = float(getattr(settings, "OPENAI_TIMEOUT", 60.0))
-            base_url = (
-                settings.OPENAI_BASE_URL if getattr(settings, "OPENAI_BASE_URL", None) else None
+            service = TTSService(
+                api_key=api_key,
+                base_url=settings.OPENAI_BASE_URL,
+                timeout=settings.OPENAI_TIMEOUT,
             )
-
-            service = TTSService(api_key=api_key, base_url=base_url, timeout=timeout_value)
             message = service.generate(
-                text=self.params["text"],
-                output_path=self.params["output_path"],
-                model=self.params["model"],
-                voice=self.params["voice"],
-                response_format=self.params["response_format"],
-                speed=self.params["speed"],
-                instructions=self.params.get("instructions", ""),
-                retain_files=self.params.get("retain_files", False),
+                text=str(self.params["text"]),
+                output_path=str(self.params["output_path"]),
+                model=str(self.params["model"]),
+                voice=str(self.params["voice"]),
+                response_format=str(self.params["response_format"]),
+                speed=float(self.params["speed"]),
+                instructions=str(self.params.get("instructions", "")),
+                parallelism=int(self.params.get("parallelism", settings.PARALLELISM)),
+                retain_files=bool(self.params.get("retain_files", False)),
                 on_progress=self._emit_progress,
                 on_status=self._emit_status,
+                on_parallelism=self._emit_parallelism,
+                cancel_event=self._cancel_event,
             )
             self.tts_complete.emit(message)
-        except Exception as e:
-            logger.exception(f"TTS processing failed: {e}")
-            self.tts_error.emit(str(e))
+        except TTSError as exc:
+            logger.warning("TTS processing failed: %s", exc)
+            self.tts_error.emit(str(exc))
+        except Exception as exc:
+            logger.exception("Unexpected TTS processing failure: %s", exc)
+            self.tts_error.emit(str(exc))
         finally:
             logger.info("TTSWorker thread finished.")
 
-    def _emit_progress(self, value: int):
-        self.progress_updated.emit(value)
+    def _emit_progress(self, value: int) -> None:
+        if not self._cancel_event.is_set():
+            self.progress_updated.emit(value)
 
-    def _emit_status(self, status: str):
+    def _emit_status(self, status: str) -> None:
         self.status_update.emit(status)
+
+    def _emit_parallelism(self, active_workers: int, worker_cap: int) -> None:
+        self.parallelism_updated.emit(active_workers, worker_cap)

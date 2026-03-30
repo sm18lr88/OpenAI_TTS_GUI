@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
@@ -25,13 +27,13 @@ class PresetDialog(QDialog):
         self.setWindowTitle("Manage Instruction Presets")
         self.setMinimumWidth(400)
         self._current_instructions = current_instructions
-        self._presets = {}
+        self._presets: dict[str, str] = {}
 
         self._setup_ui()
         self._connect_signals()
         self.load_presets()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         self.main_layout = QVBoxLayout(self)
         self.preset_list = QListWidget()
         self.preset_list.setToolTip("Double-click to load.")
@@ -49,21 +51,32 @@ class PresetDialog(QDialog):
         self.main_layout.addWidget(self.preset_list)
         self.main_layout.addLayout(button_layout)
 
-    def _connect_signals(self):
+        self.load_button.setEnabled(False)
+        self.delete_button.setEnabled(False)
+
+    def _connect_signals(self) -> None:
         self.load_button.clicked.connect(self.load_selected)
         self.save_button.clicked.connect(self.save_current)
         self.delete_button.clicked.connect(self.delete_selected)
-        self.preset_list.itemDoubleClicked.connect(self.load_selected)
+        self.preset_list.itemDoubleClicked.connect(lambda *_args: self.load_selected())
+        self.preset_list.currentRowChanged.connect(self._update_button_states)
 
-    def load_presets(self):
+    @pyqtSlot()
+    def _update_button_states(self) -> None:
+        has_selection = self.preset_list.currentItem() is not None
+        self.load_button.setEnabled(has_selection)
+        self.delete_button.setEnabled(has_selection)
+
+    def load_presets(self) -> None:
         self._presets = load_presets()
         self.preset_list.clear()
         for name in sorted(self._presets.keys(), key=str.lower):
             self.preset_list.addItem(name)
+        self._update_button_states()
         logger.debug("Preset dialog updated with %d presets.", len(self._presets))
 
     @pyqtSlot()
-    def load_selected(self):
+    def load_selected(self) -> None:
         item = self.preset_list.currentItem()
         if not item:
             QMessageBox.warning(self, "No Selection", "Please select a preset to load.")
@@ -73,7 +86,7 @@ class PresetDialog(QDialog):
         self.accept()
 
     @pyqtSlot()
-    def save_current(self):
+    def save_current(self) -> None:
         name, ok = QInputDialog.getText(
             self,
             "Save Preset",
@@ -86,13 +99,13 @@ class PresetDialog(QDialog):
             QMessageBox.warning(self, "Invalid Name", "Preset name cannot be empty.")
             return
         if name in self._presets:
-            r = QMessageBox.question(
+            response = QMessageBox.question(
                 self,
                 "Overwrite Preset?",
                 f"A preset named '{name}' exists. Overwrite?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
-            if r != QMessageBox.StandardButton.Yes:
+            if response != QMessageBox.StandardButton.Yes:
                 return
 
         self._presets[name] = self._current_instructions
@@ -103,19 +116,19 @@ class PresetDialog(QDialog):
             QMessageBox.critical(self, "Error", "Failed to save presets file.")
 
     @pyqtSlot()
-    def delete_selected(self):
+    def delete_selected(self) -> None:
         item = self.preset_list.currentItem()
         if not item:
             QMessageBox.warning(self, "No Selection", "Please select a preset to delete.")
             return
         name = item.text()
-        r = QMessageBox.question(
+        response = QMessageBox.question(
             self,
             "Confirm Deletion",
             f"Delete preset '{name}'?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
-        if r != QMessageBox.StandardButton.Yes:
+        if response != QMessageBox.StandardButton.Yes:
             return
         if name in self._presets:
             del self._presets[name]

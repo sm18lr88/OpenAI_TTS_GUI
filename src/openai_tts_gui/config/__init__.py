@@ -1,6 +1,10 @@
+from __future__ import annotations
+
+from .app_settings import default_app_settings, load_app_settings, save_app_settings  # noqa: F401
 from .settings import (  # noqa: F401
     API_KEY_FILE,
     APP_NAME,
+    APP_SETTINGS_FILE,
     APP_VERSION,
     CODEC_MAP,
     CODEC_PARAMS,
@@ -41,16 +45,32 @@ from .settings import (  # noqa: F401
     ensure_directories,
     env_snapshot,
 )
-from .theme import (  # noqa: F401
-    DARK_THEME,
-    LIGHT_THEME,
-    apply_fusion_dark,
-    build_stylesheet,
-)
+
+_THEME_EXPORTS = {
+    "DARK_THEME",
+    "LIGHT_THEME",
+    "apply_fusion_dark",
+    "build_stylesheet",
+}
+
+
+def __getattr__(name: str):
+    if name in _THEME_EXPORTS:
+        from .theme import DARK_THEME, LIGHT_THEME, apply_fusion_dark, build_stylesheet
+
+        return {
+            "DARK_THEME": DARK_THEME,
+            "LIGHT_THEME": LIGHT_THEME,
+            "apply_fusion_dark": apply_fusion_dark,
+            "build_stylesheet": build_stylesheet,
+        }[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "APP_NAME",
     "APP_VERSION",
+    "APP_SETTINGS_FILE",
     "DATA_DIR",
     "LOG_FILE",
     "PRESETS_FILE",
@@ -90,6 +110,9 @@ __all__ = [
     "LOGGING_FORMAT",
     "ensure_directories",
     "env_snapshot",
+    "default_app_settings",
+    "load_app_settings",
+    "save_app_settings",
     "DARK_THEME",
     "LIGHT_THEME",
     "apply_fusion_dark",

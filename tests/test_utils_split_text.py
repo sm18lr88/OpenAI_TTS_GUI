@@ -3,6 +3,7 @@ import random
 import pytest
 
 from openai_tts_gui import config
+from openai_tts_gui.errors import ConfigError
 from openai_tts_gui.utils import split_text
 
 
@@ -20,9 +21,7 @@ def test_small_text_single_chunk():
 def test_rejoin_equals_original(chunk_size):
     text = "Hello world! This is a test… 🚀 Newlines?\nYes!\nEnd."
     chunks = split_text(text, chunk_size=chunk_size)
-    # Re-join exactly (no normalization): split_text trims leading whitespace across boundaries
-    # so we allow a relaxed comparison that ignores leading whitespace in chunks.
-    assert "".join(chunks).strip() == text.strip()
+    assert "".join(chunks) == text
     assert all(len(c) <= chunk_size or c == chunks[-1] for c in chunks)
 
 
@@ -43,14 +42,25 @@ def test_sentence_boundaries_preferred():
         parts.append(s)
     text = "".join(parts)
     chunks = split_text(text, 80)
-    # Heuristic: many (not all) chunks should end with punctuation or space
     ratio = sum(1 for c in chunks if c[-1] in ".!?:; \n\t") / len(chunks)
     assert ratio >= 0.5
-    assert "".join(chunks).strip() == text.strip()
+    assert "".join(chunks) == text
 
 
 def test_sentence_boundary_regex_handles_punctuation_then_space():
     text = "alpha. beta gamma"
     chunks = split_text(text, chunk_size=6)
     assert chunks[0].endswith(".")
-    assert "".join(chunks).strip() == text.strip()
+    assert "".join(chunks) == text
+
+
+def test_window_edge_punctuation_is_still_a_boundary():
+    text = "alpha.beta gamma"
+    chunks = split_text(text, chunk_size=6)
+    assert chunks[0] == "alpha."
+    assert "".join(chunks) == text
+
+
+def test_invalid_chunk_size_raises():
+    with pytest.raises(ConfigError):
+        split_text("hello", chunk_size=0)

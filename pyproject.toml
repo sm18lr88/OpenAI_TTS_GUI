@@ -1,9 +1,9 @@
 [project]
 name = "OpenAI_TTS_GUI"
-version = "1.0.0"
+version = "1.2.0"
 description = "GUI for OpenAI's TTS"
 readme = "README.md"
-requires-python = ">=3.12,<3.15"
+requires-python = ">=3.14,<3.15"
 authors = [{ name = "sm18lr88", email = "smgithub@fastmail.us" }]
 urls = { Homepage = "https://github.com/sm18lr88/OpenAI_TTS_GUI" }
 # Main production dependencies
@@ -55,10 +55,10 @@ pythonpath = ["src"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py314"
 lint.select = ["E","F","I","UP","B","SIM"] # A good, modern default set
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.14"
 ignore_missing_imports = true
 

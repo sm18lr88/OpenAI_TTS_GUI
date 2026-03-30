@@ -3,6 +3,9 @@ import math
 import struct
 import wave
 
+import pytest
+
+from openai_tts_gui.errors import TTSChunkError
 from openai_tts_gui.utils import concatenate_audio_files, read_api_key
 
 
@@ -26,6 +29,11 @@ def test_concatenate_single_file_rename(tmp_path):
     assert not src.exists()  # original is renamed to out
     with contextlib.closing(wave.open(str(out), "rb")) as w:
         assert w.getnchannels() == 2
+
+
+def test_concatenate_missing_input_raises(tmp_path):
+    with pytest.raises(TTSChunkError):
+        concatenate_audio_files([str(tmp_path / "missing.wav")], str(tmp_path / "out.wav"))
 
 
 def test_read_api_key_prefers_env(monkeypatch, tmp_path):

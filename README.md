@@ -19,11 +19,11 @@ Easy-to-use, text-to-speech with OpenAI's api. Handles long text automatically â
 - **Sidecar metadata**: JSON written next to every output for reproducibility
 - **CLI**: `openai-tts --in text.txt --out out.mp3`
 - **Request IDs**: copy from GUI for OpenAI support tickets
-- **Parallel processing**: set `TTS_PARALLELISM=4` for concurrent chunk generation   # Beta feature, may not work.
+- **Parallel processing**: set `TTS_PARALLELISM=4` for concurrent chunk generation with ordered finalization, service-owned retries, and adaptive in-run backpressure
 
 ## Requirements
 
-- **Python 3.12+** ([download](https://www.python.org/downloads/))
+- **Python 3.14** ([download](https://www.python.org/downloads/))
 - **ffmpeg** ([download](https://ffmpeg.org/download.html)) â€” must be on PATH
 - **OpenAI API key** ([get one](https://platform.openai.com/api-keys))
 
@@ -88,7 +88,10 @@ uv run ty check             # type check
 
 ```bash
 uv run pyinstaller --noconfirm openai_tts.spec   # .exe in dist/
+"C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi   # Windows installer in dist/
 ```
+
+The app bundle is built first into `dist/OpenAI-TTS/`, and the NSIS step packages that directory as `dist/OpenAI-TTS-Setup.exe`.
 
 ## Project Structure
 
