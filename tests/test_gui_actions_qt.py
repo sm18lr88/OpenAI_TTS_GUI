@@ -2,8 +2,19 @@ import pytest
 
 pytest.importorskip("PyQt6")
 
+from PyQt6.QtGui import QCloseEvent
+from PyQt6.QtWidgets import QMessageBox
+
 from openai_tts_gui import config
 from openai_tts_gui.gui import TTSWindow
+
+
+class _DummySignal:
+    def __init__(self):
+        self.slot = None
+
+    def connect(self, slot):
+        self.slot = slot
 
 
 def test_update_instructions_toggle(qtbot):
@@ -125,4 +136,40 @@ def test_parallelism_warning_is_only_shown_once(qtbot, monkeypatch, tmp_path):
     assert (
         sum(1 for title, _message, _level in messages if title == "Parallel Processing Risk") == 1
     )
+    w.close()
+
+
+def test_close_event_waits_for_slow_tts_cancellation(qtbot, monkeypatch):
+    class SlowWorker:
+        def __init__(self):
+            self.cancelled = False
+            self.finished = _DummySignal()
+
+        def isRunning(self):
+            return True
+
+        def cancel(self):
+            self.cancelled = True
+
+        def wait(self, _timeout):
+            return False
+
+    w = TTSWindow()
+    qtbot.addWidget(w)
+    w.show()
+    worker = SlowWorker()
+    w.tts_processor = worker
+    monkeypatch.setattr(
+        "openai_tts_gui.gui.main_window.QMessageBox.question",
+        lambda *args, **kwargs: QMessageBox.StandardButton.Yes,
+    )
+
+    event = QCloseEvent()
+    w.closeEvent(event)
+
+    assert worker.cancelled is True
+    assert event.isAccepted() is False
+    assert w._close_after_tts_cancel is True
+    assert worker.finished.slot == w.close
+    w.tts_processor = None
     w.close()

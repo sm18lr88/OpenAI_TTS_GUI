@@ -7,6 +7,8 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QDoubleValidator
 from PyQt6.QtWidgets import (
     QComboBox,
+    QGridLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -25,6 +27,40 @@ from PyQt6.QtWidgets import (
 
 from ..config import settings
 
+LABEL_WIDTH = 56
+MODEL_WIDTH = 170
+VOICE_WIDTH = 144
+SPEED_WIDTH = 72
+FORMAT_WIDTH = 96
+SECTION_HEADER_HEIGHT = 36
+
+
+def _section_group(object_name: str) -> tuple[QGroupBox, QVBoxLayout]:
+    group = QGroupBox()
+    group.setObjectName(object_name)
+    layout = QVBoxLayout(group)
+    layout.setContentsMargins(8, 8, 8, 8)
+    layout.setSpacing(7)
+    return group, layout
+
+
+def _section_header(title: str) -> tuple[QHBoxLayout, QLabel]:
+    header = QHBoxLayout()
+    header.setContentsMargins(0, 0, 0, 0)
+    title_label = QLabel(title)
+    title_label.setObjectName("sectionTitle")
+    title_label.setMinimumHeight(SECTION_HEADER_HEIGHT)
+    title_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+    header.addWidget(title_label)
+    return header, title_label
+
+
+def _field_label(text: str) -> QLabel:
+    label = QLabel(text)
+    label.setMinimumWidth(LABEL_WIDTH)
+    label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+    return label
+
 
 def build_text_area(window) -> QWidget:
     w = QWidget()
@@ -34,8 +70,13 @@ def build_text_area(window) -> QWidget:
 
     layout.addWidget(QLabel("Text for TTS:"))
     window.text_edit = QTextEdit()
+    window.text_edit.setObjectName("textEdit")
     window.text_edit.setPlaceholderText("Enter the text you want to convert to speech...")
-    layout.addWidget(window.text_edit)
+    window.text_edit.setMinimumHeight(280)
+    window.text_edit.setSizePolicy(
+        QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+    )
+    layout.addWidget(window.text_edit, 1)
 
     counts = QHBoxLayout()
     window.char_count_label = QLabel("Character Count: 0")
@@ -53,65 +94,108 @@ def build_controls_area(window) -> QWidget:
     w = QWidget()
     layout = QVBoxLayout(w)
     layout.setContentsMargins(12, 8, 12, 12)
-    layout.setSpacing(10)
+    layout.setSpacing(8)
 
-    row = QHBoxLayout()
-    row.addWidget(QLabel("Model:"))
+    deck = QSplitter(Qt.Orientation.Horizontal)
+    deck.setObjectName("controlsSplitter")
+    deck.setChildrenCollapsible(False)
+
+    voice_group, voice_layout = _section_group("voiceSettingsGroup")
+    voice_header, _voice_title = _section_header("Voice Settings")
+    voice_layout.addLayout(voice_header)
+
+    voice_grid = QGridLayout()
+    voice_grid.setContentsMargins(0, 0, 0, 0)
+    voice_grid.setHorizontalSpacing(8)
+    voice_grid.setVerticalSpacing(6)
+    voice_grid.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+    voice_grid.setColumnStretch(2, 1)
+
     window.model_combo = QComboBox()
+    window.model_combo.setObjectName("modelCombo")
     window.model_combo.addItems(settings.TTS_MODELS)
-    row.addWidget(window.model_combo)
+    window.model_combo.setFixedWidth(MODEL_WIDTH)
+    voice_grid.addWidget(_field_label("Model:"), 0, 0)
+    voice_grid.addWidget(window.model_combo, 0, 1)
 
-    row.addWidget(QLabel("Voice:"))
     window.voice_combo = QComboBox()
+    window.voice_combo.setObjectName("voiceCombo")
     window.voice_combo.addItems(settings.TTS_VOICES)
-    row.addWidget(window.voice_combo)
+    window.voice_combo.setFixedWidth(VOICE_WIDTH)
+    voice_grid.addWidget(_field_label("Voice:"), 1, 0)
+    voice_grid.addWidget(window.voice_combo, 1, 1)
 
-    row.addWidget(QLabel("Speed:"))
     window.speed_input = QLineEdit(str(settings.DEFAULT_SPEED))
+    window.speed_input.setObjectName("speedInput")
     window.speed_input.setValidator(
         QDoubleValidator(settings.MIN_SPEED, settings.MAX_SPEED, 2, window)
     )
-    window.speed_input.setMaximumWidth(60)
-    row.addWidget(window.speed_input)
+    window.speed_input.setFixedWidth(SPEED_WIDTH)
+    voice_grid.addWidget(_field_label("Speed:"), 2, 0)
+    voice_grid.addWidget(window.speed_input, 2, 1)
 
-    row.addWidget(QLabel("Format:"))
     window.format_combo = QComboBox()
+    window.format_combo.setObjectName("formatCombo")
     window.format_combo.addItems(settings.TTS_FORMATS)
-    row.addWidget(window.format_combo)
-    layout.addLayout(row)
+    window.format_combo.setFixedWidth(FORMAT_WIDTH)
+    voice_grid.addWidget(_field_label("Format:"), 3, 0)
+    voice_grid.addWidget(window.format_combo, 3, 1)
+    voice_layout.addLayout(voice_grid)
+    voice_layout.addStretch(1)
+    deck.addWidget(voice_group)
 
-    instr_row = QHBoxLayout()
-    left = QVBoxLayout()
-    window.instructions_label = QLabel("Instructions:")
+    instructions_group, instructions_layout = _section_group("instructionsGroup")
+    instructions_header = QHBoxLayout()
+    instructions_header.setContentsMargins(0, 0, 0, 0)
+    window.instructions_label = QLabel("Instructions")
+    window.instructions_label.setObjectName("sectionTitle")
+    window.instructions_label.setMinimumHeight(SECTION_HEADER_HEIGHT)
+    window.instructions_label.setAlignment(
+        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+    )
     window.manage_presets_button = QPushButton("Presets")
-    left.addWidget(window.instructions_label)
-    left.addWidget(window.manage_presets_button)
-    left.addStretch()
-    instr_row.addLayout(left)
+    window.manage_presets_button.setObjectName("managePresetsButton")
+    window.manage_presets_button.setFixedHeight(SECTION_HEADER_HEIGHT)
+    instructions_header.addWidget(window.instructions_label)
+    instructions_header.addStretch(1)
+    instructions_header.addWidget(window.manage_presets_button)
+    instructions_layout.addLayout(instructions_header)
 
     window.instructions_edit = QTextEdit()
+    window.instructions_edit.setObjectName("instructionsEdit")
     window.instructions_edit.setPlaceholderText(
-        f"Provide guidance on voice/tone/pacing "
-        f"(only affects '{settings.GPT_4O_MINI_TTS_MODEL}')..."
+        f"Optional voice, tone, and pacing guidance for {settings.GPT_4O_MINI_TTS_MODEL}."
     )
     window.instructions_edit.setMinimumHeight(60)
     window.instructions_edit.setSizePolicy(
         QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
     )
-    instr_row.addWidget(window.instructions_edit, 1)
-    layout.addLayout(instr_row, 1)
+    instructions_layout.addWidget(window.instructions_edit, 1)
+    deck.addWidget(instructions_group)
+    deck.setStretchFactor(0, 0)
+    deck.setStretchFactor(1, 1)
+    deck.setSizes([330, 720])
+
+    output_group, output_layout = _section_group("outputRunGroup")
+    output_header, _output_title = _section_header("Output & Run")
+    output_layout.addLayout(output_header)
 
     path_row = QHBoxLayout()
-    path_row.addWidget(QLabel("Save As:"))
+    path_row.setSpacing(8)
+    path_row.addWidget(_field_label("Save As:"))
     window.path_entry = QLineEdit()
+    window.path_entry.setObjectName("pathEntry")
     window.path_entry.setPlaceholderText("Select output file path...")
     path_row.addWidget(window.path_entry)
     window.select_path_button = QPushButton("Browse...")
+    window.select_path_button.setObjectName("selectPathButton")
     path_row.addWidget(window.select_path_button)
-    layout.addLayout(path_row)
+    output_layout.addLayout(path_row)
 
     action_row = QHBoxLayout()
+    action_row.setSpacing(8)
     window.progress_bar = QProgressBar()
+    window.progress_bar.setObjectName("progressBar")
     window.progress_bar.setValue(0)
     action_row.addWidget(window.progress_bar)
 
@@ -120,17 +204,23 @@ def build_controls_area(window) -> QWidget:
     action_row.addWidget(window.create_button)
 
     window.cancel_button = QPushButton("Cancel")
+    window.cancel_button.setObjectName("cancelButton")
     window.cancel_button.setEnabled(False)
     action_row.addWidget(window.cancel_button)
 
     window.copy_ids_button = QPushButton("Copy Request IDs")
+    window.copy_ids_button.setObjectName("copyRequestIdsButton")
     window.copy_ids_button.setEnabled(False)
     window.copy_ids_button.clicked.connect(window._copy_request_ids)
     action_row.addWidget(window.copy_ids_button)
-    layout.addLayout(action_row)
+    output_layout.addLayout(action_row)
 
     window.parallelism_status_label = QLabel("Active chunk workers: idle")
-    layout.addWidget(window.parallelism_status_label)
+    window.parallelism_status_label.setObjectName("parallelismStatusLabel")
+    output_layout.addWidget(window.parallelism_status_label)
+
+    layout.addWidget(deck, 1)
+    layout.addWidget(output_group, 0)
 
     return w
 
@@ -142,6 +232,7 @@ def build_about_page(window) -> QWidget:
     layout.setSpacing(16)
 
     window.about_text = QTextBrowser()
+    window.about_text.setObjectName("aboutText")
     window.about_text.setOpenExternalLinks(True)
     window.about_text.setReadOnly(True)
     layout.addWidget(window.about_text)
@@ -149,11 +240,13 @@ def build_about_page(window) -> QWidget:
     back_row = QHBoxLayout()
     back_row.addStretch()
     window.open_log_button = QPushButton("Open Log Folder")
+    window.open_log_button.setObjectName("openLogButton")
     window.open_log_button.clicked.connect(
         lambda: window._open_containing_folder(settings.LOG_FILE)
     )
     back_row.addWidget(window.open_log_button)
     window.about_back_button = QPushButton("Back to Application")
+    window.about_back_button.setObjectName("aboutBackButton")
     window.about_back_button.clicked.connect(window._show_main_page)
     back_row.addWidget(window.about_back_button)
     layout.addLayout(back_row)
@@ -164,7 +257,9 @@ def build_central_widget(window) -> QStackedWidget:
     splitter = QSplitter(Qt.Orientation.Vertical)
     splitter.addWidget(build_text_area(window))
     splitter.addWidget(build_controls_area(window))
-    splitter.setSizes([int(window.height() * 0.6), int(window.height() * 0.4)])
+    splitter.setStretchFactor(0, 3)
+    splitter.setStretchFactor(1, 1)
+    splitter.setSizes([int(window.height() * 0.78), int(window.height() * 0.22)])
 
     window.about_page = build_about_page(window)
 

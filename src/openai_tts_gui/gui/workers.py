@@ -71,3 +71,22 @@ class TTSWorker(QThread):
 
     def _emit_parallelism(self, active_workers: int, worker_cap: int) -> None:
         self.parallelism_updated.emit(active_workers, worker_cap)
+
+
+class FFmpegPreflightWorker(QThread):
+    preflight_finished = pyqtSignal(bool, str)
+
+    def run(self) -> None:
+        from ..core.ffmpeg import preflight_check
+
+        ok, detail = preflight_check()
+        self.preflight_finished.emit(ok, detail)
+
+
+class ApiKeyLoadWorker(QThread):
+    api_key_loaded = pyqtSignal(object)
+
+    def run(self) -> None:
+        from ..keystore import read_api_key
+
+        self.api_key_loaded.emit(read_api_key())

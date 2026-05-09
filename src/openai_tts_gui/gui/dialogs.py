@@ -36,12 +36,16 @@ class PresetDialog(QDialog):
     def _setup_ui(self) -> None:
         self.main_layout = QVBoxLayout(self)
         self.preset_list = QListWidget()
+        self.preset_list.setObjectName("presetList")
         self.preset_list.setToolTip("Double-click to load.")
 
         button_layout = QHBoxLayout()
         self.load_button = QPushButton("Load Selected")
+        self.load_button.setObjectName("loadPresetButton")
         self.save_button = QPushButton("Save Current Instructions")
+        self.save_button.setObjectName("savePresetButton")
         self.delete_button = QPushButton("Delete Selected")
+        self.delete_button.setObjectName("deletePresetButton")
 
         button_layout.addWidget(self.load_button)
         button_layout.addWidget(self.save_button)

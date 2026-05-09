@@ -4,6 +4,7 @@ __all__ = [
     "get_ffmpeg_version",
     "parse_ffmpeg_semver",
     "preflight_check",
+    "resolve_ffmpeg_command",
     "sha256_text",
     "split_text",
     "write_sidecar_metadata",
@@ -18,13 +19,24 @@ def __getattr__(name: str):
             "cleanup_files": cleanup_files,
             "concatenate_audio_files": concatenate_audio_files,
         }[name]
-    if name in {"get_ffmpeg_version", "parse_ffmpeg_semver", "preflight_check"}:
-        from .ffmpeg import get_ffmpeg_version, parse_ffmpeg_semver, preflight_check
+    if name in {
+        "get_ffmpeg_version",
+        "parse_ffmpeg_semver",
+        "preflight_check",
+        "resolve_ffmpeg_command",
+    }:
+        from .ffmpeg import (
+            get_ffmpeg_version,
+            parse_ffmpeg_semver,
+            preflight_check,
+            resolve_ffmpeg_command,
+        )
 
         return {
             "get_ffmpeg_version": get_ffmpeg_version,
             "parse_ffmpeg_semver": parse_ffmpeg_semver,
             "preflight_check": preflight_check,
+            "resolve_ffmpeg_command": resolve_ffmpeg_command,
         }[name]
     if name in {"sha256_text", "write_sidecar_metadata"}:
         from .metadata import sha256_text, write_sidecar_metadata

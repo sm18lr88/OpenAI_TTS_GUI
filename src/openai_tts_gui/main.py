@@ -40,13 +40,12 @@ def configure_logging() -> None:
 
 
 def _load_gui_symbols() -> tuple[Any, Any, Any, Any, Any]:
-    from PyQt6.QtCore import QTimer
     from PyQt6.QtWidgets import QApplication, QMessageBox
 
     from .config.theme import apply_fusion_dark
-    from .gui import TTSWindow
+    from .gui import FFmpegPreflightWorker, TTSWindow
 
-    return QApplication, QMessageBox, QTimer, apply_fusion_dark, TTSWindow
+    return QApplication, QMessageBox, apply_fusion_dark, TTSWindow, FFmpegPreflightWorker
 
 
 def run(argv: Sequence[str] | None = None) -> int:
@@ -59,9 +58,9 @@ def run(argv: Sequence[str] | None = None) -> int:
         (
             QApplication,
             QMessageBox,
-            QTimer,
             apply_fusion_dark,
             TTSWindow,
+            FFmpegPreflightWorker,
         ) = _load_gui_symbols()
     except ModuleNotFoundError as exc:
         logger.critical("GUI dependencies are not installed: %s", exc)
@@ -79,17 +78,19 @@ def run(argv: Sequence[str] | None = None) -> int:
         window.show()
         logger.info("Main window displayed.")
 
-        def run_post_show_checks() -> None:
-            from .core.ffmpeg import preflight_check
-
-            ok, detail = preflight_check()
+        def handle_preflight_result(ok: bool, detail: str) -> None:
             if ok:
                 return
             QMessageBox.critical(window, "FFmpeg Missing/Outdated", detail)
             logger.critical(detail)
             app.exit(2)
 
-        QTimer.singleShot(0, run_post_show_checks)
+        preflight_worker = FFmpegPreflightWorker(app)
+        app._ffmpeg_preflight_worker = preflight_worker
+        preflight_worker.preflight_finished.connect(handle_preflight_result)
+        preflight_worker.finished.connect(preflight_worker.deleteLater)
+        preflight_worker.finished.connect(lambda: setattr(app, "_ffmpeg_preflight_worker", None))
+        preflight_worker.start()
         return int(app.exec())
     except Exception as exc:
         logger.critical("An unhandled exception occurred: %s", exc, exc_info=True)
