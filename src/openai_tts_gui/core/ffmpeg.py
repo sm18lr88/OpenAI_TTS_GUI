@@ -85,7 +85,8 @@ def resolve_ffmpeg_command() -> str:
         return resolved
 
     executable_name = configured if configured.lower().endswith(".exe") else f"{configured}.exe"
-    for directory in [*_packaged_search_dirs(), *_common_windows_ffmpeg_dirs()]:
+    registry_dirs = [Path(part) for part in registry_path.split(os.pathsep) if part]
+    for directory in [*_packaged_search_dirs(), *registry_dirs, *_common_windows_ffmpeg_dirs()]:
         candidate = directory / executable_name
         if candidate.exists():
             return str(candidate)
