@@ -5,6 +5,10 @@ import openai_tts_gui.main as main
 
 def test_main_starts_and_exits_cleanly(monkeypatch):
     # Avoid opening a real window or running a real event loop
+    class DummySignal:
+        def connect(self, _slot):
+            pass
+
     class DummyApp:
         def __init__(self, argv):
             self.argv = argv
@@ -21,6 +25,18 @@ def test_main_starts_and_exits_cleanly(monkeypatch):
         def critical(*args, **kwargs):
             return None
 
+    class DummyPreflightWorker:
+        def __init__(self, parent=None):
+            self.parent = parent
+            self.preflight_finished = DummySignal()
+            self.finished = DummySignal()
+
+        def deleteLater(self):
+            pass
+
+        def start(self):
+            pass
+
     monkeypatch.setattr(main, "configure_logging", lambda: None)
     monkeypatch.setattr(
         main,
@@ -28,9 +44,9 @@ def test_main_starts_and_exits_cleanly(monkeypatch):
         lambda: (
             DummyApp,
             DummyMessageBox,
-            type("DummyTimer", (), {"singleShot": staticmethod(lambda *_args, **_kwargs: None)}),
             lambda app: None,
             DummyWin,
+            DummyPreflightWorker,
         ),
     )
 

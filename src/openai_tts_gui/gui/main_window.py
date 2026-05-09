@@ -36,7 +36,7 @@ from ..core.text import split_text
 from ._layout import about_html, build_central_widget, build_menubar
 
 if TYPE_CHECKING:
-    from .workers import TTSWorker
+    from .workers import ApiKeyLoadWorker, TTSWorker
 
 logger = logging.getLogger(__name__)
 
@@ -80,27 +80,64 @@ class TTSWindow(QMainWindow):
         self._parallelism = settings.PARALLELISM
         self._parallelism_warning_shown = False
         self.tts_processor: TTSWorker | None = None
+        self._api_key_loader: ApiKeyLoadWorker | None = None
+        self._api_key_load_notify = False
         self._startup_api_key_notice_shown = False
+        self._close_after_tts_cancel = False
+        self._close_after_api_key_load = False
+        self._count_timer = QTimer(self)
+        self._count_timer.setSingleShot(True)
+        self._count_timer.setInterval(120)
+        self._count_timer.timeout.connect(self.update_counts)
 
         self._init_ui()
-        QTimer.singleShot(0, self._finish_startup)
+        QTimer.singleShot(100, self._finish_startup)
 
     @pyqtSlot()
     def _finish_startup(self) -> None:
-        self._load_initial_api_key()
-        self._check_api_key_on_startup()
+        self._start_api_key_load(notify_on_result=False)
 
     def _dialogs_suppressed(self) -> bool:
         return bool(os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI"))
 
     def _load_initial_api_key(self) -> None:
-        from ..keystore import read_api_key
+        self._start_api_key_load(notify_on_result=False)
 
-        self._api_key = read_api_key()
+    def _start_api_key_load(self, *, notify_on_result: bool) -> None:
+        from .workers import ApiKeyLoadWorker
+
+        if self._api_key_loader is not None and self._api_key_loader.isRunning():
+            self._api_key_load_notify = self._api_key_load_notify or notify_on_result
+            return
+
+        self._api_key_load_notify = notify_on_result
+        self._api_key_loader = ApiKeyLoadWorker(self)
+        self._api_key_loader.api_key_loaded.connect(self._handle_api_key_loaded)
+        self._api_key_loader.finished.connect(self._clear_api_key_loader)
+        self._api_key_loader.start()
+
+    @pyqtSlot(object)
+    def _handle_api_key_loaded(self, key: object) -> None:
+        self._api_key = key if isinstance(key, str) and key else None
         if self._api_key:
-            logger.info("API key loaded on initialization.")
+            logger.info("API key loaded.")
+            if self._api_key_load_notify:
+                self._notify("API Key Reloaded", "API key loaded.")
         else:
-            logger.warning("No API key found on initialization.")
+            logger.warning("No API key found.")
+            if self._api_key_load_notify:
+                self._notify("API Key Not Found", "No API key found.", level="warning")
+            else:
+                self._check_api_key_on_startup()
+
+    @pyqtSlot()
+    def _clear_api_key_loader(self) -> None:
+        loader = self._api_key_loader
+        self._api_key_loader = None
+        self._api_key_load_notify = False
+        self._close_after_api_key_load = False
+        if loader is not None:
+            loader.deleteLater()
 
     def _init_ui(self) -> None:
         self.setWindowTitle(settings.APP_NAME)
@@ -118,10 +155,11 @@ class TTSWindow(QMainWindow):
 
         status_bar = self.statusBar()
         if status_bar is not None:
+            status_bar.setSizeGripEnabled(False)
             status_bar.showMessage("Ready")
 
     def _connect_signals(self) -> None:
-        self.text_edit.textChanged.connect(self.update_counts)
+        self.text_edit.textChanged.connect(self._schedule_counts_update)
         self.select_path_button.clicked.connect(self.select_save_path)
         self.create_button.clicked.connect(self.start_tts_creation)
         self.cancel_button.clicked.connect(self.cancel_tts_creation)
@@ -259,14 +297,7 @@ class TTSWindow(QMainWindow):
 
     @pyqtSlot()
     def _load_api_key_from_file(self) -> None:
-        from ..keystore import read_api_key
-
-        key = read_api_key()
-        if key:
-            self._api_key = key
-            self._notify("API Key Reloaded", "API key loaded.")
-        else:
-            self._notify("API Key Not Found", "No API key found.", level="warning")
+        self._start_api_key_load(notify_on_result=True)
 
     @pyqtSlot()
     def _set_custom_api_key(self) -> None:
@@ -321,6 +352,10 @@ class TTSWindow(QMainWindow):
             QMessageBox.critical(self, title, message)
         else:
             QMessageBox.information(self, title, message)
+
+    @pyqtSlot()
+    def _schedule_counts_update(self) -> None:
+        self._count_timer.start()
 
     @pyqtSlot()
     def update_counts(self) -> None:
@@ -629,8 +664,32 @@ class TTSWindow(QMainWindow):
             logger.warning("Failed to open folder: %s", exc)
 
     def closeEvent(self, event: QCloseEvent | None) -> None:  # type: ignore[override]
+        key_loader = self._api_key_loader
+        if key_loader is not None and key_loader.isRunning():
+            if self._close_after_api_key_load:
+                if event is not None:
+                    event.ignore()
+                return
+            if not key_loader.wait(1000):
+                self._close_after_api_key_load = True
+                key_loader.finished.connect(self.close)
+                with suppress(Exception):
+                    status_bar: QStatusBar | None = self.statusBar()
+                    if status_bar is not None:
+                        status_bar.showMessage(
+                            "Waiting for API key load before closing...",
+                            5000,
+                        )
+                if event is not None:
+                    event.ignore()
+                return
+
         proc = self.tts_processor
         if proc is not None and proc.isRunning():
+            if self._close_after_tts_cancel:
+                if event is not None:
+                    event.ignore()
+                return
             r = QMessageBox.question(
                 self,
                 "Confirm Exit",
@@ -642,5 +701,18 @@ class TTSWindow(QMainWindow):
                     event.ignore()
                 return
             proc.cancel()
-            proc.wait(2000)
+            if not proc.wait(2000):
+                self._close_after_tts_cancel = True
+                self.cancel_button.setEnabled(False)
+                proc.finished.connect(self.close)
+                with suppress(Exception):
+                    status_bar: QStatusBar | None = self.statusBar()
+                    if status_bar is not None:
+                        status_bar.showMessage(
+                            "Waiting for TTS cancellation before closing...",
+                            5000,
+                        )
+                if event is not None:
+                    event.ignore()
+                return
         super().closeEvent(event if event is not None else QCloseEvent())

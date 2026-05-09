@@ -9,6 +9,7 @@ from pathlib import Path
 
 from ..config import settings
 from ..errors import FFmpegError, FFmpegNotFoundError, TTSChunkError
+from .ffmpeg import resolve_ffmpeg_command
 
 logger = logging.getLogger(__name__)
 
@@ -77,8 +78,9 @@ def concatenate_audio_files(file_list: Sequence[str], output_file: str) -> str:
             for file_path in input_paths:
                 handle.write(_ffmpeg_concat_entry(file_path))
 
+        ffmpeg_command = resolve_ffmpeg_command()
         concat_command = [
-            settings.FFMPEG_COMMAND,
+            ffmpeg_command,
             "-y",
             "-f",
             "concat",
@@ -111,10 +113,10 @@ def concatenate_audio_files(file_list: Sequence[str], output_file: str) -> str:
     except FileNotFoundError as exc:
         logger.error(
             "%s command not found. Ensure ffmpeg is installed and on PATH.",
-            settings.FFMPEG_COMMAND,
+            ffmpeg_command,
         )
         raise FFmpegNotFoundError(
-            f"{settings.FFMPEG_COMMAND} not found. Ensure ffmpeg is installed and on PATH."
+            f"{ffmpeg_command} not found. Ensure ffmpeg is installed or add it to PATH."
         ) from exc
     except subprocess.CalledProcessError as exc:
         stderr = (exc.stderr or "").strip()
