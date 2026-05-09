@@ -1,8 +1,8 @@
 # OpenAI TTS GUI
 
-Easy-to-use, text-to-speech with OpenAI's api. Handles long text automatically â€” no character limits.
+Easy-to-use text-to-speech with OpenAI's API. Handles long text automatically.
 
-![Screenshot](docs/images/screenshot.png)
+<img src="docs/images/screenshot.png" alt="OpenAI TTS GUI screenshot" width="720">
 
 ## Features
 
@@ -13,8 +13,9 @@ Easy-to-use, text-to-speech with OpenAI's api. Handles long text automatically â
 - **Instructions**: custom voice/tone guidance for `gpt-4o-mini-tts`
 - **Presets**: save and load instruction presets
 - **Long text**: automatic chunking with ffmpeg concatenation
-- **Live feedback**: character count, chunk count
+- **Live feedback**: character count, chunk count, worker status
 - **Dark theme**: Fusion-based polished dark UI
+- **Responsive startup**: background ffmpeg and API key checks
 - **API key storage**: OS keyring, encrypted file fallback, or environment variable
 - **Sidecar metadata**: JSON written next to every output for reproducibility
 - **CLI**: `openai-tts --in text.txt --out out.mp3`
@@ -80,7 +81,7 @@ openai-tts --version
 uv sync --extra dev         # install with dev deps
 uv run ruff check           # lint
 uv run ruff format --check  # format check
-uv run pytest               # tests (42 tests, uses .pytest_tmp for temp files)
+uv run pytest               # tests (uses .pytest_tmp for temp files)
 uv run ty check             # type check
 ```
 
