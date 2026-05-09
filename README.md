@@ -2,7 +2,7 @@
 
 Easy-to-use text-to-speech with OpenAI's API. Handles long text automatically.
 
-<img src="docs/images/screenshot.png" alt="OpenAI TTS GUI screenshot" width="720">
+<img src="https://raw.githubusercontent.com/sm18lr88/OpenAI_TTS_GUI/main/docs/images/screenshot.png" alt="OpenAI TTS GUI screenshot" width="720">
 
 ## Features
 
