@@ -122,6 +122,8 @@ jobs:
 
             Desktop GUI and CLI for generating speech audio from text using OpenAI's TTS API.
 
+            <img src="https://raw.githubusercontent.com/sm18lr88/OpenAI_TTS_GUI/${{ github.ref_name }}/docs/images/screenshot.png" alt="OpenAI TTS GUI screenshot" width="720">
+
             ### What's New
             - **Polished desktop UI** - flatter dark theme and resizable controls
             - **More responsive startup** - background ffmpeg and API key checks
