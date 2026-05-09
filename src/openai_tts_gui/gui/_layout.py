@@ -73,9 +73,7 @@ def build_text_area(window) -> QWidget:
     window.text_edit.setObjectName("textEdit")
     window.text_edit.setPlaceholderText("Enter the text you want to convert to speech...")
     window.text_edit.setMinimumHeight(280)
-    window.text_edit.setSizePolicy(
-        QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-    )
+    window.text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
     layout.addWidget(window.text_edit, 1)
 
     counts = QHBoxLayout()
