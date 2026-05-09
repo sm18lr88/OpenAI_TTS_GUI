@@ -12,7 +12,7 @@ from .errors import (
     TTSError,
 )
 
-DEFAULT_APP_VERSION = "1.2.0"
+DEFAULT_APP_VERSION = "1.3.0"
 
 
 def _resolve_package_version() -> str:

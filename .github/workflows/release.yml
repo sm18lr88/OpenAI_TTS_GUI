@@ -44,6 +44,19 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path dist\OpenAI-TTS\* -DestinationPath dist\OpenAI-TTS-portable.zip
 
+      - name: Verify Windows artifacts
+        shell: pwsh
+        run: |
+          $required = @(
+            "dist\OpenAI-TTS\openai_tts_bin.exe",
+            "dist\OpenAI-TTS-Setup.exe",
+            "dist\OpenAI-TTS-portable.zip"
+          )
+          foreach ($path in $required) {
+            if (-not (Test-Path $path)) { throw "Missing artifact: $path" }
+            if ((Get-Item $path).Length -le 0) { throw "Empty artifact: $path" }
+          }
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -72,6 +85,9 @@ jobs:
 
       - name: Zip app
         run: cd dist && zip -r OpenAI-TTS-macos.zip OpenAI-TTS/
+
+      - name: Verify macOS artifact
+        run: test -s dist/OpenAI-TTS-macos.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -102,15 +118,15 @@ jobs:
         with:
           generate_release_notes: true
           body: |
-            ## OpenAI TTS v1.0.0
+            ## OpenAI TTS v1.3.0
 
             Desktop GUI and CLI for generating speech audio from text using OpenAI's TTS API.
 
             ### What's New
-            - **Modernized dark UI** — Fusion style with a polished dark theme
-            - **Restructured codebase** — feature-based modules, clean separation of concerns
-            - **Pure-Python TTS engine** — core logic decoupled from the GUI framework
-            - **Domain error handling** — clear, actionable error messages
+            - **Polished desktop UI** - flatter dark theme and resizable controls
+            - **More responsive startup** - background ffmpeg and API key checks
+            - **Robust ffmpeg discovery** - improved PATH handling for packaged and source runs
+            - **Safer worker lifecycle** - cleaner cancellation and shutdown behavior
             - **Windows installer** — one-click setup with Start Menu and Desktop shortcuts
             - **Python 3.14** required
 
