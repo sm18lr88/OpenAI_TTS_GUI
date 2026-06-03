@@ -12,26 +12,65 @@ from .keystore import read_api_key
 from .tts import TTSService
 
 
+def _choices_text(values: list[str]) -> str:
+    return ", ".join(values)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="openai-tts",
         description="Generate speech audio from text via OpenAI TTS API.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--in", dest="infile", help="Input text file")
-    parser.add_argument("--out", dest="outfile", help="Output audio path")
-    parser.add_argument("--model", default="tts-1", choices=settings.TTS_MODELS)
-    parser.add_argument("--voice", default="alloy", choices=settings.TTS_VOICES)
-    parser.add_argument("--format", default="mp3", choices=settings.TTS_FORMATS)
-    parser.add_argument("--speed", type=float, default=1.0)
-    parser.add_argument("--instructions", default="")
-    parser.add_argument("--retain-files", action="store_true")
-    parser.add_argument(
+
+    input_group = parser.add_argument_group("Input/output")
+    input_group.add_argument("--in", dest="infile", help="Input UTF-8 text file")
+    input_group.add_argument("--out", dest="outfile", help="Output audio path")
+
+    tts_group = parser.add_argument_group("TTS options")
+    tts_group.add_argument(
+        "--model",
+        default="tts-1",
+        choices=settings.TTS_MODELS,
+        help=f"TTS model. Choices: {_choices_text(settings.TTS_MODELS)}",
+    )
+    tts_group.add_argument(
+        "--voice",
+        default="alloy",
+        choices=settings.TTS_VOICES,
+        help=f"Voice. Choices: {_choices_text(settings.TTS_VOICES)}",
+    )
+    tts_group.add_argument(
+        "--format",
+        default="mp3",
+        choices=settings.TTS_FORMATS,
+        help=f"Output audio format. Choices: {_choices_text(settings.TTS_FORMATS)}",
+    )
+    tts_group.add_argument(
+        "--speed",
+        type=float,
+        default=settings.DEFAULT_SPEED,
+        help=f"Playback speed from {settings.MIN_SPEED} to {settings.MAX_SPEED}",
+    )
+    tts_group.add_argument(
+        "--instructions",
+        default="",
+        help=f"Optional voice/tone guidance for {settings.GPT_4O_MINI_TTS_MODEL}",
+    )
+    tts_group.add_argument(
+        "--retain-files",
+        action="store_true",
+        help="Keep intermediate chunk files next to the output",
+    )
+
+    runtime_group = parser.add_argument_group("Runtime options")
+    runtime_group.add_argument(
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Logging verbosity",
     )
-    parser.add_argument("--version", action="store_true", help="Print version and exit")
+    runtime_group.add_argument("--version", action="store_true", help="Print version and exit")
     return parser
 
 

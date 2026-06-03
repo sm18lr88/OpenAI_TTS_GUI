@@ -18,7 +18,7 @@ Easy-to-use text-to-speech with OpenAI's API. Handles long text automatically.
 - **Responsive startup**: background ffmpeg and API key checks
 - **API key storage**: OS keyring, encrypted file fallback, or environment variable
 - **Sidecar metadata**: JSON written next to every output for reproducibility
-- **CLI**: `openai-tts --in text.txt --out out.mp3`
+- **CLI**: choose model, voice, format, speed, and optional instructions from the command line
 - **Request IDs**: copy from GUI for OpenAI support tickets
 - **Parallel processing**: set `TTS_PARALLELISM=4` for concurrent chunk generation with ordered finalization, service-owned retries, and adaptive in-run backpressure
 
@@ -72,8 +72,13 @@ python -m openai_tts_gui
 
 ```bash
 openai-tts --in input.txt --out output.mp3 --model tts-1 --voice alloy --format mp3 --speed 1.0
+openai-tts --in input.txt --out output.wav --model gpt-4o-mini-tts --voice nova --format wav --speed 1.25 --instructions "speak warmly"
+openai-tts --help
 openai-tts --version
 ```
+
+CLI options mirror the core TTS settings: `--model`, `--voice`, `--format`, `--speed`,
+`--instructions`, and `--retain-files` are available in addition to `--in` and `--out`.
 
 ## Development
 
