@@ -1,3 +1,6 @@
+import pytest
+
+from openai_tts_gui import config
 from openai_tts_gui.cli import main as cli_main
 
 
@@ -23,3 +26,23 @@ def test_cli_invalid_speed_returns_2(monkeypatch, tmp_path):
     monkeypatch.setattr("openai_tts_gui.cli.read_api_key", lambda: "sk-test")
     rc = cli_main(["--in", str(infile), "--out", str(outfile), "--speed", "99"])
     assert rc == 2
+
+
+def test_cli_help_documents_tts_option_sections(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        cli_main(["--help"])
+
+    assert exc_info.value.code == 0
+    out = capsys.readouterr().out
+    assert "Input/output:" in out
+    assert "TTS options:" in out
+    assert "Runtime options:" in out
+    assert "--model" in out
+    assert ", ".join(config.TTS_MODELS) in out
+    assert "--voice" in out
+    assert ", ".join(config.TTS_VOICES) in out
+    assert "--format" in out
+    assert ", ".join(config.TTS_FORMATS) in out
+    assert "--speed" in out
+    assert f"{config.MIN_SPEED}" in out
+    assert f"{config.MAX_SPEED}" in out

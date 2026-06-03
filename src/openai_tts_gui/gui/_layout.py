@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 from textwrap import dedent
+from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QDoubleValidator
@@ -26,6 +27,9 @@ from PyQt6.QtWidgets import (
 )
 
 from ..config import settings
+
+if TYPE_CHECKING:
+    from .main_window import TTSWindow
 
 LABEL_WIDTH = 56
 MODEL_WIDTH = 170
@@ -62,7 +66,7 @@ def _field_label(text: str) -> QLabel:
     return label
 
 
-def build_text_area(window) -> QWidget:
+def build_text_area(window: TTSWindow) -> QWidget:
     w = QWidget()
     layout = QVBoxLayout(w)
     layout.setContentsMargins(12, 12, 12, 8)
@@ -78,17 +82,19 @@ def build_text_area(window) -> QWidget:
 
     counts = QHBoxLayout()
     window.char_count_label = QLabel("Character Count: 0")
-    window.chunk_count_label = QLabel(f"Chunks (max {settings.MAX_CHUNK_SIZE} chars): 0")
-    window.parallelism_label = QLabel(f"Parallel workers: up to {settings.PARALLELISM}")
+    window.chunk_count_label = QLabel("Chunks: 0")
+    window.price_estimate_label = QLabel("Estimated price: $0.00")
+    window.parallelism_label = QLabel(f"Paralell workers: 0 (max: {settings.PARALLELISM})")
     counts.addWidget(window.char_count_label)
     counts.addWidget(window.chunk_count_label)
+    counts.addWidget(window.price_estimate_label)
     counts.addWidget(window.parallelism_label)
     counts.addStretch()
     layout.addLayout(counts)
     return w
 
 
-def build_controls_area(window) -> QWidget:
+def build_controls_area(window: TTSWindow) -> QWidget:
     w = QWidget()
     layout = QVBoxLayout(w)
     layout.setContentsMargins(12, 8, 12, 12)
@@ -223,7 +229,7 @@ def build_controls_area(window) -> QWidget:
     return w
 
 
-def build_about_page(window) -> QWidget:
+def build_about_page(window: TTSWindow) -> QWidget:
     page = QWidget()
     layout = QVBoxLayout(page)
     layout.setContentsMargins(24, 24, 24, 24)
@@ -251,7 +257,7 @@ def build_about_page(window) -> QWidget:
     return page
 
 
-def build_central_widget(window) -> QStackedWidget:
+def build_central_widget(window: TTSWindow) -> QStackedWidget:
     splitter = QSplitter(Qt.Orientation.Vertical)
     splitter.addWidget(build_text_area(window))
     splitter.addWidget(build_controls_area(window))
@@ -267,7 +273,7 @@ def build_central_widget(window) -> QStackedWidget:
     return stack
 
 
-def build_menubar(window):
+def build_menubar(window: TTSWindow) -> None:
     menubar: QMenuBar | None = window.menuBar()
     if menubar is None:
         return
@@ -322,6 +328,10 @@ def about_html() -> str:
         <ul>
             <li>Add the API key under <em>API Key &gt; Set/Update</em>.</li>
             <li>Use the preset manager to store prompt snippets.</li>
+            <li>
+                Long text is split into chunks of up to {settings.MAX_CHUNK_SIZE} characters
+                before generation.
+            </li>
             <li>Adjust chunk parallelism under <em>Settings &gt; Chunk parallelism</em>.</li>
             <li>See README.md for workflow examples.</li>
         </ul>

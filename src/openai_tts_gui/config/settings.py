@@ -9,7 +9,7 @@ from typing import Final
 
 from platformdirs import user_data_dir
 
-DEFAULT_APP_VERSION: Final[str] = "1.3.0"
+DEFAULT_APP_VERSION: Final[str] = "1.3.1"
 
 
 def _resolve_app_version() -> str:
@@ -56,6 +56,15 @@ OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL") or None
 # --- API Settings ---
 TTS_MODELS = ["tts-1", "tts-1-hd", "gpt-4o-mini-tts"]
 GPT_4O_MINI_TTS_MODEL = "gpt-4o-mini-tts"
+TTS_CHARACTER_PRICE_USD_PER_1M: Final[dict[str, float]] = {
+    "tts-1": 15.0,
+    "tts-1-hd": 30.0,
+}
+GPT_4O_MINI_TTS_TEXT_INPUT_USD_PER_1M_TOKENS: Final[float] = 0.60
+GPT_4O_MINI_TTS_AUDIO_OUTPUT_USD_PER_1M_TOKENS: Final[float] = 12.00
+GPT_4O_MINI_TTS_ESTIMATED_CHARS_PER_TEXT_TOKEN: Final[float] = 4.0
+GPT_4O_MINI_TTS_ESTIMATED_CHARS_PER_AUDIO_MINUTE: Final[float] = 1000.0
+GPT_4O_MINI_TTS_ESTIMATED_AUDIO_OUTPUT_USD_PER_MINUTE: Final[float] = 0.015
 TTS_VOICES = [
     "alloy",
     "ash",

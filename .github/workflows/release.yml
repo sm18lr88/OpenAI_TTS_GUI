@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-windows:
@@ -98,6 +98,8 @@ jobs:
   release:
     needs: [build-windows, build-macos]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -118,13 +120,14 @@ jobs:
         with:
           generate_release_notes: true
           body: |
-            ## OpenAI TTS v1.3.0
+            ## OpenAI TTS v1.3.1
 
             Desktop GUI and CLI for generating speech audio from text using OpenAI's TTS API.
 
             <img src="https://raw.githubusercontent.com/sm18lr88/OpenAI_TTS_GUI/${{ github.ref_name }}/docs/images/screenshot.png" alt="OpenAI TTS GUI screenshot" width="720">
 
             ### What's New
+            - **TTS price estimates** - live model-aware cost estimates in the text stats row
             - **Polished desktop UI** - flatter dark theme and resizable controls
             - **More responsive startup** - background ffmpeg and API key checks
             - **Robust ffmpeg discovery** - improved PATH handling for packaged and source runs

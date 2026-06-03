@@ -13,7 +13,7 @@ src/openai_tts_gui/
   presets/     → Instruction preset persistence (JSON file)
   gui/         → PyQt6 UI — main window, dialogs, layout, Qt thread worker
   errors.py    → Domain error hierarchy (TTSError base)
-  cli.py       → CLI entry point using TTSService directly
+  cli.py       → CLI entry point using TTSService directly with model/voice/format/speed flags
   main.py      → GUI entry point — QApplication bootstrap, logging, theme
 ```
 
@@ -67,7 +67,12 @@ uv run ty check                  # Type check
 uv run pyinstaller --noconfirm openai_tts.spec # Build Windows app bundle
 python -m openai_tts_gui         # Launch GUI
 openai-tts --in f.txt --out o.mp3 # CLI
+openai-tts --help                  # CLI options and supported TTS choices
 ```
+
+The CLI path exposes the same core synthesis controls as the GUI: model, voice, output
+format, speed, optional instructions, and retained chunk files. It stays Qt-free by using
+`config/settings`, `keystore`, and `TTSService` directly.
 
 ## Conventions
 

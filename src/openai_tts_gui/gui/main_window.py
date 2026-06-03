@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 from contextlib import suppress
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -50,6 +51,7 @@ class TTSWindow(QMainWindow):
     text_edit: QTextEdit
     char_count_label: QLabel
     chunk_count_label: QLabel
+    price_estimate_label: QLabel
     parallelism_label: QLabel
     parallelism_status_label: QLabel
     model_combo: QComboBox
@@ -73,7 +75,7 @@ class TTSWindow(QMainWindow):
     about_page: QWidget
     stack: QStackedWidget
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._api_key: str | None = None
         self._about_html_cache: str | None = None
@@ -164,6 +166,7 @@ class TTSWindow(QMainWindow):
         self.create_button.clicked.connect(self.start_tts_creation)
         self.cancel_button.clicked.connect(self.cancel_tts_creation)
         self.model_combo.currentIndexChanged.connect(self.update_instructions_enabled)
+        self.model_combo.currentIndexChanged.connect(self.update_counts)
         self.manage_presets_button.clicked.connect(self.open_preset_dialog)
         self.format_combo.currentTextChanged.connect(self._update_path_extension)
         self.progress_updated.connect(self._update_progress_bar)
@@ -205,8 +208,7 @@ class TTSWindow(QMainWindow):
     ) -> None:
         effective_parallelism = self._effective_parallelism_for_text()
         self.parallelism_label.setText(
-            f"Parallel workers: up to {self._parallelism}"
-            f" (current text uses {effective_parallelism})"
+            f"Paralell workers: {effective_parallelism} (max: {self._parallelism})"
         )
         if active_workers is not None and worker_cap is not None:
             self.parallelism_status_label.setText(
@@ -363,10 +365,43 @@ class TTSWindow(QMainWindow):
         chars = len(text)
         chunks = split_text(text, settings.MAX_CHUNK_SIZE) if text else []
         self.char_count_label.setText(f"Character Count: {chars}")
-        self.chunk_count_label.setText(
-            f"Chunks (max {settings.MAX_CHUNK_SIZE} chars): {len(chunks)}"
-        )
+        self.chunk_count_label.setText(f"Chunks: {len(chunks)}")
+        self.price_estimate_label.setText(self._format_price_estimate(chars))
         self._update_parallelism_labels()
+
+    def _format_price_estimate(self, chars: int) -> str:
+        model = self.model_combo.currentText()
+        price_per_1m = settings.TTS_CHARACTER_PRICE_USD_PER_1M.get(model)
+        if price_per_1m is not None:
+            return (
+                f"Estimated price: {self._format_usd(self._character_price(chars, price_per_1m))}"
+            )
+        if model == settings.GPT_4O_MINI_TTS_MODEL:
+            return f"Estimated price: ~{self._format_usd(self._gpt_4o_mini_tts_estimate(chars))}"
+        return "Estimated price: unavailable"
+
+    def _character_price(self, chars: int, price_per_1m: float) -> Decimal:
+        return Decimal(chars) * Decimal(str(price_per_1m)) / Decimal("1000000")
+
+    def _gpt_4o_mini_tts_estimate(self, chars: int) -> Decimal:
+        estimated_text_tokens = Decimal(chars) / Decimal(
+            str(settings.GPT_4O_MINI_TTS_ESTIMATED_CHARS_PER_TEXT_TOKEN)
+        )
+        input_cost = (
+            estimated_text_tokens
+            * Decimal(str(settings.GPT_4O_MINI_TTS_TEXT_INPUT_USD_PER_1M_TOKENS))
+            / Decimal("1000000")
+        )
+        estimated_audio_minutes = Decimal(chars) / Decimal(
+            str(settings.GPT_4O_MINI_TTS_ESTIMATED_CHARS_PER_AUDIO_MINUTE)
+        )
+        output_cost = estimated_audio_minutes * Decimal(
+            str(settings.GPT_4O_MINI_TTS_ESTIMATED_AUDIO_OUTPUT_USD_PER_MINUTE)
+        )
+        return input_cost + output_cost
+
+    def _format_usd(self, value: Decimal) -> str:
+        return f"${value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)}"
 
     @pyqtSlot()
     def update_instructions_enabled(self) -> None:
@@ -674,9 +709,9 @@ class TTSWindow(QMainWindow):
                 self._close_after_api_key_load = True
                 key_loader.finished.connect(self.close)
                 with suppress(Exception):
-                    status_bar: QStatusBar | None = self.statusBar()
-                    if status_bar is not None:
-                        status_bar.showMessage(
+                    api_status_bar: QStatusBar | None = self.statusBar()
+                    if api_status_bar is not None:
+                        api_status_bar.showMessage(
                             "Waiting for API key load before closing...",
                             5000,
                         )
@@ -706,9 +741,9 @@ class TTSWindow(QMainWindow):
                 self.cancel_button.setEnabled(False)
                 proc.finished.connect(self.close)
                 with suppress(Exception):
-                    status_bar: QStatusBar | None = self.statusBar()
-                    if status_bar is not None:
-                        status_bar.showMessage(
+                    tts_status_bar: QStatusBar | None = self.statusBar()
+                    if tts_status_bar is not None:
+                        tts_status_bar.showMessage(
                             "Waiting for TTS cancellation before closing...",
                             5000,
                         )

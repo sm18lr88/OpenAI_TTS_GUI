@@ -79,13 +79,13 @@ def test_parallelism_setting_persists_in_app(qtbot, monkeypatch, tmp_path):
     w.show()
     w._notify = lambda *args, **kwargs: None
     w._set_parallelism()
-    assert "up to 3" in w.parallelism_label.text()
+    assert w.parallelism_label.text() == "Paralell workers: 0 (max: 3)"
     w.close()
 
     w2 = TTSWindow()
     qtbot.addWidget(w2)
     w2.show()
-    assert "up to 3" in w2.parallelism_label.text()
+    assert w2.parallelism_label.text() == "Paralell workers: 0 (max: 3)"
     assert w2._parallelism_warning_shown is True
     w2.close()
 
@@ -106,6 +106,50 @@ def test_parallelism_status_label_updates(qtbot):
     w.show()
     w._handle_parallelism_update(2, 3)
     assert w.parallelism_status_label.text() == "Active chunk workers: 2/3"
+    w.close()
+
+
+def test_stats_line_shows_model_aware_price_estimate(qtbot):
+    w = TTSWindow()
+    qtbot.addWidget(w)
+    w.show()
+
+    w.text_edit.setPlainText("x" * 1000)
+    w.update_counts()
+    assert w.chunk_count_label.text() == "Chunks: 1"
+    assert w.price_estimate_label.text() == "Estimated price: $0.02"
+
+    hd_index = w.model_combo.findText("tts-1-hd")
+    w.model_combo.setCurrentIndex(hd_index)
+    assert w.price_estimate_label.text() == "Estimated price: $0.03"
+
+    gpt_index = w.model_combo.findText(config.GPT_4O_MINI_TTS_MODEL)
+    w.model_combo.setCurrentIndex(gpt_index)
+    assert w.price_estimate_label.text() == "Estimated price: ~$0.02"
+    w.close()
+
+
+def test_parallelism_label_uses_requested_current_and_max_format(qtbot):
+    w = TTSWindow()
+    qtbot.addWidget(w)
+    w.show()
+
+    w._parallelism = 5
+    w.text_edit.setPlainText("x" * (config.MAX_CHUNK_SIZE + 1))
+    w.update_counts()
+
+    assert w.parallelism_label.text() == "Paralell workers: 2 (max: 5)"
+    w.close()
+
+
+def test_about_page_explains_chunk_limit_outside_stats_line(qtbot):
+    w = TTSWindow()
+    qtbot.addWidget(w)
+    w.show()
+
+    assert "max 4096 chars" not in w.chunk_count_label.text()
+    w._show_about_page()
+    assert f"chunks of up to {config.MAX_CHUNK_SIZE} characters" in w.about_text.toPlainText()
     w.close()
 
 
