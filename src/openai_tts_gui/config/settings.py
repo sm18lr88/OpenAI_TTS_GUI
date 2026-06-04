@@ -9,7 +9,7 @@ from typing import Final
 
 from platformdirs import user_data_dir
 
-DEFAULT_APP_VERSION: Final[str] = "1.3.2"
+DEFAULT_APP_VERSION: Final[str] = "1.3.3"
 
 
 def _resolve_app_version() -> str:
