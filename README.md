@@ -2,7 +2,7 @@
 
 Easy-to-use text-to-speech with OpenAI's API. Handles long text automatically.
 
-<img width="700" alt="image" src="https://github.com/user-attachments/assets/10e89dab-f929-4483-b942-03e8fe05d950" />
+<img width="550" alt="image" src="https://github.com/user-attachments/assets/10e89dab-f929-4483-b942-03e8fe05d950" />
 
 ## Features
 
