@@ -120,7 +120,7 @@ jobs:
         with:
           generate_release_notes: true
           body: |
-            ## OpenAI TTS v1.3.1
+            ## OpenAI TTS v1.3.2
 
             Desktop GUI and CLI for generating speech audio from text using OpenAI's TTS API.
 

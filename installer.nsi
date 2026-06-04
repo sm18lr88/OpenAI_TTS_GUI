@@ -1,6 +1,6 @@
 !include "MUI2.nsh"
 
-!define APP_VERSION "1.3.1"
+!define APP_VERSION "1.3.2"
 
 Name "OpenAI TTS"
 OutFile "dist\OpenAI-TTS-Setup.exe"
