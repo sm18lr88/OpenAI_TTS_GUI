@@ -10,26 +10,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-24.04, windows-2025, macos-15]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install Qt runtime deps (Linux only)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-24.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y libxcb-xinerama0 libxkbcommon-x11-0 libgl1 libegl1 ffmpeg
       - name: Install ffmpeg (macOS)
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-15'
         run: brew install ffmpeg
       - name: Install ffmpeg (Windows)
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2025'
         run: choco install ffmpeg --no-progress
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.14"
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v8
       - name: Sync deps
         run: uv sync --extra dev --python 3.14
       - name: Lint
@@ -44,22 +44,22 @@ jobs:
         run: uv run pytest --ignore=tests/perf
 
   build-windows:
-    runs-on: windows-latest
+    runs-on: windows-2025
     needs: test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.14"
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v8
       - name: Sync deps
         run: uv sync --extra dev --python 3.14
       - name: PyInstaller build
         run: uv run pyinstaller --noconfirm openai_tts.spec
       - name: Archive artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: OpenAI-TTS-windows
           path: dist/OpenAI-TTS/
