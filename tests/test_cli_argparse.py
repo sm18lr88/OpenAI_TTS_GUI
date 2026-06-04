@@ -34,15 +34,17 @@ def test_cli_help_documents_tts_option_sections(capsys):
 
     assert exc_info.value.code == 0
     out = capsys.readouterr().out
+    normalized_out = " ".join(out.split())
     assert "Input/output:" in out
     assert "TTS options:" in out
     assert "Runtime options:" in out
     assert "--model" in out
-    assert ", ".join(config.TTS_MODELS) in out
+    assert ", ".join(config.TTS_MODELS) in normalized_out
     assert "--voice" in out
-    assert ", ".join(config.TTS_VOICES) in out
+    assert ", ".join(config.TTS_VOICES) in normalized_out
     assert "--format" in out
-    assert ", ".join(config.TTS_FORMATS) in out
+    assert ", ".join(config.TTS_FORMATS) in normalized_out
     assert "--speed" in out
+    assert "--instructions" in out
     assert f"{config.MIN_SPEED}" in out
     assert f"{config.MAX_SPEED}" in out
