@@ -103,28 +103,27 @@ jobs:
     needs: [build-windows, build-macos]
     runs-on: ubuntu-24.04
     permissions:
+      actions: read
       contents: write
     steps:
       - uses: actions/checkout@v6
 
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: OpenAI-TTS-windows
-          path: artifacts/
-
-      - name: Download macOS artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: OpenAI-TTS-macos
-          path: artifacts/
+      - name: Download release artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "${{ github.run_id }}" --name OpenAI-TTS-windows --dir artifacts
+          gh run download "${{ github.run_id }}" --name OpenAI-TTS-macos --dir artifacts
+          test -s artifacts/OpenAI-TTS-Setup.exe
+          test -s artifacts/OpenAI-TTS-portable.zip
+          test -s artifacts/OpenAI-TTS-macos.zip
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           body: |
-            ## OpenAI TTS v1.3.3
+            ## OpenAI TTS v1.3.4
 
             Desktop GUI and CLI for generating speech audio from text using OpenAI's TTS API.
 
