@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-2025, macos-15]
+        os: [ubuntu-24.04, windows-2025-vs2026, macos-15]
     steps:
       - uses: actions/checkout@v6
       - name: Install Qt runtime deps (Linux only)
@@ -22,7 +22,7 @@ jobs:
         if: matrix.os == 'macos-15'
         run: brew install ffmpeg
       - name: Install ffmpeg (Windows)
-        if: matrix.os == 'windows-2025'
+        if: matrix.os == 'windows-2025-vs2026'
         run: choco install ffmpeg --no-progress
       - name: Install Python
         uses: actions/setup-python@v6
@@ -30,6 +30,8 @@ jobs:
           python-version: "3.14"
       - name: Install uv
         uses: astral-sh/setup-uv@v8.2.0
+        with:
+          enable-cache: false
       - name: Sync deps
         run: uv sync --extra dev --python 3.14
       - name: Lint
@@ -44,7 +46,7 @@ jobs:
         run: uv run pytest --ignore=tests/perf
 
   build-windows:
-    runs-on: windows-2025
+    runs-on: windows-2025-vs2026
     needs: test
     steps:
       - uses: actions/checkout@v6
@@ -54,6 +56,8 @@ jobs:
           python-version: "3.14"
       - name: Install uv
         uses: astral-sh/setup-uv@v8.2.0
+        with:
+          enable-cache: false
       - name: Sync deps
         run: uv sync --extra dev --python 3.14
       - name: PyInstaller build

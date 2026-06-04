@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   build-windows:
-    runs-on: windows-2025
+    runs-on: windows-2025-vs2026
     steps:
       - uses: actions/checkout@v6
 
@@ -24,6 +24,8 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v8.2.0
+        with:
+          enable-cache: false
 
       - name: Sync deps
         run: uv sync --extra dev --python 3.14
@@ -76,6 +78,8 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v8.2.0
+        with:
+          enable-cache: false
 
       - name: Sync deps
         run: uv sync --extra dev --python 3.14
