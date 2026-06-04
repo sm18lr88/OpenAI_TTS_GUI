@@ -84,7 +84,7 @@ def build_text_area(window: TTSWindow) -> QWidget:
     window.char_count_label = QLabel("Character Count: 0")
     window.chunk_count_label = QLabel("Chunks: 0")
     window.price_estimate_label = QLabel("Estimated price: $0.00")
-    window.parallelism_label = QLabel(f"Paralell workers: 0 (max: {settings.PARALLELISM})")
+    window.parallelism_label = QLabel(f"Parallel workers: 0 (max: {settings.PARALLELISM})")
     counts.addWidget(window.char_count_label)
     counts.addWidget(window.chunk_count_label)
     counts.addWidget(window.price_estimate_label)
@@ -335,6 +335,11 @@ def about_html() -> str:
             <li>Adjust chunk parallelism under <em>Settings &gt; Chunk parallelism</em>.</li>
             <li>See README.md for workflow examples.</li>
         </ul>
+        <h3>Support</h3>
+        <p>
+            Show <a href="{html.escape(settings.SUPPORT_URL)}">appreciation</a>
+            if this app helps you.
+        </p>
         <h3>Parallel Processing Risks</h3>
         <ul>
             <li>

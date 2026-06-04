@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import json
 import logging
 import math
@@ -11,7 +12,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QTimer, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction, QCloseEvent
 from PyQt6.QtWidgets import (
     QApplication,
@@ -208,7 +209,7 @@ class TTSWindow(QMainWindow):
     ) -> None:
         effective_parallelism = self._effective_parallelism_for_text()
         self.parallelism_label.setText(
-            f"Paralell workers: {effective_parallelism} (max: {self._parallelism})"
+            f"Parallel workers: {effective_parallelism} (max: {self._parallelism})"
         )
         if active_workers is not None and worker_cap is not None:
             self.parallelism_status_label.setText(
@@ -335,7 +336,9 @@ class TTSWindow(QMainWindow):
             level="warning",
         )
 
-    def _notify(self, title: str, message: str, level: str = "info") -> None:
+    def _notify(
+        self, title: str, message: str, level: str = "info", *, rich_text: bool = False
+    ) -> None:
         logger_fn = {
             "info": logger.info,
             "warning": logger.warning,
@@ -348,12 +351,28 @@ class TTSWindow(QMainWindow):
                 status_bar.showMessage(f"{title}: {message}", 5000)
         if self._dialogs_suppressed():
             return
-        if level == "warning":
-            QMessageBox.warning(self, title, message)
-        elif level == "critical":
-            QMessageBox.critical(self, title, message)
+        box = QMessageBox(self)
+        box.setWindowTitle(title)
+        box.setText(message)
+        if rich_text:
+            box.setTextFormat(Qt.TextFormat.RichText)
+            box.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+            self._enable_message_box_external_links(box)
         else:
-            QMessageBox.information(self, title, message)
+            box.setTextFormat(Qt.TextFormat.PlainText)
+            box.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        if level == "warning":
+            box.setIcon(QMessageBox.Icon.Warning)
+        elif level == "critical":
+            box.setIcon(QMessageBox.Icon.Critical)
+        else:
+            box.setIcon(QMessageBox.Icon.Information)
+        box.exec()
+
+    def _enable_message_box_external_links(self, box: QMessageBox) -> None:
+        for label in box.findChildren(QLabel):
+            label.setOpenExternalLinks(True)
+            label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
 
     @pyqtSlot()
     def _schedule_counts_update(self) -> None:
@@ -600,7 +619,7 @@ class TTSWindow(QMainWindow):
         self.progress_bar.setValue(100)
         self._refresh_request_ids_button()
         self._update_parallelism_labels(last_used=self._read_parallelism_used())
-        self._notify("TTS Complete", message)
+        self._notify("TTS Complete", self._completion_message(message), rich_text=True)
         self.tts_processor = None
         if not self._dialogs_suppressed():
             r = QMessageBox.question(
@@ -626,6 +645,11 @@ class TTSWindow(QMainWindow):
             self._notify("TTS Cancelled", error_message, level="warning")
         else:
             self._notify("TTS Error", error_message, level="critical")
+
+    def _completion_message(self, message: str) -> str:
+        escaped_message = html.escape(message)
+        escaped_url = html.escape(settings.SUPPORT_URL, quote=True)
+        return f'{escaped_message}\n\nShow <a href="{escaped_url}">appreciation</a>.'
 
     @pyqtSlot(str)
     def _handle_status_update(self, status: str) -> None:

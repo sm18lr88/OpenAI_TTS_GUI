@@ -1,25 +1,55 @@
-OpenAI TTS GUI Permissive License (AI-Generated Audio Disclosure)
+OpenAI TTS GUI Attribution and Honor-System Commercial License
 
-Copyright (c) 2025 sm18lr88
+Copyright (c) 2026 Leo Riera / sm18lr88
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:
+Permission is granted to use, copy, modify, and distribute this software and
+associated documentation files (the "Software"), subject to the conditions below.
 
-1. The above copyright notice and this permission notice shall be included in
-   all copies or substantial portions of the Software.
+1. Attribution Required
 
-2. If you use the Software to generate or deliver audio in a commercial product
+   If you use, copy, modify, distribute, publish, or build on this Software, you
+   must give clear credit to the original author. At minimum, include the
+   following attribution in your project documentation, credits, about page, or
+   other reasonably visible location:
+
+   "OpenAI TTS GUI by Leo Riera / sm18lr88"
+
+2. Non-Commercial Use
+
+   Non-commercial use is allowed and encouraged at no required cost.
+
+   If this Software helps you, you are encouraged, but not required, to send a
+   gift of any amount to the author at:
+
+   https://paypal.me/LeoRiera
+
+3. Commercial Use
+
+   Commercial use requires buying an honor-system commercial license from the
+   author for USD $5, payable at:
+
+   https://paypal.me/LeoRiera
+
+   "Commercial use" means using the Software, or a modified version of it, as
+   part of a product, service, client project, internal business workflow,
+   revenue-generating activity, paid offering, or other commercial endeavor.
+
+   This requirement is honor-system based and is not technically enforced by the
+   Software. By using the Software commercially, you agree to pay the commercial
+   license fee and keep the attribution required above.
+
+4. AI-Generated Audio Disclosure
+
+   If you use the Software to generate or deliver audio in a commercial product
    or service, you must clearly disclose to end users that the audio is
    AI-generated or synthesized.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+5. No Warranty
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.

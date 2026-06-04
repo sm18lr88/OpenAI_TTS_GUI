@@ -37,8 +37,11 @@ datas = collect_data_files(
         "Qt6/plugins/platforms/*",
         "Qt6/plugins/styles/*",
         "Qt6/plugins/iconengines/*",
-        "Qt6/plugins/imageformats/*",
-        "Qt6/translations/*",
+        "Qt6/plugins/imageformats/qgif.dll",
+        "Qt6/plugins/imageformats/qico.dll",
+        "Qt6/plugins/imageformats/qjpeg.dll",
+        "Qt6/plugins/imageformats/qsvg.dll",
+        "Qt6/plugins/imageformats/qwebp.dll",
     ],
 )
 
@@ -59,5 +62,6 @@ exe = EXE(
     a.scripts,
     name="openai_tts_bin",
     console=False,
+    manifest="packaging/windows/openai_tts_bin.exe.manifest",
 )
 coll = COLLECT(exe, a.binaries, a.zipfiles, a.datas, name="OpenAI-TTS")

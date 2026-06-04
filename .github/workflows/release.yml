@@ -30,8 +30,23 @@ jobs:
       - name: Sync deps
         run: uv sync --extra dev --python 3.14
 
+      - name: Lint
+        run: uv run ruff check
+
+      - name: Type check
+        run: uv run ty check
+
+      - name: Tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: uv run pytest --ignore=tests/perf
+
       - name: Build exe
         run: uv run pyinstaller --noconfirm openai_tts.spec
+
+      - name: Smoke packaged exe
+        shell: pwsh
+        run: '& "dist\OpenAI-TTS\openai_tts_bin.exe" --self-check'
 
       - name: Build installer
         shell: pwsh
@@ -84,8 +99,22 @@ jobs:
       - name: Sync deps
         run: uv sync --extra dev --python 3.14
 
+      - name: Lint
+        run: uv run ruff check
+
+      - name: Type check
+        run: uv run ty check
+
+      - name: Tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: uv run pytest --ignore=tests/perf
+
       - name: Build
         run: uv run pyinstaller --noconfirm openai_tts.spec
+
+      - name: Smoke packaged app
+        run: ./dist/OpenAI-TTS/openai_tts_bin --self-check
 
       - name: Zip app
         run: cd dist && zip -r OpenAI-TTS-macos.zip OpenAI-TTS/
@@ -118,14 +147,20 @@ jobs:
           test -s artifacts/OpenAI-TTS-portable.zip
           test -s artifacts/OpenAI-TTS-macos.zip
 
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          sha256sum OpenAI-TTS-Setup.exe OpenAI-TTS-portable.zip OpenAI-TTS-macos.zip > SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           body: |
-            ## OpenAI TTS v1.3.4
+            ## OpenAI TTS ${{ github.ref_name }}
 
-            Desktop GUI and CLI for generating speech audio from text using OpenAI's TTS API.
+            Desktop GUI package and source-installable CLI for generating speech audio from text using OpenAI's TTS API.
 
             <img src="https://raw.githubusercontent.com/sm18lr88/OpenAI_TTS_GUI/${{ github.ref_name }}/docs/images/screenshot.png" alt="OpenAI TTS GUI screenshot" width="720">
 
@@ -135,7 +170,7 @@ jobs:
             - **More responsive startup** - background ffmpeg and API key checks
             - **Robust ffmpeg discovery** - improved PATH handling for packaged and source runs
             - **Safer worker lifecycle** - cleaner cancellation and shutdown behavior
-            - **Windows installer** — one-click setup with Start Menu and Desktop shortcuts
+            - **Windows installer** — one-click setup with Start Menu shortcuts
             - **Python 3.14** required
 
             ### Downloads
@@ -149,7 +184,11 @@ jobs:
             - An [OpenAI API key](https://platform.openai.com/api-keys)
             - [FFmpeg](https://ffmpeg.org/download.html) installed and on PATH
 
+            ### Integrity
+            Verify downloads with `SHA256SUMS.txt`.
+
           files: |
             artifacts/OpenAI-TTS-Setup.exe
             artifacts/OpenAI-TTS-portable.zip
             artifacts/OpenAI-TTS-macos.zip
+            artifacts/SHA256SUMS.txt

@@ -6,21 +6,13 @@ Easy-to-use text-to-speech with OpenAI's API. Handles long text automatically.
 
 ## Features
 
-- **Models**: `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`
-- **Voices**: alloy, ash, ballad, cedar, coral, echo, fable, marin, onyx, nova, sage, shimmer, verse
-- **Formats**: MP3, Opus, AAC, FLAC, WAV, PCM
-- **Speed**: 0.25x – 4.0x
-- **Instructions**: custom voice/tone guidance for `gpt-4o-mini-tts`
-- **Presets**: save and load instruction presets
-- **Long text**: automatic chunking with ffmpeg concatenation
-- **Live feedback**: character count, chunk count, worker status
-- **Dark theme**: Fusion-based polished dark UI
-- **Responsive startup**: background ffmpeg and API key checks
-- **API key storage**: OS keyring, encrypted file fallback, or environment variable
-- **Sidecar metadata**: JSON written next to every output for reproducibility
-- **CLI**: choose model, voice, format, speed, and optional instructions from the command line
-- **Request IDs**: copy from GUI for OpenAI support tickets
-- **Parallel processing**: set `TTS_PARALLELISM=4` for concurrent chunk generation with ordered finalization, service-owned retries, and adaptive in-run backpressure
+- Generate speech with OpenAI TTS models, voices, formats, and speed controls.
+- Includes `gpt-4o-mini-tts` instructions and reusable presets for tone and pacing.
+- Paste long scripts; the app chunks, generates, and joins audio automatically with ffmpeg.
+- See live character count, chunk count, worker status, and estimated cost before running.
+- Keep reproducible sidecar metadata and copy OpenAI request IDs for support.
+- Store API keys through OS keyring, local fallback, or environment variables.
+- CLI use available.
 
 ## Requirements
 
@@ -42,12 +34,14 @@ cd OpenAI_TTS_GUI
 ```
 
 **With [uv](https://docs.astral.sh/uv/) (recommended):**
+
 ```bash
 uv sync
 uv run python -m openai_tts_gui
 ```
 
 Or use the launch script:
+
 ```bash
 # Windows
 run_gui.bat
@@ -57,6 +51,7 @@ run_gui.bat
 ```
 
 **With pip:**
+
 ```bash
 pip install .
 python -m openai_tts_gui
@@ -115,6 +110,39 @@ src/openai_tts_gui/
 ```
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for module boundaries and conventions.
+
+## License
+
+This project uses a custom attribution and honor-system commercial license. If
+you use this code, give credit to "OpenAI TTS GUI by Leo Riera / sm18lr88".
+
+Non-commercial use is encouraged. If the project helps you, gifts of any amount
+are appreciated at [paypal.me/LeoRiera](https://paypal.me/LeoRiera).
+
+Commercial use requires buying a USD $5 honor-system commercial license at
+[paypal.me/LeoRiera](https://paypal.me/LeoRiera). See [LICENSE](LICENSE) for the
+full terms.
+
+## Support, Privacy, and Trust
+
+Show appreciation at [paypal.me/LeoRiera](https://paypal.me/LeoRiera) if this
+app helps you. The app does not verify PayPal donations, does not add DRM, and
+does not track support clicks.
+
+Privacy and trust notes:
+
+Text you submit for speech generation is sent to OpenAI or to the compatible
+endpoint configured with `OPENAI_BASE_URL`. API keys are read from
+`OPENAI_API_KEY`, OS keyring, or the local fallback file shown in the app data
+directory. Presets, settings, logs, and sidecar metadata are stored locally under
+the data path shown in `Help` -> `About`; delete those files to remove local app
+data. Sidecar files may include request IDs to help with OpenAI support.
+
+Release artifacts include checksum files and are built from the public release
+workflow. The Windows installer is prepared for standard-user installation and
+safe uninstall checks. The project tracks Windows App Certification Kit and
+Microsoft Store MSI/EXE readiness, but it does not claim certification until an
+actual Windows SDK/App Certification Kit or Store submission report passes.
 
 ## Troubleshooting
 

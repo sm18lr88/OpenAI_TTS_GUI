@@ -42,6 +42,7 @@ PRESETS_FILE = os.path.join(DATA_DIR, "presets.json")
 API_KEY_FILE = os.path.join(DATA_DIR, "api_key.enc")
 APP_SETTINGS_FILE = os.path.join(DATA_DIR, "app_settings.json")
 DEFAULT_OUTPUT_DIR = os.path.expanduser(os.path.join("~", "Music", "OpenAI-TTS"))
+SUPPORT_URL = "https://paypal.me/LeoRiera"
 
 
 def ensure_directories() -> None:

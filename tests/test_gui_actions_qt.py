@@ -3,7 +3,7 @@ import pytest
 pytest.importorskip("PyQt6")
 
 from PyQt6.QtGui import QCloseEvent
-from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QLabel, QMessageBox
 
 from openai_tts_gui import config
 from openai_tts_gui.gui import TTSWindow
@@ -79,13 +79,13 @@ def test_parallelism_setting_persists_in_app(qtbot, monkeypatch, tmp_path):
     w.show()
     w._notify = lambda *args, **kwargs: None
     w._set_parallelism()
-    assert w.parallelism_label.text() == "Paralell workers: 0 (max: 3)"
+    assert w.parallelism_label.text() == "Parallel workers: 0 (max: 3)"
     w.close()
 
     w2 = TTSWindow()
     qtbot.addWidget(w2)
     w2.show()
-    assert w2.parallelism_label.text() == "Paralell workers: 0 (max: 3)"
+    assert w2.parallelism_label.text() == "Parallel workers: 0 (max: 3)"
     assert w2._parallelism_warning_shown is True
     w2.close()
 
@@ -97,6 +97,87 @@ def test_about_page_shows_current_version(qtbot):
     w._show_about_page()
     assert config.APP_VERSION in w.about_text.toHtml()
     assert "Parallel Processing Risks" in w.about_text.toPlainText()
+    w.close()
+
+
+def test_about_page_includes_appreciation_link(qtbot):
+    w = TTSWindow()
+    qtbot.addWidget(w)
+    w.show()
+
+    w._show_about_page()
+    html = w.about_text.toHtml()
+    text = w.about_text.toPlainText()
+
+    assert "Show appreciation" in text
+    assert "https://paypal.me/LeoRiera" in html
+    assert "appreciation" in html
+    w.close()
+
+
+def test_tts_success_notification_includes_appreciation_link_and_preserves_open_folder(
+    qtbot, monkeypatch
+):
+    w = TTSWindow()
+    qtbot.addWidget(w)
+    w.show()
+    w.path_entry.setText("C:/tmp/output.mp3")
+    w._dialogs_suppressed = lambda: False
+    messages: list[tuple[str, str, str, bool]] = []
+    opened: list[str] = []
+
+    w._notify = lambda title, message, level="info", *, rich_text=False: messages.append(
+        (title, message, level, rich_text)
+    )
+    monkeypatch.setattr(
+        "openai_tts_gui.gui.main_window.QMessageBox.question",
+        lambda *args, **kwargs: QMessageBox.StandardButton.Yes,
+    )
+    w._open_containing_folder = opened.append
+
+    w._handle_tts_success("TTS audio saved successfully.")
+
+    assert messages == [
+        (
+            "TTS Complete",
+            'TTS audio saved successfully.\n\nShow <a href="https://paypal.me/LeoRiera">appreciation</a>.',
+            "info",
+            True,
+        )
+    ]
+    assert opened == ["C:/tmp/output.mp3"]
+    w.close()
+
+
+def test_tts_completion_message_escapes_generated_text(qtbot):
+    w = TTSWindow()
+    qtbot.addWidget(w)
+    w.show()
+
+    message = w._completion_message("Saved <danger> & done.")
+
+    assert "Saved &lt;danger&gt; &amp; done." in message
+    assert '<a href="https://paypal.me/LeoRiera">appreciation</a>' in message
+    w.close()
+
+
+def test_notification_rich_text_links_open_externally(qtbot, monkeypatch):
+    w = TTSWindow()
+    qtbot.addWidget(w)
+    w.show()
+    w._dialogs_suppressed = lambda: False
+    captured: list[list[bool]] = []
+
+    def fake_exec(box):
+        captured.append([label.openExternalLinks() for label in box.findChildren(QLabel)])
+        return QMessageBox.StandardButton.Ok
+
+    monkeypatch.setattr("openai_tts_gui.gui.main_window.QMessageBox.exec", fake_exec)
+
+    w._notify("TTS Complete", w._completion_message("Saved."), rich_text=True)
+
+    assert captured
+    assert any(captured[0])
     w.close()
 
 
@@ -138,7 +219,7 @@ def test_parallelism_label_uses_requested_current_and_max_format(qtbot):
     w.text_edit.setPlainText("x" * (config.MAX_CHUNK_SIZE + 1))
     w.update_counts()
 
-    assert w.parallelism_label.text() == "Paralell workers: 2 (max: 5)"
+    assert w.parallelism_label.text() == "Parallel workers: 2 (max: 5)"
     w.close()
 
 
