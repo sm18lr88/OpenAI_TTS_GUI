@@ -16,7 +16,7 @@ def test_release_versions_stay_in_sync() -> None:
     expected = pyproject["project"]["version"]
     settings_source = _read("src/openai_tts_gui/config/settings.py")
     package_source = _read("src/openai_tts_gui/__init__.py")
-    installer_source = _read("installer.nsi")
+    installer_source = _read("packaging/windows/installer.nsi")
     release_workflow = _read(".github/workflows/release.yml")
 
     assert f'DEFAULT_APP_VERSION: Final[str] = "{expected}"' in settings_source
@@ -37,6 +37,28 @@ def test_release_workflow_runs_quality_gates_and_generates_checksums() -> None:
     assert "Get-FileHash" in release_workflow or "sha256sum" in release_workflow
 
 
+def test_ci_and_release_enforce_independent_coverage_thresholds() -> None:
+    # Given: the repository coverage policy and both hosted quality-gate workflows.
+    pyproject = tomllib.loads(_read("pyproject.toml"))
+    workflows = [_read(".github/workflows/ci.yml"), _read(".github/workflows/release.yml")]
+    coverage_command = (
+        "uv run pytest --ignore=tests/perf --cov=openai_tts_gui --cov-branch "
+        "--cov-report=term-missing --cov-report=json:coverage.json"
+    )
+    threshold_command = (
+        "uv run scripts/check_coverage_thresholds.py coverage.json "
+        "--min-statements 90 --min-branches 90"
+    )
+
+    # When: machine-consumed coverage configuration is inspected.
+    combined_floor = pyproject["tool"]["coverage"]["report"]["fail_under"]
+
+    # Then: every hosted gate uses the same measured report and strict independent floors.
+    assert combined_floor == 97
+    assert all(coverage_command in workflow for workflow in workflows)
+    assert all(threshold_command in workflow for workflow in workflows)
+
+
 def test_pyinstaller_entry_supports_artifact_self_check() -> None:
     entry_source = _read("scripts/pyinstaller_entry.py")
 
@@ -48,14 +70,14 @@ def test_pyinstaller_entry_supports_artifact_self_check() -> None:
 
 
 def test_installer_uses_per_user_install_and_safe_uninstall_guard() -> None:
-    installer_source = _read("installer.nsi")
+    installer_source = _read("packaging/windows/installer.nsi")
 
     assert "RequestExecutionLevel user" in installer_source
     assert 'InstallDir "$LOCALAPPDATA\\Programs\\OpenAI-TTS"' in installer_source
     assert "InstallDirRegKey HKCU" in installer_source
     assert "WriteRegStr HKCU" in installer_source
     assert "HKLM" not in installer_source
-    assert '!insertmacro MUI_PAGE_LICENSE "LICENSE"' in installer_source
+    assert '!insertmacro MUI_PAGE_LICENSE "..\\..\\LICENSE"' in installer_source
     assert 'CreateShortcut "$DESKTOP\\OpenAI TTS.lnk"' not in installer_source
     assert re.search(r'ReadRegStr \$0 HKCU "Software\\OpenAI-TTS" "InstallDir"', installer_source)
     assert 'StrCmp $0 "$INSTDIR" 0 un.safe_abort' in installer_source
