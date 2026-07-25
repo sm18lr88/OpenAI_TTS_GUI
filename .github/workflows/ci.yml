@@ -13,6 +13,8 @@ jobs:
         os: [ubuntu-24.04, windows-2025-vs2026, macos-15]
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - name: Install Qt runtime deps (Linux only)
         if: matrix.os == 'ubuntu-24.04'
         run: |
