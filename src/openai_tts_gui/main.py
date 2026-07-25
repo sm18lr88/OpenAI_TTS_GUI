@@ -3,13 +3,14 @@ from __future__ import annotations
 import logging
 import sys
 from collections.abc import Sequence
-from typing import Any
 
-from .config.settings import (
-    APP_NAME,
+from . import config
+from .config import (
+    GUI_LOG_MAX_BYTES,
+    GUI_LOG_MAX_RECORD_BYTES,
     LOG_FILE,
-    LOGGING_FORMAT,
     LOGGING_LEVEL,
+    BoundedRotatingFileHandler,
     ensure_directories,
 )
 
@@ -23,34 +24,34 @@ def configure_logging() -> None:
         return
 
     ensure_directories()
-    formatter = logging.Formatter(LOGGING_FORMAT)
-
-    file_handler = logging.FileHandler(LOG_FILE, mode="a", encoding="utf-8")
-    file_handler.setFormatter(formatter)
-    stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setFormatter(formatter)
+    file_handler = BoundedRotatingFileHandler(
+        LOG_FILE,
+        max_bytes=GUI_LOG_MAX_BYTES,
+        max_record_bytes=GUI_LOG_MAX_RECORD_BYTES,
+    )
 
     root_logger = logging.getLogger()
     root_logger.handlers.clear()
     root_logger.setLevel(LOGGING_LEVEL)
     root_logger.addHandler(file_handler)
-    root_logger.addHandler(stream_handler)
 
     _LOGGING_CONFIGURED = True
 
 
-def _load_gui_symbols() -> tuple[Any, Any, Any, Any, Any]:
+def _load_gui_symbols():
     from PyQt6.QtWidgets import QApplication, QMessageBox
 
-    from .config.theme import apply_fusion_dark
     from .gui import FFmpegPreflightWorker, TTSWindow
 
-    return QApplication, QMessageBox, apply_fusion_dark, TTSWindow, FFmpegPreflightWorker
+    return QApplication, QMessageBox, config.apply_fusion_dark, TTSWindow, FFmpegPreflightWorker
 
 
 def run(argv: Sequence[str] | None = None) -> int:
     configure_logging()
-    logger.info("Starting %s application.", APP_NAME)
+    logger.info(
+        "GUI application starting.",
+        extra={"event": "gui.application.start", "outcome": "starting"},
+    )
 
     args = list(argv) if argv is not None else sys.argv
 
@@ -63,7 +64,14 @@ def run(argv: Sequence[str] | None = None) -> int:
             FFmpegPreflightWorker,
         ) = _load_gui_symbols()
     except ModuleNotFoundError as exc:
-        logger.critical("GUI dependencies are not installed: %s", exc)
+        logger.critical(
+            "GUI dependencies are unavailable.",
+            extra={
+                "event": "gui.dependencies.unavailable",
+                "outcome": "failed",
+                "detail": str(exc),
+            },
+        )
         print(
             "The GUI requires PyQt6 and related dependencies to be installed.",
             file=sys.stderr,
@@ -76,13 +84,19 @@ def run(argv: Sequence[str] | None = None) -> int:
 
         window = TTSWindow()
         window.show()
-        logger.info("Main window displayed.")
+        logger.info(
+            "GUI main window displayed.",
+            extra={"event": "gui.window.displayed", "outcome": "ready"},
+        )
 
         def handle_preflight_result(ok: bool, detail: str) -> None:
             if ok:
                 return
             QMessageBox.critical(window, "FFmpeg Missing/Outdated", detail)
-            logger.critical(detail)
+            logger.critical(
+                "GUI preflight failed.",
+                extra={"event": "gui.preflight.failed", "outcome": "failed", "detail": detail},
+            )
             app.exit(2)
 
         preflight_worker = FFmpegPreflightWorker(app)
@@ -92,11 +106,17 @@ def run(argv: Sequence[str] | None = None) -> int:
         preflight_worker.finished.connect(lambda: setattr(app, "_ffmpeg_preflight_worker", None))
         preflight_worker.start()
         return int(app.exec())
-    except Exception as exc:
-        logger.critical("An unhandled exception occurred: %s", exc, exc_info=True)
+    except OSError as exc:
+        logger.critical(
+            "GUI initialization failed.",
+            extra={"event": "gui.initialization.failed", "outcome": "failed", "detail": str(exc)},
+        )
         return 1
     finally:
-        logger.info("Exiting %s.", APP_NAME)
+        logger.info(
+            "GUI application exiting.",
+            extra={"event": "gui.application.exit", "outcome": "stopped"},
+        )
 
 
 def main() -> None:

@@ -1,15 +1,17 @@
 """Backward-compat facade — re-exports from new module locations."""
 
-from .core.audio import cleanup_files, concatenate_audio_files  # noqa: F401
-from .core.ffmpeg import (  # noqa: F401
+from .core import (  # noqa: F401
+    cleanup_files,
+    concatenate_audio_files,
     get_ffmpeg_version,
     preflight_check,
+    sha256_text,
+    split_text,
+    write_sidecar_metadata,
 )
-from .core.ffmpeg import (
+from .core import (
     parse_ffmpeg_semver as _parse_ffmpeg_semver,
 )
-from .core.metadata import sha256_text, write_sidecar_metadata  # noqa: F401
-from .core.text import split_text  # noqa: F401
 from .keystore import decrypt_key, encrypt_key, read_api_key, save_api_key  # noqa: F401
 from .presets import load_presets, save_presets  # noqa: F401
 
