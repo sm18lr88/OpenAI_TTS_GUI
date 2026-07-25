@@ -1,0 +1,16 @@
+[quality]
+max_complexity = 15
+min_coverage = 90.0
+max_satd = 0
+
+[checks]
+build = true
+test = true
+coverage = true
+complexity = true
+satd = true
+
+[timeouts]
+build = 300
+test = 1200
+coverage = 1200
