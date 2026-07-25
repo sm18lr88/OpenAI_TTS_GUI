@@ -1,5 +1,6 @@
 from openai_tts_gui import utils
 from openai_tts_gui.config import settings
+from openai_tts_gui.keystore import _crypto
 from openai_tts_gui.keystore import _storage as keystore_storage
 
 
@@ -24,12 +25,12 @@ def test_save_and_read_api_key_via_keyring(monkeypatch, tmp_path):
     assert utils.read_api_key() == "sk-unit-xyz"
 
 
-def test_file_fallback_encrypt_decrypt(monkeypatch, tmp_path):
+def test_legacy_file_remains_readable_when_keyring_is_disabled(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "USE_KEYRING", False)
     keyfile = tmp_path / "api_key.enc"
     monkeypatch.setattr(settings, "API_KEY_FILE", str(keyfile))
+    keyfile.write_text(_crypto.encrypt_key("sk-file-abc") + "\n", encoding="utf-8")
 
-    assert utils.save_api_key("sk-file-abc")
     got = utils.read_api_key()
     assert got == "sk-file-abc"
     raw = keyfile.read_text(encoding="utf-8").strip()
