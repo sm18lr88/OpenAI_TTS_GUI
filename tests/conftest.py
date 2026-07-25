@@ -9,7 +9,6 @@ from __future__ import annotations
 import os
 import tempfile
 from pathlib import Path
-from typing import Any
 
 import pytest
 
@@ -20,9 +19,19 @@ def _ensure_repo_temp(rootpath: Path) -> Path:
     return base
 
 
+def _default_basetemp(rootpath: Path) -> Path:
+    return _ensure_repo_temp(rootpath) / f"pytest-{os.getpid()}"
+
+
 @pytest.hookimpl(tryfirst=True)
-def pytest_configure(config: Any) -> None:
-    base = _ensure_repo_temp(Path(str(config.rootpath)))
+def pytest_configure(config: pytest.Config) -> None:
+    configured_basetemp = config.option.basetemp
+    base = (
+        Path(str(configured_basetemp))
+        if configured_basetemp is not None
+        else _default_basetemp(Path(str(config.rootpath)))
+    )
+    base.mkdir(parents=True, exist_ok=True)
     # Point pytest's tmp_path/tmpdir fixtures to the repo-local temp folder.
     # This is honored when set before the first fixture request.
     config.option.basetemp = str(base)

@@ -4,10 +4,12 @@ import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+
+type ApiParameter = str | int | float
+type ClientParameter = ApiParameter | None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class FakeChunkOutcome:
     audio_bytes: bytes = b"\x00"
     delay_seconds: float = 0.0
@@ -17,7 +19,7 @@ class FakeChunkOutcome:
     response_attr: str = "response"
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class FakeEvent:
     kind: str
     chunk_input: str
@@ -38,10 +40,12 @@ class FakeRateLimitError(Exception):
         *,
         headers: dict[str, str] | None = None,
         request_id: str | None = None,
+        status_code: int = 429,
     ) -> None:
         Exception.__init__(self, message)
         self.message = message
         self.request_id = request_id
+        self.status_code = status_code
         self.response = FakeHTTPResponse(headers)
 
 
@@ -65,7 +69,7 @@ class FakeStreamResponse:
     def __init__(
         self,
         harness: FakeTTSServiceHarness,
-        api_params: dict[str, Any],
+        api_params: dict[str, ApiParameter],
         attempt: int,
         outcome: FakeChunkOutcome,
     ) -> None:
@@ -102,7 +106,7 @@ class FakeStreamingResponseContext:
     def __init__(
         self,
         harness: FakeTTSServiceHarness,
-        api_params: dict[str, Any],
+        api_params: dict[str, ApiParameter],
         attempt: int,
         outcome: FakeChunkOutcome,
     ) -> None:
@@ -153,8 +157,8 @@ class FakeTTSServiceHarness:
         self._plan = {chunk_input: list(outcomes) for chunk_input, outcomes in plan.items()}
         self._lock = threading.Lock()
         self._attempts_by_input: dict[str, int] = {chunk_input: 0 for chunk_input in self._plan}
-        self.client_kwargs: list[dict[str, Any]] = []
-        self.api_calls: list[dict[str, Any]] = []
+        self.client_kwargs: list[dict[str, ClientParameter]] = []
+        self.api_calls = []
         self.write_order: list[str] = []
         self.events: list[FakeEvent] = []
 
@@ -183,7 +187,7 @@ class FakeTTSServiceHarness:
         harness = self
 
         class FakeOpenAI:
-            def __init__(self, **kwargs: Any) -> None:
+            def __init__(self, **kwargs: ClientParameter) -> None:
                 with harness._lock:
                     harness.client_kwargs.append(dict(kwargs))
                 self.audio = type(
@@ -192,7 +196,7 @@ class FakeTTSServiceHarness:
                     {"speech": type("SpeechNamespace", (), {"with_streaming_response": self})()},
                 )()
 
-            def create(self, **api_params: Any) -> FakeStreamingResponseContext:
+            def create(self, **api_params: ApiParameter) -> FakeStreamingResponseContext:
                 attempt, outcome = harness._next_outcome(str(api_params["input"]))
                 with harness._lock:
                     harness.api_calls.append(
