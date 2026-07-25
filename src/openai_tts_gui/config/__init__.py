@@ -1,6 +1,15 @@
 from __future__ import annotations
 
+from ..errors import LoggingConfigurationError  # noqa: F401
 from .app_settings import default_app_settings, load_app_settings, save_app_settings  # noqa: F401
+from .logging import (  # noqa: F401
+    GUI_LOG_MAX_BYTES,
+    GUI_LOG_MAX_RECORD_BYTES,
+    LOG_SCHEMA,
+    BoundedRotatingFileHandler,
+    RedactingFormatter,
+    configure_cli_logging,
+)
 from .settings import (  # noqa: F401
     API_KEY_FILE,
     APP_NAME,
@@ -122,6 +131,13 @@ __all__ = [
     "CODEC_PARAMS",
     "LOGGING_LEVEL",
     "LOGGING_FORMAT",
+    "LoggingConfigurationError",
+    "LOG_SCHEMA",
+    "GUI_LOG_MAX_BYTES",
+    "GUI_LOG_MAX_RECORD_BYTES",
+    "BoundedRotatingFileHandler",
+    "RedactingFormatter",
+    "configure_cli_logging",
     "ensure_directories",
     "env_snapshot",
     "default_app_settings",
