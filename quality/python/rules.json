@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "rules": [
+    "ANY001",
+    "OBJ001",
+    "CAST001",
+    "IGNORE001",
+    "ERR001",
+    "CATCH001",
+    "DATA001",
+    "VAR001",
+    "QT001",
+    "IMP001",
+    "QTBRIDGE001"
+  ]
+}
