@@ -49,4 +49,4 @@ Tests use `.pytest_tmp` for temp files (see `tests/conftest.py`). Avoids locked 
 Core unit tests are network-free. TTS API is mocked. Profiling helpers are offline.
 
 ## Packaging
-PyInstaller spec (`openai_tts.spec`) includes hidden imports for all subpackages.
+PyInstaller spec (`packaging/pyinstaller/openai_tts.spec`) includes hidden imports for all subpackages.

@@ -64,7 +64,7 @@ uv run pytest tests/test_smoke.py # Single test file
 uv run ruff check                # Lint
 uv run ruff format --check .     # Format check
 uv run ty check                  # Type check
-uv run pyinstaller --noconfirm openai_tts.spec # Build Windows app bundle
+uv run pyinstaller --noconfirm packaging/pyinstaller/openai_tts.spec # Build Windows app bundle
 python -m openai_tts_gui         # Launch GUI
 openai-tts --in f.txt --out o.mp3 # CLI
 openai-tts --help                  # CLI options and supported TTS choices

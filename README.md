@@ -1,8 +1,22 @@
 # OpenAI TTS GUI
 
-Easy-to-use text-to-speech with OpenAI's API. Handles long text automatically.
+## Description
+
+OpenAI TTS GUI is an easy-to-use desktop and command-line text-to-speech client for
+OpenAI's API. It handles long text automatically by splitting, generating, and joining
+audio while preserving reproducible metadata.
 
 <img width="550" alt="image" src="https://github.com/user-attachments/assets/10e89dab-f929-4483-b942-03e8fe05d950" />
+
+## Table of Contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Features
 
@@ -20,7 +34,7 @@ Easy-to-use text-to-speech with OpenAI's API. Handles long text automatically.
 - **ffmpeg** ([download](https://ffmpeg.org/download.html)) — must be on PATH
 - **OpenAI API key** ([get one](https://platform.openai.com/api-keys))
 
-## Quick Start
+## Installation
 
 ### Option A: Download the installer (Windows)
 
@@ -44,10 +58,10 @@ Or use the launch script:
 
 ```bash
 # Windows
-run_gui.bat
+scripts\launch\run_gui.bat
 
 # macOS / Linux
-./run_gui.sh
+./scripts/launch/run_gui.sh
 ```
 
 **With pip:**
@@ -63,7 +77,7 @@ python -m openai_tts_gui
 2. **GUI**: launch the app → `API Key` menu → `Set/Update API Key...` (stored in OS keyring)
 3. **Custom endpoint**: set `OPENAI_BASE_URL` for self-hosted or compatible APIs
 
-## CLI Usage
+## Usage
 
 ```bash
 openai-tts --in input.txt --out output.mp3 --model tts-1 --voice alloy --format mp3 --speed 1.0
@@ -79,17 +93,21 @@ CLI options mirror the core TTS settings: `--model`, `--voice`, `--format`, `--s
 
 ```bash
 uv sync --extra dev         # install with dev deps
-uv run ruff check           # lint
-uv run ruff format --check  # format check
-uv run pytest               # tests (uses .pytest_tmp for temp files)
-uv run ty check             # type check
+make lint                    # Ruff lint/format checks and type checking
+make test                    # tests (uses .pytest_tmp for temp files)
+make coverage                # tests plus independent coverage thresholds
+make install-hooks           # install the repository pre-commit hook
 ```
+
+PMAT users can run `make pmat` to analyze first-party source under `src/` without
+including `.venv`, build output, or other repository artifacts. `make pmat-gate` applies
+the committed complexity threshold from `.pmat-gates.toml`.
 
 ### Building
 
 ```bash
-uv run pyinstaller --noconfirm openai_tts.spec   # .exe in dist/
-"C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi   # Windows installer in dist/
+uv run pyinstaller --noconfirm packaging/pyinstaller/openai_tts.spec   # .exe in dist/
+"C:\Program Files (x86)\NSIS\makensis.exe" packaging/windows/installer.nsi   # Windows installer in dist/
 ```
 
 The app bundle is built first into `dist/OpenAI-TTS/`, and the NSIS step packages that directory as `dist/OpenAI-TTS-Setup.exe`.
@@ -110,6 +128,13 @@ src/openai_tts_gui/
 ```
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for module boundaries and conventions.
+
+## Contributing
+
+Before opening a pull request, install the development dependencies with
+`uv sync --extra dev`, then run `make lint`, `make test`, and `make coverage`. Keep core
+and service modules Qt-free, import package interfaces rather than private modules, and
+preserve the compatibility contracts documented in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## License
 
