@@ -12,15 +12,13 @@ from .errors import (
     TTSError,
 )
 
-DEFAULT_APP_VERSION = "1.3.4"
+DEFAULT_APP_VERSION = "1.3.5"
 
 
 def _resolve_package_version() -> str:
     try:
         return metadata.version("OpenAI_TTS_GUI")
     except metadata.PackageNotFoundError:
-        return DEFAULT_APP_VERSION
-    except Exception:
         return DEFAULT_APP_VERSION
 
 
@@ -46,11 +44,11 @@ def __getattr__(name: str):
 
         return TTSService
     if name == "preflight_check":
-        from .core.ffmpeg import preflight_check
+        from .core import preflight_check
 
         return preflight_check
     if name == "split_text":
-        from .core.text import split_text
+        from .core import split_text
 
         return split_text
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
