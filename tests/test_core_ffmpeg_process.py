@@ -56,7 +56,7 @@ def _pid_is_running(pid: int) -> bool:
     if sys.platform == "linux":
         try:
             fields = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8").rsplit(") ", 1)[1]
-        except FileNotFoundError:
+        except (FileNotFoundError, ProcessLookupError):
             return False
         return fields.split(maxsplit=1)[0] not in {"X", "Z"}
     try:
