@@ -6,9 +6,15 @@ from pathlib import Path
 import pytest
 
 from openai_tts_gui.config import settings
+from openai_tts_gui.core import SidecarV2, parse_sidecar_metadata
 from openai_tts_gui.errors import TTSAPIError
 from openai_tts_gui.tts import TTSService
-from tests.fakes_tts_service import FakeAPIStatusError, FakeChunkOutcome, FakeTTSServiceHarness
+from tests.fakes_tts_service import (
+    FakeAPIStatusError,
+    FakeChunkOutcome,
+    FakeRateLimitError,
+    FakeTTSServiceHarness,
+)
 
 
 def _patch_basic_generate(monkeypatch, harness, concat_calls):
@@ -88,8 +94,9 @@ def test_sidecar_parallelism_used_is_effective_worker_count(monkeypatch, tmp_pat
         retain_files=False,
     )
 
-    meta = json.loads(Path(str(out) + ".json").read_text(encoding="utf-8"))
-    assert meta["parallelism_used"] == 2
+    parsed = parse_sidecar_metadata(Path(f"{out}.json"))
+    assert isinstance(parsed, SidecarV2)
+    assert parsed.settings.parallelism_used == 2
     assert len(concat_calls) == 1
 
 
@@ -122,9 +129,10 @@ def test_requested_parallelism_overrides_default_setting(monkeypatch, tmp_path):
         retain_files=False,
     )
 
-    meta = json.loads(Path(str(out) + ".json").read_text(encoding="utf-8"))
-    assert meta["parallelism_requested"] == 2
-    assert meta["parallelism_used"] == 2
+    parsed = parse_sidecar_metadata(Path(f"{out}.json"))
+    assert isinstance(parsed, SidecarV2)
+    assert parsed.settings.parallelism_requested == 2
+    assert parsed.settings.parallelism_used == 2
     assert len(concat_calls) == 1
 
 
@@ -134,9 +142,7 @@ def test_request_meta_records_attempt_count_and_request_id(monkeypatch, tmp_path
     harness = FakeTTSServiceHarness(
         {
             "chunk-a": [
-                FakeChunkOutcome(
-                    error=FakeAPIStatusError("server error", status_code=500, request_id="srv-1")
-                ),
+                FakeChunkOutcome(error=FakeRateLimitError(request_id="srv-1")),
                 FakeChunkOutcome(
                     audio_bytes=b"ok",
                     request_id="srv-2",
@@ -148,7 +154,7 @@ def test_request_meta_records_attempt_count_and_request_id(monkeypatch, tmp_path
 
     _patch_basic_generate(monkeypatch, harness, concat_calls)
     monkeypatch.setattr("openai_tts_gui.tts._service.split_text", lambda text, size: ["chunk-a"])
-    monkeypatch.setattr("openai_tts_gui.tts._service.APIStatusError", FakeAPIStatusError)
+    monkeypatch.setattr("openai_tts_gui.tts._service.RateLimitError", FakeRateLimitError)
     monkeypatch.setattr("openai_tts_gui.tts._service.compute_backoff", lambda exc, attempt: 0.0)
 
     service = TTSService(api_key="sk-test")
