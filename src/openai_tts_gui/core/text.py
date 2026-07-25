@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import logging
 
-from ..config import settings
+from .. import config
 from ..errors import ConfigError
 
 logger = logging.getLogger(__name__)
+settings = config
 
 _WHITESPACE_BOUNDARIES = frozenset({" ", "\t", "\n"})
 _PUNCTUATION_BOUNDARIES = frozenset({".", "?", "!", ";", ":"})
@@ -26,7 +27,7 @@ def _find_split_offset(
     return -1
 
 
-def split_text(text: str, chunk_size: int = settings.MAX_CHUNK_SIZE) -> list[str]:
+def split_text(text: str, chunk_size: int = config.MAX_CHUNK_SIZE) -> list[str]:
     """Split text into chunks while preserving the original string exactly."""
     if chunk_size <= 0:
         raise ConfigError("chunk_size must be a positive integer.")
