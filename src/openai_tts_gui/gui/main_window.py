@@ -1,41 +1,31 @@
 from __future__ import annotations
 
-import html
-import json
 import logging
-import math
 import os
-import subprocess
-import sys
-from contextlib import suppress
-from decimal import ROUND_HALF_UP, Decimal
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction, QCloseEvent
 from PyQt6.QtWidgets import (
-    QApplication,
     QComboBox,
-    QFileDialog,
-    QInputDialog,
     QLabel,
     QLineEdit,
     QMainWindow,
-    QMenuBar,
     QMessageBox,
     QProgressBar,
     QPushButton,
     QStackedWidget,
-    QStatusBar,
     QTextBrowser,
     QTextEdit,
     QWidget,
 )
 
-from ..config import settings
-from ..core.text import split_text
+from .. import config
+from ._about_page import show_about_page, show_main_page
 from ._layout import about_html, build_central_widget, build_menubar
+from ._result_actions import ResultActions
+from ._run_wiring import RunWiring
+from ._window_settings import WindowSettings
 
 if TYPE_CHECKING:
     from .workers import ApiKeyLoadWorker, TTSWorker
@@ -80,7 +70,7 @@ class TTSWindow(QMainWindow):
         super().__init__()
         self._api_key: str | None = None
         self._about_html_cache: str | None = None
-        self._parallelism = settings.PARALLELISM
+        self._parallelism = config.PARALLELISM
         self._parallelism_warning_shown = False
         self.tts_processor: TTSWorker | None = None
         self._api_key_loader: ApiKeyLoadWorker | None = None
@@ -88,23 +78,24 @@ class TTSWindow(QMainWindow):
         self._startup_api_key_notice_shown = False
         self._close_after_tts_cancel = False
         self._close_after_api_key_load = False
+        self._close_retry_timer: QTimer | None = None
         self._count_timer = QTimer(self)
         self._count_timer.setSingleShot(True)
         self._count_timer.setInterval(120)
+        self._window_settings = WindowSettings(self)
+        self._result_actions = ResultActions(self)
+        self._run_wiring = RunWiring(self)
         self._count_timer.timeout.connect(self.update_counts)
-
         self._init_ui()
         QTimer.singleShot(100, self._finish_startup)
 
-    @pyqtSlot()
     def _finish_startup(self) -> None:
+        if os.environ.get("PYTEST_CURRENT_TEST") or not self.isVisible():
+            return
         self._start_api_key_load(notify_on_result=False)
 
     def _dialogs_suppressed(self) -> bool:
         return bool(os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI"))
-
-    def _load_initial_api_key(self) -> None:
-        self._start_api_key_load(notify_on_result=False)
 
     def _start_api_key_load(self, *, notify_on_result: bool) -> None:
         from .workers import ApiKeyLoadWorker
@@ -112,28 +103,39 @@ class TTSWindow(QMainWindow):
         if self._api_key_loader is not None and self._api_key_loader.isRunning():
             self._api_key_load_notify = self._api_key_load_notify or notify_on_result
             return
-
         self._api_key_load_notify = notify_on_result
         self._api_key_loader = ApiKeyLoadWorker(self)
         self._api_key_loader.api_key_loaded.connect(self._handle_api_key_loaded)
+        self._api_key_loader.legacy_credential_cleanup_required.connect(
+            self._handle_legacy_credential_cleanup
+        )
         self._api_key_loader.finished.connect(self._clear_api_key_loader)
         self._api_key_loader.start()
 
-    @pyqtSlot(object)
-    def _handle_api_key_loaded(self, key: object) -> None:
-        self._api_key = key if isinstance(key, str) and key else None
+    def _handle_api_key_loaded(self, key: str | None) -> None:
+        self._api_key = key or None
         if self._api_key:
             logger.info("API key loaded.")
             if self._api_key_load_notify:
                 self._notify("API Key Reloaded", "API key loaded.")
-        else:
-            logger.warning("No API key found.")
-            if self._api_key_load_notify:
-                self._notify("API Key Not Found", "No API key found.", level="warning")
-            else:
-                self._check_api_key_on_startup()
+            return
+        logger.warning("No API key found.")
+        if self._api_key_load_notify:
+            self._notify("API Key Not Found", "No API key found.", level="warning")
+            return
+        self._check_api_key_on_startup()
 
-    @pyqtSlot()
+    @pyqtSlot(str)
+    def _handle_legacy_credential_cleanup(self, guidance: str) -> None:
+        logger.warning(
+            "Legacy credential cleanup required.",
+            extra={
+                "event": "credential.legacy_cleanup_required",
+                "outcome": "stale_legacy_credential",
+            },
+        )
+        (status_bar := self.statusBar()) and status_bar.showMessage(guidance, 10_000)
+
     def _clear_api_key_loader(self) -> None:
         loader = self._api_key_loader
         self._api_key_loader = None
@@ -143,23 +145,18 @@ class TTSWindow(QMainWindow):
             loader.deleteLater()
 
     def _init_ui(self) -> None:
-        self.setWindowTitle(settings.APP_NAME)
-        self.resize(settings.DEFAULT_WINDOW_WIDTH, settings.DEFAULT_WINDOW_HEIGHT)
-
+        self.setWindowTitle(config.APP_NAME)
+        self.resize(config.DEFAULT_WINDOW_WIDTH, config.DEFAULT_WINDOW_HEIGHT)
         self.stack = build_central_widget(self)
         self.setCentralWidget(self.stack)
         build_menubar(self)
-
         self._connect_signals()
         self._load_app_settings()
         self.update_counts()
         self.update_instructions_enabled()
         self._refresh_request_ids_button()
-
-        status_bar = self.statusBar()
-        if status_bar is not None:
-            status_bar.setSizeGripEnabled(False)
-            status_bar.showMessage("Ready")
+        (status_bar := self.statusBar()) and status_bar.setSizeGripEnabled(False)
+        (status_bar := self.statusBar()) and status_bar.showMessage("Ready")
 
     def _connect_signals(self) -> None:
         self.text_edit.textChanged.connect(self._schedule_counts_update)
@@ -176,197 +173,39 @@ class TTSWindow(QMainWindow):
         self.tts_error.connect(self._handle_tts_error)
         self.retain_files_action.toggled.connect(self._handle_retain_files_toggled)
 
-    def _load_app_settings(self) -> None:
-        from ..config import load_app_settings
-
-        persisted = load_app_settings()
-        self._parallelism = int(persisted.get("parallelism", settings.PARALLELISM))
-        self._parallelism_warning_shown = bool(persisted.get("parallelism_warning_shown", False))
-        self.retain_files_action.setChecked(bool(persisted.get("retain_files", False)))
-
-    def _save_app_settings(self) -> None:
-        from ..config import save_app_settings
-
-        save_app_settings(
-            {
-                "parallelism": self._parallelism,
-                "parallelism_warning_shown": self._parallelism_warning_shown,
-                "retain_files": self.retain_files_action.isChecked(),
-            }
-        )
-
-    def _effective_parallelism_for_text(self) -> int:
-        text = self.text_edit.toPlainText()
-        chunks = split_text(text, settings.MAX_CHUNK_SIZE) if text else []
-        return min(self._parallelism, len(chunks)) if chunks else 0
-
-    def _update_parallelism_labels(
-        self,
-        *,
-        active_workers: int | None = None,
-        worker_cap: int | None = None,
-        last_used: int | None = None,
-    ) -> None:
-        effective_parallelism = self._effective_parallelism_for_text()
-        self.parallelism_label.setText(
-            f"Parallel workers: {effective_parallelism} (max: {self._parallelism})"
-        )
-        if active_workers is not None and worker_cap is not None:
-            self.parallelism_status_label.setText(
-                f"Active chunk workers: {active_workers}/{worker_cap}"
-            )
-            return
-        if last_used is not None:
-            self.parallelism_status_label.setText(f"Last run parallelism used: {last_used}")
-            return
-        self.parallelism_status_label.setText("Active chunk workers: idle")
-
-    @pyqtSlot(bool)
-    def _handle_retain_files_toggled(self, _checked: bool) -> None:
-        self._save_app_settings()
-
-    @pyqtSlot()
-    def _set_parallelism(self) -> None:
-        previous_value = self._parallelism
-        value, ok = QInputDialog.getInt(
-            self,
-            "Chunk Parallelism",
-            "How many chunks may run at once?",
-            value=self._parallelism,
-            min=1,
-            max=8,
-        )
-        if not ok:
-            return
-        self._parallelism = value
-        showed_warning = False
-        if value > 1 and value > previous_value and not self._parallelism_warning_shown:
-            self._parallelism_warning_shown = True
-            showed_warning = True
-        self._save_app_settings()
-        self._update_parallelism_labels()
-        if showed_warning:
-            self._notify(
-                "Parallel Processing Risk",
-                "Chunk parallelism was increased above 1. Higher values can trigger rate limits, "
-                "may slow down jobs through retries, and are often best kept at 2 or 3 unless your "
-                "account stays stable.",
-                level="warning",
-            )
-            return
-        self._notify("Parallelism Updated", f"Chunk parallelism set to {value}.")
-
-    def _default_output_path(self, selected_format: str) -> str:
-        os.makedirs(settings.DEFAULT_OUTPUT_DIR, exist_ok=True)
-        ext = settings.FORMAT_EXTENSION_MAP.get(selected_format, ".mp3")
-        candidate = Path(settings.DEFAULT_OUTPUT_DIR) / f"output{ext}"
-        if not candidate.exists():
-            return str(candidate)
-        for index in range(1, 10_000):
-            candidate = Path(settings.DEFAULT_OUTPUT_DIR) / f"output-{index}{ext}"
-            if not candidate.exists():
-                return str(candidate)
-        return str(Path(settings.DEFAULT_OUTPUT_DIR) / f"output-{os.getpid()}{ext}")
-
-    def _normalize_output_path(self, current_path: str, selected_format: str) -> str:
-        path = (current_path or "").strip()
-        if not path:
-            return self._default_output_path(selected_format)
-        normalized = Path(path)
-        required_ext = settings.FORMAT_EXTENSION_MAP.get(selected_format, ".mp3")
-        if normalized.suffix.lower() != required_ext.lower():
-            normalized = normalized.with_suffix(required_ext)
-        return str(normalized)
-
-    def _refresh_request_ids_button(self) -> None:
-        output_path = (self.path_entry.text() or "").strip()
-        if not output_path:
-            self.copy_ids_button.setEnabled(False)
-            return
-        sidecar = Path(f"{output_path}.json")
-        if not sidecar.exists():
-            self.copy_ids_button.setEnabled(False)
-            return
-        try:
-            data = json.loads(sidecar.read_text(encoding="utf-8"))
-            request_ids = [
-                item.get("request_id")
-                for item in data.get("request_meta", [])
-                if isinstance(item, dict) and item.get("request_id")
-            ]
-        except Exception:
-            request_ids = []
-        self.copy_ids_button.setEnabled(bool(request_ids))
-
-    @pyqtSlot()
-    def _load_api_key_from_file(self) -> None:
-        self._start_api_key_load(notify_on_result=True)
-
-    @pyqtSlot()
-    def _set_custom_api_key(self) -> None:
-        from ..keystore import save_api_key
-
-        current = self._api_key or ""
-        api_key, ok = QInputDialog.getText(
-            self,
-            "Set OpenAI API Key",
-            "Enter your OpenAI API key (stored in keyring when available):",
-            QLineEdit.EchoMode.Password,
-            current,
-        )
-        if not ok:
-            return
-        api_key = (api_key or "").strip()
-        if not api_key:
-            self._notify("Empty Key", "API key cannot be empty.", level="warning")
-            return
-        if save_api_key(api_key):
-            self._api_key = api_key
-            self._notify("API Key Set", "API key saved.")
-        else:
-            self._notify("Error", "Failed to save API key.", level="critical")
-
-    def _check_api_key_on_startup(self) -> None:
-        if self._api_key or self._startup_api_key_notice_shown:
-            return
-        self._startup_api_key_notice_shown = True
-        self._notify(
-            "API Key Missing",
-            "No OpenAI API key found. Set one in the 'API Key' menu.",
-            level="warning",
-        )
+    def __getattr__(self, name: str):
+        for owner_name in ("_window_settings", "_result_actions", "_run_wiring"):
+            owner = self.__dict__.get(owner_name)
+            if owner is not None and (method := owner.resolve_legacy(name)) is not None:
+                return method
+        raise AttributeError(f"{type(self).__name__!r} object has no attribute {name!r}")
 
     def _notify(
         self, title: str, message: str, level: str = "info", *, rich_text: bool = False
     ) -> None:
-        logger_fn = {
-            "info": logger.info,
-            "warning": logger.warning,
-            "critical": logger.error,
-        }.get(level, logger.info)
+        logger_fn = {"info": logger.info, "warning": logger.warning, "critical": logger.error}.get(
+            level, logger.info
+        )
         logger_fn("%s: %s", title, message)
-        with suppress(Exception):
-            status_bar: QStatusBar | None = self.statusBar()
-            if status_bar is not None:
-                status_bar.showMessage(f"{title}: {message}", 5000)
+        (status_bar := self.statusBar()) and status_bar.showMessage(f"{title}: {message}", 5000)
         if self._dialogs_suppressed():
             return
         box = QMessageBox(self)
         box.setWindowTitle(title)
         box.setText(message)
+        box.setTextFormat(Qt.TextFormat.RichText if rich_text else Qt.TextFormat.PlainText)
+        box.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextBrowserInteraction
+            if rich_text
+            else Qt.TextInteractionFlag.TextSelectableByMouse
+        )
         if rich_text:
-            box.setTextFormat(Qt.TextFormat.RichText)
-            box.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
             self._enable_message_box_external_links(box)
-        else:
-            box.setTextFormat(Qt.TextFormat.PlainText)
-            box.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        if level == "warning":
-            box.setIcon(QMessageBox.Icon.Warning)
-        elif level == "critical":
-            box.setIcon(QMessageBox.Icon.Critical)
-        else:
-            box.setIcon(QMessageBox.Icon.Information)
+        box.setIcon(
+            {"warning": QMessageBox.Icon.Warning, "critical": QMessageBox.Icon.Critical}.get(
+                level, QMessageBox.Icon.Information
+            )
+        )
         box.exec()
 
     def _enable_message_box_external_links(self, box: QMessageBox) -> None:
@@ -374,404 +213,63 @@ class TTSWindow(QMainWindow):
             label.setOpenExternalLinks(True)
             label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
 
-    @pyqtSlot()
-    def _schedule_counts_update(self) -> None:
-        self._count_timer.start()
-
-    @pyqtSlot()
-    def update_counts(self) -> None:
-        text = self.text_edit.toPlainText()
-        chars = len(text)
-        chunks = split_text(text, settings.MAX_CHUNK_SIZE) if text else []
-        self.char_count_label.setText(f"Character Count: {chars}")
-        self.chunk_count_label.setText(f"Chunks: {len(chunks)}")
-        self.price_estimate_label.setText(self._format_price_estimate(chars))
-        self._update_parallelism_labels()
-
-    def _format_price_estimate(self, chars: int) -> str:
-        model = self.model_combo.currentText()
-        price_per_1m = settings.TTS_CHARACTER_PRICE_USD_PER_1M.get(model)
-        if price_per_1m is not None:
-            return (
-                f"Estimated price: {self._format_usd(self._character_price(chars, price_per_1m))}"
-            )
-        if model == settings.GPT_4O_MINI_TTS_MODEL:
-            return f"Estimated price: ~{self._format_usd(self._gpt_4o_mini_tts_estimate(chars))}"
-        return "Estimated price: unavailable"
-
-    def _character_price(self, chars: int, price_per_1m: float) -> Decimal:
-        return Decimal(chars) * Decimal(str(price_per_1m)) / Decimal("1000000")
-
-    def _gpt_4o_mini_tts_estimate(self, chars: int) -> Decimal:
-        estimated_text_tokens = Decimal(chars) / Decimal(
-            str(settings.GPT_4O_MINI_TTS_ESTIMATED_CHARS_PER_TEXT_TOKEN)
-        )
-        input_cost = (
-            estimated_text_tokens
-            * Decimal(str(settings.GPT_4O_MINI_TTS_TEXT_INPUT_USD_PER_1M_TOKENS))
-            / Decimal("1000000")
-        )
-        estimated_audio_minutes = Decimal(chars) / Decimal(
-            str(settings.GPT_4O_MINI_TTS_ESTIMATED_CHARS_PER_AUDIO_MINUTE)
-        )
-        output_cost = estimated_audio_minutes * Decimal(
-            str(settings.GPT_4O_MINI_TTS_ESTIMATED_AUDIO_OUTPUT_USD_PER_MINUTE)
-        )
-        return input_cost + output_cost
-
-    def _format_usd(self, value: Decimal) -> str:
-        return f"${value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)}"
-
-    @pyqtSlot()
-    def update_instructions_enabled(self) -> None:
-        is_gpt4o_mini = self.model_combo.currentText() == settings.GPT_4O_MINI_TTS_MODEL
-        self.instructions_edit.setEnabled(is_gpt4o_mini and self.create_button.isEnabled())
-        self.instructions_label.setEnabled(is_gpt4o_mini)
-        self.manage_presets_button.setEnabled(is_gpt4o_mini and self.create_button.isEnabled())
-
-    @pyqtSlot(str)
-    def _update_path_extension(self, selected_format: str) -> None:
-        current_path = self.path_entry.text()
-        if not current_path:
-            return
-        self.path_entry.setText(self._normalize_output_path(current_path, selected_format))
-        self._refresh_request_ids_button()
-
-    @pyqtSlot(int)
-    def _update_progress_bar(self, value: int) -> None:
-        self.progress_bar.setValue(value)
-
-    @pyqtSlot()
     def _show_about_page(self) -> None:
-        if self._about_html_cache is None:
-            self._about_html_cache = about_html()
-            self.about_text.setHtml(self._about_html_cache)
-        self.stack.setCurrentWidget(self.about_page)
-        self.about_back_button.setFocus()
+        show_about_page(self, about_html)
 
-    @pyqtSlot()
     def _show_main_page(self) -> None:
-        self.stack.setCurrentIndex(0)
-        self.text_edit.setFocus()
+        show_main_page(self)
 
-    @pyqtSlot()
-    def select_save_path(self) -> None:
-        selected_format = self.format_combo.currentText()
-        file_filter = settings.FORMAT_FILTER_MAP.get(
-            selected_format,
-            settings.FORMAT_FILTER_MAP["all"],
-        )
-        current_path = self.path_entry.text()
-        start_dir = os.path.dirname(current_path) if current_path else settings.DEFAULT_OUTPUT_DIR
-        os.makedirs(start_dir, exist_ok=True)
-        default_ext = settings.FORMAT_EXTENSION_MAP.get(selected_format, ".mp3")
-        start_path = current_path or os.path.join(start_dir, f"output{default_ext}")
+    def _schedule_close_retry(self) -> None:
+        retry_timer = self._close_retry_timer
+        if retry_timer is None:
+            retry_timer = QTimer(self)
+            retry_timer.setSingleShot(True)
+            retry_timer.timeout.connect(self.close)
+            self._close_retry_timer = retry_timer
+        if not retry_timer.isActive():
+            retry_timer.start(50)
 
-        file_path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save TTS Audio As",
-            start_path,
-            file_filter,
-        )
-        if not file_path:
-            return
-        self.path_entry.setText(self._normalize_output_path(file_path, selected_format))
-        self._refresh_request_ids_button()
+    @staticmethod
+    def _ignore_close_event(event: QCloseEvent | None) -> None:
+        if event is not None:
+            event.ignore()
 
-    @pyqtSlot()
-    def open_preset_dialog(self) -> None:
-        from .dialogs import PresetDialog
-
-        dialog = PresetDialog(self.instructions_edit.toPlainText(), self)
-        dialog.preset_selected.connect(self._apply_preset)
-        dialog.exec()
-
-    def _apply_preset(self, instructions: str) -> None:
-        self.instructions_edit.setPlainText(instructions)
-
-    @pyqtSlot()
-    def cancel_tts_creation(self) -> None:
-        proc = self.tts_processor
-        if proc is None or not proc.isRunning():
-            return
-        proc.cancel()
-        self.cancel_button.setEnabled(False)
-        with suppress(Exception):
-            status_bar: QStatusBar | None = self.statusBar()
-            if status_bar is not None:
-                status_bar.showMessage("Cancelling...", 5000)
-
-    def start_tts_creation(self) -> None:
-        from .workers import TTSWorker
-
-        if self.tts_processor is not None and self.tts_processor.isRunning():
-            self._notify(
-                "Already Running",
-                "A TTS generation is already in progress.",
-                level="warning",
-            )
-            return
-
-        if not self._api_key:
-            self._notify(
-                "API Key Missing",
-                "Set your OpenAI API key in the 'API Key' menu.",
-                level="warning",
-            )
-            return
-
-        text_to_speak = self.text_edit.toPlainText()
-        if not text_to_speak.strip():
-            self._notify("Empty Text", "Please enter some text.", level="warning")
-            return
-
-        selected_format = self.format_combo.currentText()
-        output_path = self._normalize_output_path(self.path_entry.text(), selected_format)
-        self.path_entry.setText(output_path)
-
-        output_path_obj = Path(output_path)
-        if output_path_obj.exists() and output_path_obj.is_dir():
-            self._notify("Path Error", "Output path points to a directory.", level="critical")
-            return
-
-        try:
-            output_path_obj.parent.mkdir(parents=True, exist_ok=True)
-        except OSError as exc:
-            self._notify("Directory Error", str(exc), level="critical")
-            return
-
-        try:
-            speed_val = float(self.speed_input.text().strip())
-            if not math.isfinite(speed_val):
-                raise ValueError("Speed must be finite")
-            if not (settings.MIN_SPEED <= speed_val <= settings.MAX_SPEED):
-                raise ValueError("Speed out of range")
-        except ValueError:
-            speed_val = settings.DEFAULT_SPEED
-            self.speed_input.setText(str(speed_val))
-            self._notify(
-                "Invalid Speed",
-                f"Speed must be between {settings.MIN_SPEED} and {settings.MAX_SPEED}. "
-                f"Using {settings.DEFAULT_SPEED}.",
-                level="warning",
-            )
-
-        selected_model = self.model_combo.currentText()
-        instructions_text = ""
-        if selected_model == settings.GPT_4O_MINI_TTS_MODEL:
-            instructions_text = self.instructions_edit.toPlainText().strip()
-
-        params = {
-            "api_key": self._api_key,
-            "text": text_to_speak,
-            "output_path": output_path,
-            "model": selected_model,
-            "voice": self.voice_combo.currentText(),
-            "response_format": selected_format,
-            "speed": speed_val,
-            "instructions": instructions_text,
-            "parallelism": self._parallelism,
-            "retain_files": self.retain_files_action.isChecked(),
-        }
-
-        self._set_ui_enabled(False)
-        self.cancel_button.setEnabled(True)
-        self.copy_ids_button.setEnabled(False)
-        self.progress_bar.setValue(0)
-        self._update_parallelism_labels(
-            active_workers=0,
-            worker_cap=min(
-                self._parallelism, len(split_text(text_to_speak, settings.MAX_CHUNK_SIZE))
-            ),
-        )
-        self.tts_processor = TTSWorker(params)
-        self.tts_processor.progress_updated.connect(self.progress_updated.emit)
-        self.tts_processor.parallelism_updated.connect(self.parallelism_updated.emit)
-        self.tts_processor.tts_complete.connect(self.tts_complete.emit)
-        self.tts_processor.tts_error.connect(self.tts_error.emit)
-        self.tts_processor.status_update.connect(self._handle_status_update)
-        self.tts_processor.start()
-
-    def _set_ui_enabled(self, enabled: bool) -> None:
-        self.text_edit.setEnabled(enabled)
-        self.model_combo.setEnabled(enabled)
-        self.voice_combo.setEnabled(enabled)
-        self.speed_input.setEnabled(enabled)
-        self.format_combo.setEnabled(enabled)
-        self.instructions_edit.setEnabled(
-            enabled and self.model_combo.currentText() == settings.GPT_4O_MINI_TTS_MODEL
-        )
-        self.manage_presets_button.setEnabled(
-            enabled and self.model_combo.currentText() == settings.GPT_4O_MINI_TTS_MODEL
-        )
-        self.path_entry.setEnabled(enabled)
-        self.select_path_button.setEnabled(enabled)
-        self.create_button.setEnabled(enabled)
-        with suppress(Exception):
-            menubar: QMenuBar | None = self.menuBar()
-            if menubar is not None:
-                menubar.setEnabled(enabled)
-
-    @pyqtSlot(str)
-    def _handle_tts_success(self, message: str) -> None:
-        self._set_ui_enabled(True)
-        self.cancel_button.setEnabled(False)
-        self.progress_bar.setValue(100)
-        self._refresh_request_ids_button()
-        self._update_parallelism_labels(last_used=self._read_parallelism_used())
-        self._notify("TTS Complete", self._completion_message(message), rich_text=True)
-        self.tts_processor = None
-        if not self._dialogs_suppressed():
-            r = QMessageBox.question(
-                self,
-                "Open Folder?",
-                "Open the output folder now?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            )
-            if r == QMessageBox.StandardButton.Yes:
-                self._open_containing_folder(self.path_entry.text().strip())
-
-    @pyqtSlot(str)
-    def _handle_tts_error(self, error_message: str) -> None:
-        self._set_ui_enabled(True)
-        self.cancel_button.setEnabled(False)
-        self.progress_bar.setValue(0)
-        self._refresh_request_ids_button()
-        self._update_parallelism_labels()
-        self.tts_processor = None
-
-        lower = error_message.lower()
-        if "cancel" in lower:
-            self._notify("TTS Cancelled", error_message, level="warning")
-        else:
-            self._notify("TTS Error", error_message, level="critical")
-
-    def _completion_message(self, message: str) -> str:
-        escaped_message = html.escape(message)
-        escaped_url = html.escape(settings.SUPPORT_URL, quote=True)
-        return f'{escaped_message}\n\nShow <a href="{escaped_url}">appreciation</a>.'
-
-    @pyqtSlot(str)
-    def _handle_status_update(self, status: str) -> None:
-        with suppress(Exception):
-            status_bar: QStatusBar | None = self.statusBar()
-            if status_bar is not None:
-                status_bar.showMessage(status, 5000)
-
-    @pyqtSlot(int, int)
-    def _handle_parallelism_update(self, active_workers: int, worker_cap: int) -> None:
-        self._update_parallelism_labels(active_workers=active_workers, worker_cap=worker_cap)
-
-    def _read_parallelism_used(self) -> int | None:
-        output_path = (self.path_entry.text() or "").strip()
-        if not output_path:
-            return None
-        sidecar = Path(f"{output_path}.json")
-        try:
-            data = json.loads(sidecar.read_text(encoding="utf-8"))
-        except Exception:
-            return None
-        value = data.get("parallelism_used")
-        return value if isinstance(value, int) else None
-
-    @pyqtSlot()
-    def _copy_request_ids(self) -> None:
-        output_path = (self.path_entry.text() or "").strip()
-        if not output_path:
-            self._notify("No Output", "Generate TTS first to copy request IDs.", level="warning")
-            return
-        sidecar = Path(f"{output_path}.json")
-        try:
-            data = json.loads(sidecar.read_text(encoding="utf-8"))
-            reqs = []
-            seen = set()
-            for item in data.get("request_meta", []):
-                if not isinstance(item, dict):
-                    continue
-                request_id = item.get("request_id")
-                if request_id and request_id not in seen:
-                    reqs.append(request_id)
-                    seen.add(request_id)
-            if not reqs:
-                self._notify("No Request IDs", "No request IDs found in sidecar.", level="warning")
-                return
-            clip = QApplication.clipboard()
-            if clip is not None:
-                clip.setText("\n".join(reqs))
-                self._notify("Copied", "Request IDs copied to clipboard.")
-            else:
-                self._notify("Copy Failed", "Clipboard unavailable.", level="warning")
-        except FileNotFoundError:
-            self._notify(
-                "Sidecar Missing",
-                "Sidecar file not found for this output.",
-                level="warning",
-            )
-        except Exception as exc:
-            self._notify("Copy Failed", str(exc), level="critical")
-
-    def _open_containing_folder(self, path: str) -> None:
-        try:
-            folder = os.path.dirname(path) or "."
-            if sys.platform.startswith("win"):
-                os.startfile(folder)
-            elif sys.platform == "darwin":
-                subprocess.Popen(["open", folder])
-            else:
-                subprocess.Popen(["xdg-open", folder])
-        except Exception as exc:
-            logger.warning("Failed to open folder: %s", exc)
-
-    def closeEvent(self, event: QCloseEvent | None) -> None:  # type: ignore[override]
-        key_loader = self._api_key_loader
-        if key_loader is not None and key_loader.isRunning():
+    def closeEvent(self, a0: QCloseEvent | None) -> None:
+        loader = self._api_key_loader
+        if loader is not None and loader.isRunning():
             if self._close_after_api_key_load:
-                if event is not None:
-                    event.ignore()
+                self._schedule_close_retry()
+                self._ignore_close_event(a0)
                 return
-            if not key_loader.wait(1000):
-                self._close_after_api_key_load = True
-                key_loader.finished.connect(self.close)
-                with suppress(Exception):
-                    api_status_bar: QStatusBar | None = self.statusBar()
-                    if api_status_bar is not None:
-                        api_status_bar.showMessage(
-                            "Waiting for API key load before closing...",
-                            5000,
-                        )
-                if event is not None:
-                    event.ignore()
-                return
-
-        proc = self.tts_processor
-        if proc is not None and proc.isRunning():
+            self._close_after_api_key_load = True
+            (status_bar := self.statusBar()) and status_bar.showMessage(
+                "Waiting for API key load before closing...", 5000
+            )
+            self._schedule_close_retry()
+            self._ignore_close_event(a0)
+            return
+        processor = self.tts_processor
+        if processor is not None and processor.isRunning():
             if self._close_after_tts_cancel:
-                if event is not None:
-                    event.ignore()
+                self._schedule_close_retry()
+                self._ignore_close_event(a0)
                 return
-            r = QMessageBox.question(
+            response = QMessageBox.question(
                 self,
                 "Confirm Exit",
                 "TTS generation in progress. Exit and cancel it?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
-            if r != QMessageBox.StandardButton.Yes:
-                if event is not None:
-                    event.ignore()
+            if response != QMessageBox.StandardButton.Yes:
+                self._ignore_close_event(a0)
                 return
-            proc.cancel()
-            if not proc.wait(2000):
-                self._close_after_tts_cancel = True
-                self.cancel_button.setEnabled(False)
-                proc.finished.connect(self.close)
-                with suppress(Exception):
-                    tts_status_bar: QStatusBar | None = self.statusBar()
-                    if tts_status_bar is not None:
-                        tts_status_bar.showMessage(
-                            "Waiting for TTS cancellation before closing...",
-                            5000,
-                        )
-                if event is not None:
-                    event.ignore()
-                return
-        super().closeEvent(event if event is not None else QCloseEvent())
+            processor.cancel()
+            self._close_after_tts_cancel = True
+            self.cancel_button.setEnabled(False)
+            (status_bar := self.statusBar()) and status_bar.showMessage(
+                "Waiting for TTS cancellation before closing...", 5000
+            )
+            self._schedule_close_retry()
+            self._ignore_close_event(a0)
+            return
+        super().closeEvent(a0 if a0 is not None else QCloseEvent())
