@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from openai_tts_gui.config import settings
+from openai_tts_gui.core import SidecarV2, parse_sidecar_metadata
 from openai_tts_gui.errors import FFmpegNotFoundError
 from openai_tts_gui.tts import TTSService
 from openai_tts_gui.tts import _service as service_module
@@ -58,8 +59,11 @@ def test_tts_service_happy_no_network(monkeypatch, tmp_path):
     sidecar = Path(str(out) + ".json")
     assert sidecar.exists()
     meta = json.loads(sidecar.read_text(encoding="utf-8"))
-    assert meta.get("stream_format") == getattr(settings, "STREAM_FORMAT", None)
-    assert meta.get("chunk_count") == 1
+    parsed = parse_sidecar_metadata(sidecar)
+    assert meta["schema_version"] == 2
+    assert isinstance(parsed, SidecarV2)
+    assert parsed.settings.stream_format == getattr(settings, "STREAM_FORMAT", None)
+    assert parsed.settings.chunk_count == 1
     assert captured_kwargs.get("api_key") == "sk-test"
     assert captured_kwargs.get("timeout") == getattr(settings, "OPENAI_TIMEOUT", 60.0)
     assert captured_kwargs.get("base_url") is None
