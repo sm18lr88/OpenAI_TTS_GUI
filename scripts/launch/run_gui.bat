@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-cd /d "%~dp0" || exit /b 1
+for %%I in ("%~dp0..\..") do cd /d "%%~fI" || exit /b 1
 
 where uv >nul 2>nul
 if errorlevel 1 (

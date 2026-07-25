@@ -1,5 +1,6 @@
 @echo off
 setlocal
+cd /d "%~dp0.." || exit /b 1
 REM Run performance benchmarks only; autosave and JSON export
 if not exist reports mkdir reports
 python -m pytest -q -k "perf or bench" ^
