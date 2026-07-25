@@ -40,7 +40,7 @@ def test_msix_manifest_template_has_required_placeholders_and_assets() -> None:
 
 
 def test_pyinstaller_exe_manifest_declares_dpi_awareness() -> None:
-    spec = _read("openai_tts.spec")
+    spec = _read("packaging/pyinstaller/openai_tts.spec")
     manifest = _assert_exists("packaging/windows/openai_tts_bin.exe.manifest").read_text(
         encoding="utf-8"
     )
