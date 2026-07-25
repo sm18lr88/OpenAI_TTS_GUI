@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "facades": {
+    "openai_tts_gui": {
+      "all": [
+        "ConfigError",
+        "FFmpegError",
+        "FFmpegNotFoundError",
+        "TTSAPIError",
+        "TTSCancelledError",
+        "TTSChunkError",
+        "TTSError",
+        "TTSService",
+        "preflight_check",
+        "split_text"
+      ]
+    },
+    "openai_tts_gui.tts": {
+      "all": ["TTSProcessor", "TTSService", "compute_backoff"],
+      "aliases": {"_compute_backoff": "compute_backoff"}
+    },
+    "openai_tts_gui.core": {
+      "all": [
+        "cleanup_files",
+        "concatenate_audio_files",
+        "get_ffmpeg_version",
+        "parse_ffmpeg_semver",
+        "preflight_check",
+        "resolve_ffmpeg_command",
+        "sha256_text",
+        "split_text",
+        "write_sidecar_metadata"
+      ]
+    },
+    "openai_tts_gui.keystore": {
+      "all": ["decrypt_key", "encrypt_key", "read_api_key", "save_api_key"]
+    },
+    "openai_tts_gui.presets": {
+      "all": ["load_presets", "save_presets"]
+    },
+    "openai_tts_gui.utils": {
+      "all": [
+        "cleanup_files",
+        "concatenate_audio_files",
+        "decrypt_key",
+        "encrypt_key",
+        "get_ffmpeg_version",
+        "load_presets",
+        "preflight_check",
+        "read_api_key",
+        "save_api_key",
+        "save_presets",
+        "sha256_text",
+        "split_text",
+        "write_sidecar_metadata",
+        "_parse_ffmpeg_semver"
+      ]
+    }
+  },
+  "service": {
+    "constructor": {
+      "parameters": ["self", "api_key", "base_url", "timeout"],
+      "defaults": {"base_url": null, "timeout": 60.0}
+    },
+    "generate": {
+      "keyword_only": [
+        "text",
+        "output_path",
+        "model",
+        "voice",
+        "response_format",
+        "speed",
+        "instructions",
+        "parallelism",
+        "retain_files",
+        "on_progress",
+        "on_status",
+        "on_parallelism",
+        "cancel_event"
+      ],
+      "defaults": {
+        "model": "tts-1",
+        "voice": "alloy",
+        "response_format": "mp3",
+        "speed": 1.0,
+        "instructions": "",
+        "parallelism": null,
+        "retain_files": false,
+        "on_progress": null,
+        "on_status": null,
+        "on_parallelism": null,
+        "cancel_event": null
+      },
+      "return_type": "str",
+      "validation_errors": {
+        "empty_text": "TTSChunkError",
+        "invalid_model": "ConfigError",
+        "invalid_speed": "ConfigError"
+      }
+    }
+  },
+  "cli": {
+    "flags": [
+      "--in",
+      "--out",
+      "--model",
+      "--voice",
+      "--format",
+      "--speed",
+      "--instructions",
+      "--retain-files",
+      "--log-level",
+      "--version"
+    ],
+    "exit_codes": {"success": 0, "usage": 2, "failure": 1}
+  },
+  "persistence": {
+    "app_settings_defaults": {
+      "parallelism": "settings.PARALLELISM",
+      "parallelism_warning_shown": false,
+      "retain_files": false
+    },
+    "app_settings_v1": {
+      "parallelism": 3,
+      "parallelism_warning_shown": true,
+      "retain_files": true
+    },
+    "presets_v1": {"calm": "steady", "bright": "warm"},
+    "v1_sidecar": {
+      "parallelism_used": 2,
+      "request_meta": [
+        {"request_id": "req-v1-a"},
+        {"request_id": "req-v1-a"},
+        {"request_id": "req-v1-b"}
+      ]
+    },
+    "v1_request_ids": ["req-v1-a", "req-v1-b"]
+  },
+  "worker": {
+    "constructor": {"parameters": ["params", "parent"], "parent_default": null},
+    "signals": {
+      "progress_updated": 1,
+      "tts_complete": 1,
+      "tts_error": 1,
+      "status_update": 1,
+      "parallelism_updated": 2
+    },
+    "terminal_signals": ["tts_complete", "tts_error"],
+    "processor_base": "TTSWorker"
+  }
+}
