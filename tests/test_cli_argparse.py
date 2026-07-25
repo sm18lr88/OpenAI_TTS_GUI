@@ -2,6 +2,7 @@ import pytest
 
 from openai_tts_gui import config
 from openai_tts_gui.cli import main as cli_main
+from openai_tts_gui.keystore import MissingCredential
 
 
 def test_cli_version_exits_zero():
@@ -11,7 +12,7 @@ def test_cli_version_exits_zero():
 def test_cli_missing_key_returns_1(monkeypatch, tmp_path):
     # Force missing key
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    monkeypatch.setattr("openai_tts_gui.cli.read_api_key", lambda: None)
+    monkeypatch.setattr("openai_tts_gui.cli.read_api_key_outcome", MissingCredential)
     infile = tmp_path / "in.txt"
     infile.write_text("hello", encoding="utf-8")
     outfile = tmp_path / "out.mp3"
@@ -23,7 +24,6 @@ def test_cli_invalid_speed_returns_2(monkeypatch, tmp_path):
     infile = tmp_path / "in.txt"
     infile.write_text("hello", encoding="utf-8")
     outfile = tmp_path / "out.mp3"
-    monkeypatch.setattr("openai_tts_gui.cli.read_api_key", lambda: "sk-test")
     rc = cli_main(["--in", str(infile), "--out", str(outfile), "--speed", "99"])
     assert rc == 2
 
