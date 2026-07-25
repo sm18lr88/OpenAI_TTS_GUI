@@ -36,13 +36,16 @@ jobs:
       - name: Type check
         run: uv run ty check
 
-      - name: Tests
+      - name: Tests and coverage
         env:
           QT_QPA_PLATFORM: offscreen
-        run: uv run pytest --ignore=tests/perf
+        run: uv run pytest --ignore=tests/perf --cov=openai_tts_gui --cov-branch --cov-report=term-missing --cov-report=json:coverage.json
+
+      - name: Independent coverage thresholds
+        run: uv run scripts/check_coverage_thresholds.py coverage.json --min-statements 90 --min-branches 90
 
       - name: Build exe
-        run: uv run pyinstaller --noconfirm openai_tts.spec
+        run: uv run pyinstaller --noconfirm packaging/pyinstaller/openai_tts.spec
 
       - name: Smoke packaged exe
         shell: pwsh
@@ -55,7 +58,7 @@ jobs:
           if (-not (Test-Path $nsis)) {
             choco install nsis --no-progress -y
           }
-          & "C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
+          & "C:\Program Files (x86)\NSIS\makensis.exe" packaging/windows/installer.nsi
 
       - name: Zip portable
         shell: pwsh
@@ -105,13 +108,16 @@ jobs:
       - name: Type check
         run: uv run ty check
 
-      - name: Tests
+      - name: Tests and coverage
         env:
           QT_QPA_PLATFORM: offscreen
-        run: uv run pytest --ignore=tests/perf
+        run: uv run pytest --ignore=tests/perf --cov=openai_tts_gui --cov-branch --cov-report=term-missing --cov-report=json:coverage.json
+
+      - name: Independent coverage thresholds
+        run: uv run scripts/check_coverage_thresholds.py coverage.json --min-statements 90 --min-branches 90
 
       - name: Build
-        run: uv run pyinstaller --noconfirm openai_tts.spec
+        run: uv run pyinstaller --noconfirm packaging/pyinstaller/openai_tts.spec
 
       - name: Smoke packaged app
         run: ./dist/OpenAI-TTS/openai_tts_bin --self-check

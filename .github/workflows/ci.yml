@@ -40,12 +40,14 @@ jobs:
         run: uv run ruff format --check .
       - name: Type check
         run: uv run ty check
-      - name: Tests
+      - name: Tests and coverage
         env:
           PYTEST_ADDOPTS: "-q"
           QT_QPA_PLATFORM: "offscreen"
           XDG_RUNTIME_DIR: "/tmp"
-        run: uv run pytest --ignore=tests/perf
+        run: uv run pytest --ignore=tests/perf --cov=openai_tts_gui --cov-branch --cov-report=term-missing --cov-report=json:coverage.json
+      - name: Independent coverage thresholds
+        run: uv run scripts/check_coverage_thresholds.py coverage.json --min-statements 90 --min-branches 90
 
   build-windows:
     runs-on: windows-2025-vs2026
@@ -63,7 +65,7 @@ jobs:
       - name: Sync deps
         run: uv sync --extra dev --python 3.14
       - name: PyInstaller build
-        run: uv run pyinstaller --noconfirm openai_tts.spec
+        run: uv run pyinstaller --noconfirm packaging/pyinstaller/openai_tts.spec
       - name: Archive artifact
         uses: actions/upload-artifact@v7
         with:
