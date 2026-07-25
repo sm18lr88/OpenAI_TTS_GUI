@@ -14,7 +14,7 @@ The supported release artifact remains the PyInstaller bundle packaged by NSIS a
 Build the normal PyInstaller output first:
 
 ```powershell
-uv run pyinstaller --noconfirm openai_tts.spec
+uv run pyinstaller --noconfirm packaging/pyinstaller/openai_tts.spec
 ```
 
 Then stage and pack the MSIX:

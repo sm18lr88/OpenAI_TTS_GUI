@@ -8,11 +8,13 @@ Run this checklist before publishing a public release.
 - `uv run ruff format --check .`
 - `uv run ty check`
 - `uv run pytest --ignore=tests/perf`
-- Confirm `pyproject.toml`, `settings.py`, `__init__.py`, `installer.nsi`, release notes, and artifact names use the same version.
+- `make coverage`
+- `make pmat-gate`
+- Confirm `pyproject.toml`, `settings.py`, `__init__.py`, `packaging/windows/installer.nsi`, release notes, and artifact names use the same version.
 
 ## Packaging Gates
 
-- `uv run pyinstaller --noconfirm openai_tts.spec`
+- `uv run pyinstaller --noconfirm packaging/pyinstaller/openai_tts.spec`
 - Run the packaged executable with `--self-check` and `--gui-smoke`.
 - Build `OpenAI-TTS-Setup.exe` with NSIS.
 - Verify the portable zip, installer, and macOS zip are non-empty.
