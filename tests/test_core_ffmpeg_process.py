@@ -6,6 +6,8 @@ import subprocess
 import sys
 import threading
 
+import pytest
+
 from openai_tts_gui.core import _ffmpeg_process as process_module
 from openai_tts_gui.core._ffmpeg_process import FfmpegProcess
 from openai_tts_gui.tts._contracts import CancellationStage
@@ -139,3 +141,19 @@ def test_request_stop_signals_an_owned_windows_process_tree(monkeypatch) -> None
 
     # Then: the exact root PID and tree flag are retained without blocking escalation.
     assert commands == [["taskkill", "/PID", "41", "/T"]]
+
+
+def test_posix_group_signal_terminates_kill_options(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Given: a captured POSIX kill invocation for an owned process group.
+    commands: list[list[str]] = []
+    monkeypatch.setattr(
+        process_module.subprocess,
+        "run",
+        lambda command, **_kwargs: commands.append(command),
+    )
+
+    # When: the process owner signals the negative group identifier.
+    FfmpegProcess._signal_group("TERM", 41)
+
+    # Then: the negative PID cannot be parsed as another command option.
+    assert commands == [["/bin/kill", "-TERM", "--", "-41"]]

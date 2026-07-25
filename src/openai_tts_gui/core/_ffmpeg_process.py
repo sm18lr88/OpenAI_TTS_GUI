@@ -100,7 +100,7 @@ class FfmpegProcess:
     @staticmethod
     def _signal_group(signal_name: str, pid: int) -> None:
         subprocess.run(
-            ["/bin/kill", f"-{signal_name}", f"-{pid}"],
+            ["/bin/kill", f"-{signal_name}", "--", f"-{pid}"],
             capture_output=True,
             check=False,
             text=True,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ntpath
 import os
 import re
 import shutil
@@ -36,8 +37,8 @@ def _windows_registry_path() -> str:
                 value, _value_type = winreg.QueryValueEx(key, "Path")
         except OSError:
             continue
-        path_parts.append(os.path.expandvars(str(value)))
-    return os.pathsep.join(path_parts)
+        path_parts.append(ntpath.expandvars(str(value)))
+    return ";".join(path_parts)
 
 
 def _packaged_search_dirs() -> list[Path]:
