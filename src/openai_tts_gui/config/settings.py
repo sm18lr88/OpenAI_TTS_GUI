@@ -9,15 +9,13 @@ from typing import Final
 
 from platformdirs import user_data_dir
 
-DEFAULT_APP_VERSION: Final[str] = "1.3.4"
+DEFAULT_APP_VERSION: Final[str] = "1.3.5"
 
 
 def _resolve_app_version() -> str:
     try:
         return metadata.version("OpenAI_TTS_GUI")
     except metadata.PackageNotFoundError:
-        return DEFAULT_APP_VERSION
-    except Exception:
         return DEFAULT_APP_VERSION
 
 
@@ -169,11 +167,11 @@ def env_snapshot() -> dict[str, str]:
     """Return a minimal environment/library snapshot for sidecars."""
     try:
         openai_ver = metadata.version("openai")
-    except Exception:
+    except metadata.PackageNotFoundError:
         openai_ver = "unknown"
     try:
         pyqt_ver = metadata.version("PyQt6")
-    except Exception:
+    except metadata.PackageNotFoundError:
         pyqt_ver = "unknown"
     return {
         "app_name": APP_NAME,

@@ -4,15 +4,26 @@ import json
 import logging
 import os
 import tempfile
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import TypedDict
 
 from . import settings
 
 logger = logging.getLogger(__name__)
 
 
-def default_app_settings() -> dict[str, Any]:
+type JsonScalar = str | int | float | bool | None
+type JsonValue = JsonScalar | list["JsonValue"] | dict[str, "JsonValue"]
+
+
+class AppSettings(TypedDict):
+    parallelism: int
+    parallelism_warning_shown: bool
+    retain_files: bool
+
+
+def default_app_settings() -> AppSettings:
     return {
         "parallelism": settings.PARALLELISM,
         "parallelism_warning_shown": False,
@@ -24,7 +35,7 @@ def _resolve_filename(filename: str | None) -> Path:
     return Path(filename or settings.APP_SETTINGS_FILE)
 
 
-def _clamp_parallelism(value: object) -> int:
+def _clamp_parallelism(value: JsonValue) -> int:
     if isinstance(value, bool):
         return settings.PARALLELISM
     if isinstance(value, int):
@@ -39,12 +50,12 @@ def _clamp_parallelism(value: object) -> int:
     return max(1, min(8, parsed))
 
 
-def load_app_settings(filename: str | None = None) -> dict[str, Any]:
+def load_app_settings(filename: str | None = None) -> AppSettings:
     path = _resolve_filename(filename)
     defaults = default_app_settings()
     try:
         with path.open(encoding="utf-8") as handle:
-            payload = json.load(handle)
+            payload: JsonValue = json.load(handle)
         if not isinstance(payload, dict):
             logger.warning("App settings file %s did not contain a JSON object.", path)
             return defaults
@@ -66,7 +77,7 @@ def load_app_settings(filename: str | None = None) -> dict[str, Any]:
         return defaults
 
 
-def save_app_settings(app_settings: dict[str, Any], filename: str | None = None) -> bool:
+def save_app_settings(app_settings: Mapping[str, JsonValue], filename: str | None = None) -> bool:
     path = _resolve_filename(filename)
     temp_path: Path | None = None
     payload = {
