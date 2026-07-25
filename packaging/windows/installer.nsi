@@ -1,9 +1,9 @@
 !include "MUI2.nsh"
 
-!define APP_VERSION "1.3.4"
+!define APP_VERSION "1.3.5"
 
 Name "OpenAI TTS"
-OutFile "dist\OpenAI-TTS-Setup.exe"
+OutFile "..\..\dist\OpenAI-TTS-Setup.exe"
 InstallDir "$LOCALAPPDATA\Programs\OpenAI-TTS"
 InstallDirRegKey HKCU "Software\OpenAI-TTS" "InstallDir"
 RequestExecutionLevel user
@@ -11,7 +11,7 @@ RequestExecutionLevel user
 !define MUI_ABORTWARNING
 
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "LICENSE"
+!insertmacro MUI_PAGE_LICENSE "..\..\LICENSE"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -29,7 +29,7 @@ Section "Install"
 
     install.continue:
     SetOutPath "$INSTDIR"
-    File /r "dist\OpenAI-TTS\*.*"
+    File /r "..\..\dist\OpenAI-TTS\*.*"
     FileOpen $0 "$INSTDIR\.openai-tts-install" w
     FileWrite $0 "OpenAI TTS ${APP_VERSION}$\r$\n"
     FileClose $0
