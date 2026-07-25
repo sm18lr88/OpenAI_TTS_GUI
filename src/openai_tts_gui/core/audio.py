@@ -1,17 +1,32 @@
 from __future__ import annotations
 
 import logging
-import shutil
-import subprocess
+import os
 import tempfile
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 
-from ..config import settings
-from ..errors import FFmpegError, FFmpegNotFoundError, TTSChunkError
+from .. import config
+from ..errors import CleanupReport, FFmpegError, TTSCancelledError, TTSChunkError
+from ._ffmpeg_process import FfmpegProcess
 from .ffmpeg import resolve_ffmpeg_command
 
 logger = logging.getLogger(__name__)
+settings = config
+_ffmpeg_process_owner: ContextVar[Callable[[FfmpegProcess], bool] | None] = ContextVar(
+    "ffmpeg_process_owner", default=None
+)
+
+
+@contextmanager
+def own_ffmpeg_process(owner: Callable[[FfmpegProcess], bool]) -> Iterator[None]:
+    token = _ffmpeg_process_owner.set(owner)
+    try:
+        yield
+    finally:
+        _ffmpeg_process_owner.reset(token)
 
 
 def _normalize_paths(file_list: Sequence[str]) -> list[Path]:
@@ -47,22 +62,20 @@ def concatenate_audio_files(file_list: Sequence[str], output_file: str) -> str:
         if source_path.resolve() == output_path.resolve():
             logger.info("Single input file is already at the destination: %s", output_path)
             return str(output_path)
-        if output_path.exists():
-            output_path.unlink()
         try:
-            shutil.move(str(source_path), str(output_path))
+            os.replace(source_path, output_path)
         except OSError as exc:
-            logger.exception("Failed to move %s to %s", source_path, output_path)
+            logger.exception("Failed to replace %s with %s", output_path, source_path)
             raise TTSChunkError(
-                f"Failed to move generated audio into place: {exc}",
+                f"Failed to replace generated audio into place: {exc}",
                 file_path=str(output_path),
             ) from exc
-        logger.info("Moved single audio file %s to %s", source_path, output_path)
+        logger.info("Replaced single audio file %s at %s", source_path, output_path)
         return str(output_path)
 
     ext = output_path.suffix.lower().lstrip(".")
-    codec = settings.CODEC_MAP.get(ext, settings.DEFAULT_CODEC)
-    params = settings.CODEC_PARAMS.get(ext, {})
+    codec = config.CODEC_MAP.get(ext, config.DEFAULT_CODEC)
+    params = config.CODEC_PARAMS.get(ext, {})
 
     concat_list_path: Path | None = None
     try:
@@ -100,32 +113,18 @@ def concatenate_audio_files(file_list: Sequence[str], output_file: str) -> str:
         concat_command.append(str(output_path))
 
         logger.info("Executing ffmpeg for concatenation into %s", output_path)
-        result = subprocess.run(
-            concat_command,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
+        result = FfmpegProcess(concat_command).run(_ffmpeg_process_owner.get())
         logger.debug("ffmpeg stdout: %s", result.stdout)
         logger.debug("ffmpeg stderr: %s", result.stderr)
+        if result.cancelled_before_attach or result.stop_requested:
+            raise TTSCancelledError("TTS generation cancelled.")
+        if result.returncode != 0:
+            raise FFmpegError(
+                "ffmpeg concatenation failed with exit code "
+                f"{result.returncode}: {result.stderr.strip()}"
+            )
         logger.info("Successfully concatenated files to %s", output_path)
         return str(output_path)
-    except FileNotFoundError as exc:
-        logger.error(
-            "%s command not found. Ensure ffmpeg is installed and on PATH.",
-            ffmpeg_command,
-        )
-        raise FFmpegNotFoundError(
-            f"{ffmpeg_command} not found. Ensure ffmpeg is installed or add it to PATH."
-        ) from exc
-    except subprocess.CalledProcessError as exc:
-        stderr = (exc.stderr or "").strip()
-        logger.error("ffmpeg concatenation failed with exit code %s", exc.returncode)
-        if stderr:
-            logger.error("ffmpeg stderr: %s", stderr)
-        raise FFmpegError(
-            f"ffmpeg concatenation failed with exit code {exc.returncode}: {stderr or exc}"
-        ) from exc
     except OSError as exc:
         logger.exception("File I/O error during concatenation")
         raise TTSChunkError(
@@ -140,9 +139,11 @@ def concatenate_audio_files(file_list: Sequence[str], output_file: str) -> str:
                 logger.warning("Failed to remove temporary concat list %s", concat_list_path)
 
 
-def cleanup_files(file_list: Iterable[str]) -> None:
+def cleanup_files(file_list: Iterable[str]) -> CleanupReport:
     files = [Path(path) for path in file_list]
     logger.info("Cleaning up %d temporary file(s).", len(files))
+    retained: list[str] = []
+    warnings: list[str] = []
     for file_path in files:
         if not file_path.exists():
             logger.debug("Temporary file already absent: %s", file_path)
@@ -152,3 +153,6 @@ def cleanup_files(file_list: Iterable[str]) -> None:
             logger.debug("Deleted temporary file: %s", file_path)
         except OSError as exc:
             logger.warning("Failed to delete temporary file %s: %s", file_path, exc)
+            retained.append(file_path.name)
+            warnings.append(f"temporary cleanup failed for {file_path.name}: {exc}")
+    return CleanupReport(tuple(sorted(set(retained))), tuple(sorted(set(warnings))))

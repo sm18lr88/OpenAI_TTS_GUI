@@ -8,8 +8,10 @@ import sys
 from functools import lru_cache
 from pathlib import Path
 
-from ..config import settings
+from .. import config
 from ..errors import FFmpegError, FFmpegNotFoundError
+
+settings = config
 
 
 def _windows_registry_path() -> str:
@@ -72,7 +74,7 @@ def _common_windows_ffmpeg_dirs() -> list[Path]:
 
 @lru_cache(maxsize=1)
 def resolve_ffmpeg_command() -> str:
-    configured = settings.FFMPEG_COMMAND
+    configured = config.FFMPEG_COMMAND
     configured_path = Path(configured)
     if configured_path.is_absolute() and configured_path.exists():
         return str(configured_path)
@@ -114,7 +116,12 @@ def _first_version_line(result: subprocess.CompletedProcess[str]) -> str:
 def get_ffmpeg_version() -> str:
     try:
         return _first_version_line(_run_ffmpeg_version())
-    except Exception:
+    except (
+        FileNotFoundError,
+        subprocess.CalledProcessError,
+        subprocess.TimeoutExpired,
+        OSError,
+    ):
         return "unknown"
 
 
@@ -139,16 +146,18 @@ def preflight_check() -> tuple[bool, str]:
         ver = parse_ffmpeg_semver(first)
         if ver is None:
             return True, first
-        ok = ver >= tuple(settings.FFMPEG_MIN_VERSION)
+        ok = ver >= tuple(config.FFMPEG_MIN_VERSION)
         if not ok:
-            min_req = ".".join(map(str, settings.FFMPEG_MIN_VERSION))
+            min_req = ".".join(map(str, config.FFMPEG_MIN_VERSION))
             return False, f"ffmpeg too old: found {first}, require >= {min_req}"
         return True, first
     except FileNotFoundError:
         return False, "ffmpeg not found. Please install ffmpeg or add it to PATH."
     except subprocess.CalledProcessError as exc:
         return False, f"ffmpeg invocation failed: {exc}"
-    except Exception as exc:
+    except subprocess.TimeoutExpired as exc:
+        return False, f"ffmpeg check error: {exc}"
+    except OSError as exc:
         return False, f"ffmpeg check error: {exc}"
 
 
