@@ -6,13 +6,13 @@ import os
 import tempfile
 from pathlib import Path
 
-from ..config import settings
+from .. import config
 
 logger = logging.getLogger(__name__)
 
 
 def _resolve_filename(filename: str | None) -> Path:
-    return Path(filename or settings.PRESETS_FILE)
+    return Path(filename or config.PRESETS_FILE)
 
 
 def load_presets(filename: str | None = None) -> dict[str, str]:
@@ -42,13 +42,6 @@ def load_presets(filename: str | None = None) -> dict[str, str]:
     except OSError as exc:
         logger.exception(
             "Error reading presets file %s: %s. Returning empty dictionary.",
-            path,
-            exc,
-        )
-        return {}
-    except Exception as exc:
-        logger.exception(
-            "Unexpected error loading presets from %s: %s. Returning empty dictionary.",
             path,
             exc,
         )
