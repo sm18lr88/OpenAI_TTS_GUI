@@ -57,7 +57,7 @@ def _pid_exists(pid: int) -> bool:
     except PermissionError:
         return True
     except OSError as error:
-        return error.winerror not in {87, 1168}
+        return getattr(error, "winerror", None) not in {87, 1168}
     return True
 
 

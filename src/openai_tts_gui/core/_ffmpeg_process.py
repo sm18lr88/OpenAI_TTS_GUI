@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Final
@@ -37,7 +38,9 @@ class FfmpegProcess:
                 stderr=subprocess.PIPE,
                 text=True,
                 start_new_session=os.name != "nt",
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
+                creationflags=(
+                    subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
+                ),
             )
         except FileNotFoundError as exc:
             raise FFmpegNotFoundError(f"{self._command[0]} not found.") from exc
