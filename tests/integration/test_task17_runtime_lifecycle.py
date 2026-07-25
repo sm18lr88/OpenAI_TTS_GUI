@@ -73,7 +73,7 @@ def test_worker_cancel_waits_for_real_withheld_headers_without_false_terminal(
         qtbot.waitUntil(worker.isFinished, timeout=5_000)
         ticker.stop()
         assert worker.wait(1_000)
-        assert len(errors) == 1
+        qtbot.waitUntil(lambda: len(errors) == 1, timeout=1_000)
         assert terminal_client_closed == [True]
         assert not (tmp_path / "withheld.wav").exists()
         assert server.responses_sent[0].kind == ResponseKind.WITHHELD_HEADERS
