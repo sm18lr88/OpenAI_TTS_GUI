@@ -1,6 +1,6 @@
-"""Backward-compat TTSProcessor — wraps TTSWorker for old test/consumer code."""
+"""Backward-compat TTSProcessor - wraps TTSWorker for old test/consumer code."""
 
-from ..gui.workers import TTSWorker
+from ..gui import TTSWorker
 
 
 class TTSProcessor(TTSWorker):
