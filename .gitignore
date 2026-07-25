@@ -37,7 +37,7 @@ test-results/
 local-reports/
 generated-audio/
 generated-media/
-PyInstaller/
+/PyInstaller/
 installer-output/
 *.msix
 *.msixbundle
