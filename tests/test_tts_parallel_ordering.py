@@ -7,8 +7,9 @@ from types import SimpleNamespace
 import pytest
 
 from openai_tts_gui.config import settings
+from openai_tts_gui.core import SidecarV2, parse_sidecar_metadata
 from openai_tts_gui.errors import TTSChunkError
-from openai_tts_gui.tts import TTSService
+from openai_tts_gui.tts import TTSService, _execution
 from tests.fakes_tts_service import FakeChunkOutcome, FakeTTSServiceHarness
 
 
@@ -79,14 +80,16 @@ def test_fake_provider_smoke(monkeypatch, tmp_path):
 
     sidecar_path = Path(str(out) + ".json")
     meta = json.loads(sidecar_path.read_text(encoding="utf-8"))
-    assert meta["stream_format"] == getattr(settings, "STREAM_FORMAT", None)
-    assert meta["chunk_count"] == 1
+    parsed = parse_sidecar_metadata(sidecar_path)
+    assert isinstance(parsed, SidecarV2)
+    assert parsed.settings.stream_format == getattr(settings, "STREAM_FORMAT", None)
+    assert parsed.settings.chunk_count == 1
     assert meta["request_meta"] == [
         {
             "chunk_index": 1,
             "request_id": "req-123",
             "model_header": "tts-1",
-            "file": concat_calls[0][0],
+            "file": Path(concat_calls[0][0]).name,
             "attempts": 1,
             "characters": len("Hello world."),
             "retry_headers": None,
@@ -188,6 +191,7 @@ def test_parallel_duplicate_chunk_result_rejected_before_concat(monkeypatch, tmp
         "openai_tts_gui.tts._service.split_text", lambda text, size: ["chunk-1", "chunk-2"]
     )
     monkeypatch.setattr(TTSService, "_generate_chunk_with_retries", fake_generate_chunk)
+    monkeypatch.setattr(_execution, "_accept", lambda _state, _hooks, _item: None)
     monkeypatch.setattr(settings, "PARALLELISM", 2)
 
     service = TTSService(api_key="sk-test")
