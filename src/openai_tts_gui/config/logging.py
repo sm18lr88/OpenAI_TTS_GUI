@@ -17,7 +17,7 @@ from typing import BinaryIO, Final
 
 from ..errors import LoggingConfigurationError
 
-if os.name == "nt":
+if sys.platform == "win32":
     import msvcrt
 
 LOG_SCHEMA: Final[str] = "openai_tts_gui.log.v1"
@@ -214,7 +214,7 @@ class BoundedRotatingFileHandler(logging.Handler):
     @staticmethod
     def _try_lock(stream: BinaryIO) -> None:
         stream.seek(0)
-        if os.name == "nt":
+        if sys.platform == "win32":
             msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
         else:
             _fcntl_lock(stream, "LOCK_EX", "LOCK_NB")
@@ -222,7 +222,7 @@ class BoundedRotatingFileHandler(logging.Handler):
     @staticmethod
     def _unlock(stream: BinaryIO) -> None:
         stream.seek(0)
-        if os.name == "nt":
+        if sys.platform == "win32":
             msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
         else:
             _fcntl_lock(stream, "LOCK_UN")

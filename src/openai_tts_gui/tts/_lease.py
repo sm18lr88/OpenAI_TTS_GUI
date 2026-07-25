@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from contextlib import suppress
 from pathlib import Path
 
@@ -66,7 +67,7 @@ def _try_lock(path: Path) -> int | None:
 
 
 def _lock(descriptor: int) -> None:
-    if os.name == "nt":
+    if sys.platform == "win32":
         import msvcrt
 
         msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
@@ -77,7 +78,7 @@ def _lock(descriptor: int) -> None:
 
 
 def _unlock(descriptor: int) -> None:
-    if os.name == "nt":
+    if sys.platform == "win32":
         import msvcrt
 
         os.lseek(descriptor, 0, os.SEEK_SET)
