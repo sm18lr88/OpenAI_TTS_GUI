@@ -68,7 +68,7 @@ function Remove-StagedPath([string]$RelativePath) {
 }
 
 if (-not (Test-Path -LiteralPath $PyInstallerOutput)) {
-    throw "PyInstaller output not found at '$PyInstallerOutput'. Run: uv run pyinstaller --noconfirm openai_tts.spec"
+    throw "PyInstaller output not found at '$PyInstallerOutput'. Run: uv run pyinstaller --noconfirm packaging/pyinstaller/openai_tts.spec"
 }
 if (-not (Test-Path -LiteralPath (Join-Path $PyInstallerOutput "openai_tts_bin.exe"))) {
     throw "Packaged executable not found: '$PyInstallerOutput\openai_tts_bin.exe'."
