@@ -15,9 +15,9 @@ SUPPORT_PATH = ROOT / "tests" / "gui_baseline_support.py"
 ENTRY_PATH = ROOT / "scripts" / "pyinstaller_entry.py"
 
 
-def _environment() -> dict[str, str]:
+def _environment(seam: str = "") -> dict[str, str]:
     environment = os.environ.copy()
-    environment.pop("QT_QPA_PLATFORM", None)
+    environment["QT_QPA_PLATFORM"] = "minimal" if seam == "active" else "offscreen"
     return environment
 
 
@@ -109,7 +109,7 @@ def _baseline_receipt(seam: str, tmp_path: Path) -> dict[str, bool | str]:
         capture_output=True,
         check=False,
         encoding="utf-8",
-        env=_environment(),
+        env=_environment(seam),
         timeout=20,
     )
     assert result.returncode == 0, result.stderr

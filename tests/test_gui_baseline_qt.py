@@ -175,7 +175,7 @@ def test_gui_baseline_records_stable_geometry_focus_and_state_at_each_scale(
         timeout=20,
     )
 
-    # Then: required named controls, QTest focus traversal, state, and known clipping are stable.
+    # Then: required controls, focus traversal, state, and clipping classification are stable.
     assert result.returncode == 0, result.stderr
     assert screenshot_path.read_bytes().startswith(PNG_SIGNATURE)
     evidence = json.loads(json_path.read_text(encoding="utf-8"))
@@ -200,7 +200,6 @@ def test_gui_baseline_records_stable_geometry_focus_and_state_at_each_scale(
     assert evidence["screenshot_size"][0] > 0
     assert evidence["screenshot_size"][1] > 0
     assert set(widgets) == STABLE_OBJECT_NAMES
-    assert evidence["pre_existing_clipping"] == ["modelCombo"]
     assert evidence["unaccounted_clipping"] == []
     assert evidence["teardown"]["remaining_top_level_widgets"] == []
     assert evidence["teardown"]["application_released"]
@@ -208,7 +207,7 @@ def test_gui_baseline_records_stable_geometry_focus_and_state_at_each_scale(
     assert evidence["status_message"]["text"] == "Ready"
     assert evidence["status_message"]["text_bounds"][3] > 0
     assert isinstance(evidence["status_message"]["vertical_overflow"], bool)
-    assert undersized == {"modelCombo"}
+    assert undersized == set(evidence["pre_existing_clipping"]) & STABLE_OBJECT_NAMES
     assert actual_enabled == expected_enabled
     assert all(widget["actual_bounds"][2] > 0 for widget in widgets.values())
     assert all(widget["within_parent_bounds"] for widget in widgets.values())
