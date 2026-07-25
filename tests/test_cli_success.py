@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from openai_tts_gui.cli import main as cli_main
+from openai_tts_gui.keystore import KeyringCredential
 
 
 def test_cli_happy_path(monkeypatch, tmp_path):
@@ -8,7 +9,9 @@ def test_cli_happy_path(monkeypatch, tmp_path):
     outfile = tmp_path / "out.mp3"
     infile.write_text("hello world", encoding="utf-8")
 
-    monkeypatch.setattr("openai_tts_gui.cli.read_api_key", lambda: "sk-test-123")
+    monkeypatch.setattr(
+        "openai_tts_gui.cli.read_api_key_outcome", lambda: KeyringCredential("sk-test-123")
+    )
 
     class DummyService:
         def __init__(self, **kwargs):
@@ -19,7 +22,7 @@ def test_cli_happy_path(monkeypatch, tmp_path):
             Path(kwargs["output_path"]).write_bytes(b"fake-audio")
             return "ok"
 
-    monkeypatch.setattr("openai_tts_gui.cli.TTSService", DummyService)
+    monkeypatch.setattr("openai_tts_gui.cli._load_tts_service", lambda: DummyService)
 
     rc = cli_main(["--in", str(infile), "--out", str(outfile)])
     assert rc == 0
@@ -30,9 +33,11 @@ def test_cli_forwards_tts_options(monkeypatch, tmp_path):
     infile = tmp_path / "in.txt"
     outfile = tmp_path / "out.wav"
     infile.write_text("hello world", encoding="utf-8")
-    captured: dict[str, object] = {}
+    captured = {}
 
-    monkeypatch.setattr("openai_tts_gui.cli.read_api_key", lambda: "sk-test-123")
+    monkeypatch.setattr(
+        "openai_tts_gui.cli.read_api_key_outcome", lambda: KeyringCredential("sk-test-123")
+    )
 
     class DummyService:
         def __init__(self, **kwargs):
@@ -43,7 +48,7 @@ def test_cli_forwards_tts_options(monkeypatch, tmp_path):
             Path(kwargs["output_path"]).write_bytes(b"fake-audio")
             return "ok"
 
-    monkeypatch.setattr("openai_tts_gui.cli.TTSService", DummyService)
+    monkeypatch.setattr("openai_tts_gui.cli._load_tts_service", lambda: DummyService)
 
     rc = cli_main(
         [
