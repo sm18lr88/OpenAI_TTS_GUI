@@ -5,6 +5,7 @@ import socket
 import subprocess
 import sys
 import threading
+from pathlib import Path
 
 import pytest
 
@@ -51,7 +52,13 @@ def _attach(state: RunState, stopper: FfmpegProcess, attached: threading.Event) 
     return accepted
 
 
-def _pid_exists(pid: int) -> bool:
+def _pid_is_running(pid: int) -> bool:
+    if sys.platform == "linux":
+        try:
+            fields = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8").rsplit(") ", 1)[1]
+        except FileNotFoundError:
+            return False
+        return fields.split(maxsplit=1)[0] not in {"X", "Z"}
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -106,7 +113,7 @@ def test_process_tree_cancel_reaps_only_the_owned_root_and_child() -> None:
         worker.join(timeout=5.0)
         assert output and output[0] != 0
         assert process._process is not None and process._process.poll() is not None
-        assert not _pid_exists(child_pid)
+        assert not _pid_is_running(child_pid)
         assert sentinel.poll() is None
         assert state.freeze().cancellation_stage is CancellationStage.DURING_FFMPEG
     finally:
