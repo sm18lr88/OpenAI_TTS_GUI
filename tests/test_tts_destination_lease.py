@@ -71,7 +71,11 @@ def test_destination_observation_normalizes_aliases_and_tracks_missing_pair(tmp_
     observation = observe_destination(paths)
 
     # Then: audio and sidecar identities are stable, unique, and both report missing.
-    assert paths.audio.normalized == (tmp_path / "nested" / "speech.wav").as_posix().casefold()
+    expected_path = (tmp_path / "nested" / "speech.wav").as_posix()
+    expected_normalized = (
+        expected_path.casefold() if sys.platform in {"win32", "darwin"} else expected_path
+    )
+    assert paths.audio.normalized == expected_normalized
     assert paths.resources == tuple(
         sorted(paths.resources, key=lambda item: (item.digest, item.normalized))
     )
