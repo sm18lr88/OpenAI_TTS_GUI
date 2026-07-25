@@ -2,82 +2,199 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Any
+from typing import NotRequired, TypedDict, assert_never
 
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
-from ..config import settings
-from ..errors import TTSError
-from ..tts import TTSService
+from .. import config
+from ..tts import (
+    CancellationStage,
+    CancelledOutcome,
+    ChunkFailureOutcome,
+    DestinationChangedOutcome,
+    FfmpegFailureOutcome,
+    FfmpegNotFoundOutcome,
+    GenerationConfig,
+    GenerationHooks,
+    GenerationOutcome,
+    GenerationProgress,
+    GenerationRequest,
+    OutputBusyOutcome,
+    ProviderFailureOutcome,
+    PublicationFailureOutcome,
+    PublicationInProgress,
+    PublicationRecoveryFailureOutcome,
+    RunAccounting,
+    SuccessOutcome,
+    TTSService,
+    UnknownFailureOutcome,
+)
 
 logger = logging.getLogger(__name__)
+
+
+class WorkerParameters(TypedDict):
+    api_key: str
+    text: str
+    output_path: str
+    model: str
+    voice: str
+    response_format: str
+    speed: float
+    instructions: NotRequired[str]
+    parallelism: NotRequired[int]
+    retain_files: NotRequired[bool]
 
 
 class TTSWorker(QThread):
     progress_updated = pyqtSignal(int)
     tts_complete = pyqtSignal(str)
     tts_error = pyqtSignal(str)
+    terminal_outcome = pyqtSignal(object)
     status_update = pyqtSignal(str)
     parallelism_updated = pyqtSignal(int, int)
 
-    def __init__(self, params: dict[str, Any], parent=None):
+    def __init__(self, params: WorkerParameters, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.params = params
         self._cancel_event = threading.Event()
+        self._service_lock = threading.Lock()
+        self._service: TTSService | None = None
+        self._planned_chunks = 1
 
     def cancel(self) -> None:
-        self._cancel_event.set()
-        self.requestInterruption()
+        with self._service_lock:
+            service = self._service
+        if service is None:
+            self._cancel_event.set()
+            return
+        decision = service.request_cancel()
+        match decision:
+            case CancellationStage.NONE:
+                self._cancel_event.set()
+            case PublicationInProgress():
+                pass
+            case CancellationStage():
+                pass
+            case unreachable:
+                assert_never(unreachable)
+        self._emit_cancel_status(decision)
 
     def run(self) -> None:
+        if self._cancel_event.is_set():
+            accounting = RunAccounting(0, 0, 0, 0, (), (), CancellationStage.BEFORE_REQUEST)
+            self._emit_terminal(CancelledOutcome("TTS generation cancelled.", accounting))
+            return
+        service = TTSService(
+            api_key=self.params["api_key"],
+            base_url=config.OPENAI_BASE_URL,
+            timeout=config.OPENAI_TIMEOUT,
+        )
+        with self._service_lock:
+            self._service = service
         try:
-            api_key = str(self.params.get("api_key") or "")
-            service = TTSService(
-                api_key=api_key,
-                base_url=settings.OPENAI_BASE_URL,
-                timeout=settings.OPENAI_TIMEOUT,
-            )
-            message = service.generate(
-                text=str(self.params["text"]),
-                output_path=str(self.params["output_path"]),
-                model=str(self.params["model"]),
-                voice=str(self.params["voice"]),
-                response_format=str(self.params["response_format"]),
-                speed=float(self.params["speed"]),
-                instructions=str(self.params.get("instructions", "")),
-                parallelism=int(self.params.get("parallelism", settings.PARALLELISM)),
-                retain_files=bool(self.params.get("retain_files", False)),
-                on_progress=self._emit_progress,
-                on_status=self._emit_status,
-                on_parallelism=self._emit_parallelism,
-                cancel_event=self._cancel_event,
-            )
-            self.tts_complete.emit(message)
-        except TTSError as exc:
-            logger.warning("TTS processing failed: %s", exc)
-            self.tts_error.emit(str(exc))
-        except Exception as exc:
-            logger.exception("Unexpected TTS processing failure: %s", exc)
-            self.tts_error.emit(str(exc))
+            outcome = service.execute(self._request(), self._hooks())
+            self._emit_terminal(outcome)
         finally:
+            with self._service_lock:
+                self._service = None
             logger.info("TTSWorker thread finished.")
 
-    def _emit_progress(self, value: int) -> None:
-        if not self._cancel_event.is_set():
-            self.progress_updated.emit(value)
+    def _request(self) -> GenerationRequest:
+        return GenerationRequest(
+            self.params["text"],
+            self.params["output_path"],
+            GenerationConfig(
+                self.params["model"],
+                self.params["voice"],
+                self.params["response_format"],
+                self.params["speed"],
+                self.params.get("instructions", ""),
+                self.params.get("parallelism", config.PARALLELISM),
+                self.params.get("retain_files", False),
+            ),
+        )
 
-    def _emit_status(self, status: str) -> None:
-        self.status_update.emit(status)
+    def _hooks(self) -> GenerationHooks:
+        return GenerationHooks(
+            on_progress=self._emit_progress,
+            on_status=self.status_update.emit,
+            on_parallelism=self.parallelism_updated.emit,
+            cancel_event=self._cancel_event,
+        )
 
-    def _emit_parallelism(self, active_workers: int, worker_cap: int) -> None:
-        self.parallelism_updated.emit(active_workers, worker_cap)
+    def _emit_terminal(self, outcome: GenerationOutcome) -> None:
+        self.terminal_outcome.emit(outcome)
+        match outcome:
+            case SuccessOutcome(message=message):
+                self.tts_complete.emit(message)
+            case CancelledOutcome(message=message):
+                self.tts_error.emit(message)
+            case ProviderFailureOutcome(message=message) | ChunkFailureOutcome(message=message):
+                self.tts_error.emit(message)
+            case FfmpegFailureOutcome(message=message) | FfmpegNotFoundOutcome(message=message):
+                self.tts_error.emit(message)
+            case (
+                PublicationRecoveryFailureOutcome(message=message)
+                | PublicationFailureOutcome(message=message)
+            ):
+                self.tts_error.emit(message)
+            case UnknownFailureOutcome(message=message):
+                self.tts_error.emit(message)
+            case OutputBusyOutcome(output_path=output_path):
+                self.tts_error.emit(f"Output is busy: {output_path}")
+            case DestinationChangedOutcome(output_path=output_path, reason=reason):
+                self.tts_error.emit(f"Output changed: {output_path} ({reason})")
+            case unreachable:
+                assert_never(unreachable)
+
+    def _emit_cancel_status(self, decision: CancellationStage | PublicationInProgress) -> None:
+        match decision:
+            case PublicationInProgress():
+                self.status_update.emit(
+                    "Publication is already in progress; waiting for verified finalization."
+                )
+            case CancellationStage.AWAITING_PROVIDER_RESPONSE:
+                self.status_update.emit(
+                    "Cancellation requested; waiting for the provider call to return."
+                )
+            case CancellationStage.DURING_PROVIDER_STREAM:
+                self.status_update.emit(
+                    "Cancellation requested; closing active response streams "
+                    "and waiting for workers."
+                )
+            case CancellationStage.DURING_FFMPEG:
+                self.status_update.emit(
+                    "Cancellation requested; stopping ffmpeg and cleaning staged files."
+                )
+            case CancellationStage.NONE:
+                return
+            case CancellationStage():
+                self.status_update.emit("Cancellation requested; queued work stopped.")
+            case unreachable:
+                assert_never(unreachable)
+
+    def _emit_progress(self, progress: GenerationProgress) -> None:
+        from ..tts import ChunkCompleted, PublicationStarted, RunStarted
+
+        match progress:
+            case RunStarted(planned_chunks=planned_chunks):
+                self._planned_chunks = planned_chunks
+                self.progress_updated.emit(1)
+            case ChunkCompleted(chunk_index=chunk_index):
+                if not self._cancel_event.is_set():
+                    self.progress_updated.emit(int((chunk_index / self._planned_chunks) * 95))
+            case PublicationStarted():
+                self.progress_updated.emit(100)
+            case _:
+                return
 
 
 class FFmpegPreflightWorker(QThread):
     preflight_finished = pyqtSignal(bool, str)
 
     def run(self) -> None:
-        from ..core.ffmpeg import preflight_check
+        from ..core import preflight_check
 
         ok, detail = preflight_check()
         self.preflight_finished.emit(ok, detail)
@@ -85,8 +202,17 @@ class FFmpegPreflightWorker(QThread):
 
 class ApiKeyLoadWorker(QThread):
     api_key_loaded = pyqtSignal(object)
+    legacy_credential_cleanup_required = pyqtSignal(str)
 
     def run(self) -> None:
-        from ..keystore import read_api_key
+        from ..keystore import (
+            credential_value,
+            read_api_key_outcome,
+            stale_legacy_credential_guidance,
+        )
 
-        self.api_key_loaded.emit(read_api_key())
+        credential = read_api_key_outcome()
+        self.api_key_loaded.emit(credential_value(credential))
+        guidance = stale_legacy_credential_guidance(credential)
+        if guidance is not None:
+            self.legacy_credential_cleanup_required.emit(guidance)
