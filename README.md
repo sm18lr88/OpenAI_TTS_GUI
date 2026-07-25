@@ -99,10 +99,6 @@ make coverage                # tests plus independent coverage thresholds
 make install-hooks           # install the repository pre-commit hook
 ```
 
-PMAT users can run `make pmat` to analyze first-party source under `src/` without
-including `.venv`, build output, or other repository artifacts. `make pmat-gate` applies
-the committed complexity threshold from `.pmat-gates.toml`.
-
 ### Building
 
 ```bash

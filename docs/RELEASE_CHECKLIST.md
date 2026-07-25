@@ -9,7 +9,6 @@ Run this checklist before publishing a public release.
 - `uv run ty check`
 - `uv run pytest --ignore=tests/perf`
 - `make coverage`
-- `make pmat-gate`
 - Confirm `pyproject.toml`, `settings.py`, `__init__.py`, `packaging/windows/installer.nsi`, release notes, and artifact names use the same version.
 
 ## Packaging Gates

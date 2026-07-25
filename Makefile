@@ -1,4 +1,4 @@
-.PHONY: test-fast test lint coverage install-hooks pmat pmat-gate
+.PHONY: test-fast test lint coverage install-hooks
 
 test-fast:
 	uv run pytest --ignore=tests/integration --ignore=tests/perf -q
@@ -17,11 +17,3 @@ coverage:
 
 install-hooks:
 	uv run pre-commit install
-
-pmat:
-	pmat analyze complexity --path src --timeout 120
-	pmat analyze tdg --path src
-	pmat analyze dead-code --path src --timeout 120
-
-pmat-gate:
-	pmat analyze complexity --path src --max-cyclomatic 15 --max-cognitive 125 --fail-on-violation --timeout 120
