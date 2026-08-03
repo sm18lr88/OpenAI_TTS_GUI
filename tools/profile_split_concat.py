@@ -1,8 +1,9 @@
 """
-Small, network-free workload to profile CPU/IO paths:
-- split_text on large input
-- synthesize several WAVs and concatenate via ffmpeg
-Generates output under a temp directory and cleans up on exit.
+This small, network-free workload profiles CPU and I/O paths.
+
+It splits large input with split_text.
+It creates several WAV files and concatenates them with ffmpeg.
+It writes output in a temporary directory and removes it on exit.
 """
 
 from __future__ import annotations
@@ -22,15 +23,15 @@ from openai_tts_gui.utils import concatenate_audio_files, split_text
 def _mk_text(chars=400_000) -> str:
     words = ["lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipiscing", "elit"]
     punct = [".", "!", "?", ":", ";", ""]
-    avg_len = 6  # rough average per token with punctuation
+    avg_len = 6  # Estimated average token length, including punctuation.
     needed = max(1, chars // avg_len)
     parts = [f"{random.choice(words)}{random.choice(punct)}" for _ in range(needed)]
     text = " ".join(parts)
-    # Ensure we slightly exceed the requested length to avoid undershoot
+    # Create slightly more text than requested. This prevents undershoot.
     if len(text) < chars:
         extra = [f"{random.choice(words)}{random.choice(punct)}" for _ in range(needed // 10 + 1)]
         text = " ".join(parts + extra)
-    return text[: chars + 128]  # small cushion
+    return text[: chars + 128]  # Keep a small cushion.
 
 
 def _sine_wav(path: str, seconds: float = 0.05, freq: float = 440.0, rate: int = 48000) -> None:
@@ -47,11 +48,11 @@ def _sine_wav(path: str, seconds: float = 0.05, freq: float = 440.0, rate: int =
 def main() -> None:
     with tempfile.TemporaryDirectory() as td:
         td_path = Path(td)
-        # Exercise splitter
+        # Exercise the text splitter.
         text = _mk_text(chars=500_000)
         chunks = split_text(text, config.MAX_CHUNK_SIZE)
         assert "".join(chunks).strip() == text.strip()
-        # Exercise concat path with small synthetic WAVs
+        # Exercise audio concatenation with small synthetic WAV files.
         inputs = []
         for i in range(8):
             f = td_path / f"p{i}.wav"
@@ -60,11 +61,11 @@ def main() -> None:
         out = td_path / "out.wav"
         concatenate_audio_files(inputs, str(out))
         assert out.exists()
-        # Keep temp directory around if needed by setting env KEEP_PROFILE_TMP=1
+        # Set KEEP_PROFILE_TMP=1 to preserve the temporary directory.
         if os.environ.get("KEEP_PROFILE_TMP") == "1":
-            print(f"Profile artifacts preserved at: {td}")
+            print(f"Profile artifacts kept at: {td}")
         else:
-            # normal TemporaryDirectory cleans up on exit
+            # Otherwise, TemporaryDirectory removes it on exit.
             pass
 
 

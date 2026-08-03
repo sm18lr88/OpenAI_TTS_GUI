@@ -24,9 +24,7 @@ class PolicyError(Exception):
 
 
 def _parse_arguments() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Freeze and verify exact distribution inventories."
-    )
+    parser = argparse.ArgumentParser(description="Freeze and verify exact distribution contents.")
     policy = parser.add_mutually_exclusive_group(required=True)
     policy.add_argument("--policy", type=Path)
     policy.add_argument("--write-policy", type=Path)

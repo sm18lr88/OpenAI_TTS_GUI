@@ -34,9 +34,7 @@ class ExpectedTerminal(TypedDict):
 
 
 def _parse_arguments() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Freeze and classify PyInstaller warning evidence."
-    )
+    parser = argparse.ArgumentParser(description="Freeze and classify PyInstaller warning records.")
     policy = parser.add_mutually_exclusive_group(required=True)
     policy.add_argument("--policy", type=Path)
     policy.add_argument("--write-policy", type=Path)

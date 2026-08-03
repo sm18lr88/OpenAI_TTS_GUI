@@ -29,7 +29,7 @@ from python_contract_snapshot import manifest, validate, worsened
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Check strict Python contracts.")
+    parser = argparse.ArgumentParser(description="Check strict Python code contracts.")
     parser.add_argument("paths", nargs="+")
     parser.add_argument("--rules", required=True, type=Path)
     parser.add_argument("--boundaries", required=True, type=Path)

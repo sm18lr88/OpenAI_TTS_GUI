@@ -5,9 +5,9 @@
 # ///
 
 # ─── How to run ───
-# 1. Install uv: https://docs.astral.sh/uv/getting-started/installation/
-# 2. Generate a JSON report: uv run coverage json -o coverage.json
-# 3. Run: uv run scripts/check_coverage_thresholds.py coverage.json
+# 1. Install uv from https://docs.astral.sh/uv/getting-started/installation/
+# 2. Generate a JSON report with uv run coverage json -o coverage.json
+# 3. Run uv run scripts/check_coverage_thresholds.py coverage.json
 # ──────────────────
 from __future__ import annotations
 
@@ -143,7 +143,7 @@ def _failures(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Require separate statement and branch coverage thresholds."
+        description="Enforce separate statement and branch coverage thresholds."
     )
     parser.add_argument("report", type=Path)
     parser.add_argument("--min-statements", type=_percentage, default=DEFAULT_MINIMUM)

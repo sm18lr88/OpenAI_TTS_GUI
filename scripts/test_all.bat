@@ -1,9 +1,9 @@
 @echo off
 setlocal
-REM Run full test suite with coverage, parallelization, timeout and JUnit/HTML reports
+REM Run all tests with coverage, parallel workers, a timeout, and JUnit and HTML reports.
 if not exist reports mkdir reports
 if not exist htmlcov mkdir htmlcov
-REM Use xdist to parallelize; coverage combines across workers (pytest-cov supports xdist)
+REM Use xdist for parallel workers. pytest-cov combines coverage across workers.
 python -m pytest -q ^
   --maxfail=1 ^
   --timeout=60 ^
@@ -13,5 +13,5 @@ python -m pytest -q ^
   --cov-report=term-missing:skip-covered ^
   --cov-report=html:htmlcov ^
   --junitxml=reports\junit.xml
-echo Tests complete. Coverage HTML at htmlcov\index.html
+echo Tests complete. Coverage HTML report: htmlcov\index.html
 endlocal

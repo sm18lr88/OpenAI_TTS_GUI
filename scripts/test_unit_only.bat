@@ -1,10 +1,10 @@
 @echo off
 setlocal
-REM Fast path: single-process, no xdist, unit-heavy (skips perf/bench)
+REM Run mostly unit tests in one process. Skip perf and bench tests.
 python -m pytest -q ^
   -k "not perf and not bench" ^
   --timeout=60 ^
   --cov=. ^
   --cov-report=term-missing:skip-covered
-echo Unit tests done.
+echo Unit tests complete.
 endlocal

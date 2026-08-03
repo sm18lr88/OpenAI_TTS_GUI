@@ -30,7 +30,7 @@ def _teardown_gui_smoke(app, window) -> None:
         if not sip.isdeleted(thread) and thread.isRunning():
             thread.quit()
             if not thread.wait(1000):
-                failure = RuntimeError("Window-owned QThread did not stop")
+                failure = RuntimeError("A QThread owned by the window did not stop")
     if failure is not None:
         raise GuiSmokeError("GUI smoke cleanup failed") from failure
     try:
@@ -47,7 +47,7 @@ def _teardown_gui_smoke(app, window) -> None:
     except RuntimeError as error:
         failure = failure or error
     if app.topLevelWidgets():
-        raise GuiSmokeError("GUI smoke left top-level widgets behind")
+        raise GuiSmokeError("GUI smoke test left top-level widgets behind")
     if failure is not None:
         raise GuiSmokeError("GUI smoke cleanup failed") from failure
 

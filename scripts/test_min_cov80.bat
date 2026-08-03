@@ -1,6 +1,6 @@
 @echo off
 setlocal
-REM Run unit + integration tests with a minimum coverage gate (80%)
+REM Run unit and integration tests. Enforce an 80% minimum coverage threshold.
 if not exist reports mkdir reports
 if not exist htmlcov mkdir htmlcov
 python -m pytest -q ^
@@ -12,5 +12,5 @@ python -m pytest -q ^
   --cov-report=html:htmlcov ^
   --cov-fail-under=80 ^
   --junitxml=reports\junit.xml
-echo Tests complete. Coverage HTML at htmlcov\index.html
+echo Tests complete. Coverage HTML report: htmlcov\index.html
 endlocal

@@ -1,7 +1,7 @@
-"""Global test configuration to keep temp files inside the repo workspace.
+"""Keep test temporary files inside the repository workspace.
 
-Some environments block writes to the OS temp directory (e.g., locked-down Windows profiles).
-We redirect pytest's base temp dir plus stdlib/tempfile to a local folder.
+Some environments block writes to the OS temporary directory, for example locked-down Windows
+profiles. This configuration directs pytest and tempfile to a local folder.
 """
 
 from __future__ import annotations
@@ -32,10 +32,9 @@ def pytest_configure(config: pytest.Config) -> None:
         else _default_basetemp(Path(str(config.rootpath)))
     )
     base.mkdir(parents=True, exist_ok=True)
-    # Point pytest's tmp_path/tmpdir fixtures to the repo-local temp folder.
-    # This is honored when set before the first fixture request.
+    # Given: pytest must use the local temporary folder before it creates a fixture.
     config.option.basetemp = str(base)
-    # Keep stdlib tempfile aligned as well.
+    # Then: tempfile uses the same local temporary folder.
     tempfile.tempdir = str(base)
     os.environ.setdefault("TMPDIR", str(base))
     os.environ.setdefault("TMP", str(base))
