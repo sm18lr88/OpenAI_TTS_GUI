@@ -208,7 +208,7 @@ def test_parallel_duplicate_chunk_result_rejected_before_concat(monkeypatch, tmp
             retain_files=False,
         )
 
-    assert "Duplicate chunk result" in str(exc_info.value)
+    assert "Duplicate result for chunk" in str(exc_info.value)
     assert concat_calls == []
     assert not out.exists()
     assert not Path(str(out) + ".json").exists()

@@ -121,9 +121,9 @@ def test_run_state_records_cancel_action_cleanup_warnings_without_skipping_owner
     assert response.close_calls == 1
     assert stopper.stop_calls == 1
     assert state.cleanup_warnings == (
-        "queued cancellation failed: future already running",
-        "response close failed: response locked",
-        "ffmpeg stop failed: ffmpeg stuck",
+        "Could not cancel the queued task: future already running",
+        "Could not close the response: response locked",
+        "Could not stop ffmpeg: ffmpeg stuck",
     )
     state.complete_attempt(key)
     state.finish_ffmpeg()
@@ -171,11 +171,11 @@ def test_run_state_rejects_frozen_publication_and_nonempty_terminal_accounting()
     incomplete._in_flight.add(1)
 
     # When / Then: terminal lifecycle guards reject reuse and unresolved accounting.
-    with pytest.raises(ContractError, match="Frozen runs"):
+    with pytest.raises(ContractError, match="A frozen run cannot start publication"):
         frozen.begin_publication()
     with pytest.raises(ContractError, match="already frozen"):
         frozen.freeze()
-    with pytest.raises(ContractError, match="Terminal accounting requires"):
+    with pytest.raises(ContractError, match="Final accounting requires no in-flight chunks"):
         incomplete.freeze()
 
 

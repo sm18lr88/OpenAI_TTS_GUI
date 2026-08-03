@@ -241,7 +241,7 @@ class TTSService:
     def _activate_run(self, state: RunState) -> None:
         with self._run_lock:
             if self._active_run_state is not None:
-                raise ConcurrentRunError("This TTS service already has an active run.")
+                raise ConcurrentRunError("This TTS service already has a running task.")
             self._active_run_state = state
 
     def _deactivate_run(self, state: RunState) -> None:

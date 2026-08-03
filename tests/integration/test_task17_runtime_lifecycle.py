@@ -64,9 +64,10 @@ def test_worker_cancel_waits_for_real_withheld_headers_without_false_terminal(
         qtbot.waitUntil(lambda: bool(statuses), timeout=1_000)
         qtbot.waitUntil(lambda: len(heartbeats) >= 2, timeout=1_000)
 
-        assert "Cancellation requested; waiting for the provider call to return." in statuses
+        assert "Cancellation requested. Waiting for the provider request to return." in statuses
         assert (
-            statuses.count("Cancellation requested; waiting for the provider call to return.") == 1
+            statuses.count("Cancellation requested. Waiting for the provider request to return.")
+            == 1
         )
         assert completed == []
         assert errors == []

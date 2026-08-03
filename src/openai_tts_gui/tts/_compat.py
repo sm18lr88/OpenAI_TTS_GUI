@@ -1,4 +1,4 @@
-"""Backward-compat TTSProcessor - wraps TTSWorker for old test/consumer code."""
+"""Backward-compatible TTSProcessor that wraps TTSWorker for older tests and consumers."""
 
 from ..gui import TTSWorker
 

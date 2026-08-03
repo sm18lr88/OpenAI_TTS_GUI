@@ -25,7 +25,7 @@ class RunStateResources:
     def begin_publication(self: RunState) -> CancellationStage | PublicationInProgress:
         with self._lock:
             if self._frozen:
-                raise ContractError("Frozen runs cannot begin publication.")
+                raise ContractError("A frozen run cannot start publication.")
             ingress_cancelled = self._ingress_event is not None and self._ingress_event.is_set()
             if ingress_cancelled or self._cancel_event.is_set():
                 actions = self._request_cancel_locked()
@@ -97,17 +97,17 @@ class RunStateResources:
             try:
                 action()
             except RuntimeError as exc:
-                self._record_warning(f"queued cancellation failed: {exc}")
+                self._record_warning(f"Could not cancel the queued task: {exc}")
         for response in actions.responses:
             try:
                 response.close()
             except (OSError, RuntimeError) as exc:
-                self._record_warning(f"response close failed: {exc}")
+                self._record_warning(f"Could not close the response: {exc}")
         if actions.ffmpeg is not None:
             try:
                 actions.ffmpeg.request_stop()
             except (OSError, RuntimeError) as exc:
-                self._record_warning(f"ffmpeg stop failed: {exc}")
+                self._record_warning(f"Could not stop ffmpeg: {exc}")
 
     def _record_warning(self: RunState, warning: str) -> None:
         with self._lock:

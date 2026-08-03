@@ -66,7 +66,7 @@ def verify_audio(path: Path) -> None:
     if not path.is_file() or stat.st_size == 0:
         raise PublicationError(
             PublicationFailureReason.VALIDATE_AUDIO,
-            "empty staged audio",
+            "The staged audio file is empty.",
             FinalizationReport(CanonicalState.ORIGINAL_DESTINATION),
         )
 

@@ -37,7 +37,8 @@ def test_cleanup_plan_reports_only_the_exact_blocked_chunk_and_directory(tmp_pat
     # Then: retained artifacts and warnings identify only the blocked chunk and directory.
     assert report.retained_basenames == ("chunk_0002.wav", tmp_path.name)
     assert len(report.warnings) == 2
-    assert all("cleanup" in warning for warning in report.warnings)
+    assert any("Could not remove chunk file" in warning for warning in report.warnings)
+    assert any("Could not remove chunk directory" in warning for warning in report.warnings)
 
 
 def test_execution_attaches_exact_cleanup_and_release_warnings(monkeypatch, tmp_path: Path) -> None:
@@ -53,7 +54,7 @@ def test_execution_attaches_exact_cleanup_and_release_warnings(monkeypatch, tmp_
 
     class Lease:
         def release(self) -> CleanupReport:
-            return CleanupReport((), ("lease close failed for output.lock: locked",))
+            return CleanupReport((), ("Could not close the lease for output.lock: locked",))
 
     monkeypatch.setattr(
         _execution,
@@ -77,9 +78,13 @@ def test_execution_attaches_exact_cleanup_and_release_warnings(monkeypatch, tmp_
     chunk_directory = next(tmp_path.glob("out_chunks_*")).name
     assert outcome.finalization.retained_basenames == ("chunk_0001.wav", chunk_directory)
     assert (
-        outcome.finalization.warnings.count("chunk cleanup failed for chunk_0001.wav: locked") == 1
+        outcome.finalization.warnings.count("Could not remove chunk file chunk_0001.wav: locked")
+        == 1
     )
-    assert outcome.finalization.warnings.count("lease close failed for output.lock: locked") == 1
+    assert (
+        outcome.finalization.warnings.count("Could not close the lease for output.lock: locked")
+        == 1
+    )
     assert sum(chunk_directory in warning for warning in outcome.finalization.warnings) == 1
 
 
@@ -115,7 +120,9 @@ def test_execution_preserves_ffmpeg_failure_with_blocked_stage_cleanup(
     assert isinstance(outcome, FfmpegFailureOutcome)
     assert outcome.finalization is not None
     assert output.name in outcome.finalization.retained_basenames
-    assert any("stage cleanup failed" in warning for warning in outcome.finalization.warnings)
+    assert any(
+        "Could not clean up the stage path" in warning for warning in outcome.finalization.warnings
+    )
     assert not output.exists()
 
 
@@ -156,5 +163,7 @@ def test_execution_preserves_cancelled_outcome_with_blocked_stage_cleanup(
     assert outcome.accounting.cancellation_stage is CancellationStage.BEFORE_PUBLICATION
     assert outcome.finalization is not None
     assert output.name in outcome.finalization.retained_basenames
-    assert any("stage cleanup failed" in warning for warning in outcome.finalization.warnings)
+    assert any(
+        "Could not clean up the stage path" in warning for warning in outcome.finalization.warnings
+    )
     assert not output.exists()

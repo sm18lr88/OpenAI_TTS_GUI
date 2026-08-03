@@ -141,7 +141,7 @@ def test_chunk_accounting_rejects_unexpected_duplicate_and_missing_results(tmp_p
         expected_indexes={1},
         meta_lock=lock,
     )
-    with pytest.raises(TTSChunkError, match="Duplicate chunk result"):
+    with pytest.raises(TTSChunkError, match="Duplicate result for chunk"):
         service._record_chunk_meta(
             meta=valid,
             chunk_meta=recorded,

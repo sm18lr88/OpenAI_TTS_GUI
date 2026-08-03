@@ -67,7 +67,7 @@ def load_openai_symbols() -> OpenAISymbols:
         class OpenAI:
             def __init__(self, *args, **kwargs) -> None:
                 raise ModuleNotFoundError(
-                    "The 'openai' package is required to use TTSService."
+                    "TTSService requires the 'openai' package."
                 ) from _OPENAI_IMPORT_ERROR
 
     return OpenAISymbols(
@@ -172,7 +172,7 @@ class OpenAIProviderAdapter:
         streaming = self._client_factory().audio.speech.with_streaming_response
         if state is not None:
             if key is None:
-                raise ContractError("Run-owned provider calls require an attempt key.")
+                raise ContractError("Provider calls owned by a run require an attempt key.")
             if not state.begin_attempt(key):
                 from ..errors import TTSCancelledError
 
@@ -183,7 +183,7 @@ class OpenAIProviderAdapter:
             metadata = extract_response_metadata(response)
             if state is not None:
                 if key is None:
-                    raise ContractError("Run-owned provider calls require an attempt key.")
+                    raise ContractError("Provider calls owned by a run require an attempt key.")
                 if not state.register_response(key, response):
                     response.close()
                     state.complete_attempt(key)
@@ -198,12 +198,12 @@ class OpenAIProviderAdapter:
                 raise ProviderStreamError(str(exc), metadata.request_id) from exc
         if state is not None:
             if key is None:
-                raise ContractError("Run-owned provider calls require an attempt key.")
+                raise ContractError("Provider calls owned by a run require an attempt key.")
             from pathlib import Path
 
             output_path = Path(request.output_path)
             if not output_path.is_file() or output_path.stat().st_size == 0:
-                raise OSError("Provider response did not create a non-empty audio file.")
+                raise OSError("The provider response did not create a non-empty audio file.")
             state.validate_result(key)
         headers = tuple(sorted((metadata.retry_headers or {}).items()))
         return ProviderReceipt(metadata.request_id, metadata.model_header, headers)

@@ -47,7 +47,7 @@ class GenerationConfig:
             or self.voice not in TTS_VOICES
             or self.response_format not in TTS_FORMATS
         ):
-            raise ContractError("Unsupported generation configuration.")
+            raise ContractError("The generation configuration is not supported.")
         if not math.isfinite(self.speed) or not MIN_SPEED <= self.speed <= MAX_SPEED:
             raise ContractError("Speed must be finite and within the supported range.")
         if self.parallelism is not None and self.parallelism < 1:
@@ -63,7 +63,7 @@ class GenerationRequest:
 
     def __post_init__(self) -> None:
         if not self.text.strip():
-            raise ContractError("No text provided.", ContractErrorCode.EMPTY_TEXT)
+            raise ContractError("No text was provided.", ContractErrorCode.EMPTY_TEXT)
         if not self.output_path.strip():
             raise ContractError("An output path is required.")
 

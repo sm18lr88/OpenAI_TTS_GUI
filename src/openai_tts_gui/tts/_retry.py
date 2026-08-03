@@ -133,7 +133,7 @@ def generate_with_retries(context: RetryContext) -> ChunkRequestMeta:
                 _mark_uncertain(context, key)
                 _raise_if_cancelled_after_truth(context)
                 raise TTSChunkError(
-                    f"File saving error for chunk {context.task.index}: {exc}",
+                    f"Could not save chunk {context.task.index}: {exc}",
                     chunk_index=context.task.index,
                     file_path=str(context.task.filename),
                 ) from exc
@@ -151,7 +151,7 @@ def generate_with_retries(context: RetryContext) -> ChunkRequestMeta:
             if permit_acquired:
                 _release(context)
     raise TTSChunkError(
-        f"Failed to save chunk {context.task.index} after {MAX_ATTEMPTS_PER_CHUNK} attempts.",
+        f"Could not save chunk {context.task.index} after {MAX_ATTEMPTS_PER_CHUNK} attempts.",
         chunk_index=context.task.index,
         file_path=str(context.task.filename),
     )
@@ -182,7 +182,7 @@ def _handle_rate_limit(
         _mark_definitive(context, key)
         _raise_if_cancelled_after_truth(context)
         raise TTSAPIError(
-            f"Rate limit persisted after {attempt} attempts while generating chunk "
+            f"The rate limit continued after {attempt} attempts while creating chunk "
             f"{context.task.index}.",
             status_code=429,
             request_id=request_id,
@@ -223,7 +223,7 @@ def _raise_uncertain_provider_error(
 def _raise_provider_error(
     context: RetryContext, error: Exception, status: int | None, request_id: str | None
 ) -> None:
-    detail = f"API Error while generating chunk {context.task.index}: {error}"
+    detail = f"API error while creating chunk {context.task.index}: {error}"
     if status is not None:
         detail += f" (Status code: {status})"
     if request_id is not None:
@@ -262,7 +262,7 @@ def _wait_for_retry(
         context.coordinator.apply_retry_wait(wait_time, reduce_cap=reduce_cap)
         _report_parallelism(context)
     if context.on_status is not None:
-        context.on_status(f"Chunk {context.task.index}: {label}; retrying in {wait_time:.1f}s")
+        context.on_status(f"Chunk {context.task.index}: {label}. Retrying in {wait_time:.1f}s")
     _emit_progress(context, RetryWaiting(context.task.index, attempt, wait_time))
     try:
         context.sleep_with_cancel(wait_time, context.cancel_event)

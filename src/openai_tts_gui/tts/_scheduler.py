@@ -235,7 +235,7 @@ def record_metadata(
             )
         if meta.chunk_index in chunk_meta:
             raise TTSChunkError(
-                f"Duplicate chunk result for chunk {meta.chunk_index} detected before concat.",
+                f"Duplicate result for chunk {meta.chunk_index} before audio combination.",
                 chunk_index=meta.chunk_index,
                 file_path=meta.file,
             )
@@ -255,7 +255,7 @@ def ordered_metadata(
         ordered.append(item)
     if missing:
         raise TTSChunkError(
-            "Missing successful chunk result(s) before concat: "
+            "Missing successful chunk result(s) before audio combination: "
             + ", ".join(str(index) for index in missing)
         )
     return ordered

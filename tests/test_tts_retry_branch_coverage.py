@@ -69,7 +69,7 @@ def test_generate_rejects_empty_split_result_after_preflight(
     monkeypatch.setattr(service_module, "split_text", lambda text, size: [])
 
     # When: generation reaches chunk planning.
-    with pytest.raises(TTSChunkError, match="No text chunks"):
+    with pytest.raises(TTSChunkError, match="Text splitting produced no chunks"):
         TTSService(api_key="sk-test").generate(
             text="speech", output_path=str(tmp_path / "empty.wav")
         )
@@ -92,7 +92,7 @@ def test_timeout_and_connection_errors_fail_after_one_uncertain_attempt(
     monkeypatch.setattr(service, "_sleep_with_cancel", lambda wait, event: waits.append(wait))
 
     # When: the public facade projects the provider failure.
-    with pytest.raises(TTSAPIError, match="API Error"):
+    with pytest.raises(TTSAPIError, match="API error while creating chunk 1"):
         service.generate(text="speech", output_path=str(output), response_format="wav")
 
     # Then: no second call or retry wait occurs, while no completed artifact exists.
@@ -104,7 +104,10 @@ def test_timeout_and_connection_errors_fail_after_one_uncertain_attempt(
 
 @pytest.mark.parametrize(
     ("error_type", "expected"),
-    [(FakeAPIError, "API Error"), (FakeOpenAIError, "API Error")],
+    [
+        (FakeAPIError, "API error while creating chunk 1"),
+        (FakeOpenAIError, "API error while creating chunk 1"),
+    ],
 )
 def test_non_status_provider_errors_map_to_typed_api_errors(
     monkeypatch: pytest.MonkeyPatch,
@@ -147,7 +150,7 @@ def test_rate_limit_exhaustion_has_no_final_retry_wait(
     monkeypatch.setattr(service, "_sleep_with_cancel", lambda wait, event: waits.append(wait))
 
     # When: the final rate-limit attempt fails.
-    with pytest.raises(TTSAPIError, match="Rate limit persisted"):
+    with pytest.raises(TTSAPIError, match="The rate limit continued after 3 attempts"):
         service.generate(
             text="speech",
             output_path=str(tmp_path / "rate.wav"),
@@ -215,7 +218,7 @@ def test_file_write_error_identifies_the_failed_chunk(
     monkeypatch.setattr(service, "_get_client", BrokenClient)
 
     # When: a stream cannot be persisted.
-    with pytest.raises(TTSChunkError, match="File saving error") as caught:
+    with pytest.raises(TTSChunkError, match="Could not save chunk 1") as caught:
         service._generate_chunk_with_retries(
             task=service_module._ChunkTask(1, "speech", tmp_path / "chunk.wav"),
             model="tts-1",

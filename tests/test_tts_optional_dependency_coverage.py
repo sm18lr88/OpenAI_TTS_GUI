@@ -46,7 +46,7 @@ def test_tts_service_reports_missing_optional_openai_dependency_without_cache_po
         # When: the public service client is requested under the missing-dependency fallback.
         spec.loader.exec_module(fallback_module)
         service = fallback_module.TTSService(api_key="synthetic")
-        with pytest.raises(ModuleNotFoundError, match="openai.*required"):
+        with pytest.raises(ModuleNotFoundError, match="TTSService requires.*openai"):
             service._get_client()
         status_error = fallback_module.APIStatusError(
             "unavailable", status_code=503, request_id="req-fallback"
@@ -107,7 +107,7 @@ print(json.dumps(result, sort_keys=True))
         "backoff": True,
         "cause_type": "ModuleNotFoundError",
         "error_type": "ModuleNotFoundError",
-        "message": "The 'openai' package is required to use TTSService.",
+        "message": "TTSService requires the 'openai' package.",
         "service": "TTSService",
     }
     assert result.stderr == ""

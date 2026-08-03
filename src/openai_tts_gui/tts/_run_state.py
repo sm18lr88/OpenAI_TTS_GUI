@@ -12,7 +12,7 @@ __all__ = ["AttemptKey", "FfmpegStopper", "RunPhase", "RunState"]
 
 
 class RunState(RunStateResources):
-    """Mutable resource registry and terminal accounting for one generation run."""
+    """Track mutable resources and final accounting for one generation run."""
 
     def __init__(self, planned_chunks: int, cancel_event: threading.Event | None) -> None:
         self._lock = threading.RLock()
@@ -120,7 +120,7 @@ class RunState(RunStateResources):
     def register_response(self, key: AttemptKey, response: ClosableResponse) -> bool:
         with self._lock:
             if key not in self._awaiting:
-                raise ContractError("Responses require a registered awaiting attempt.")
+                raise ContractError("A response requires a registered awaiting attempt.")
             self._awaiting.remove(key)
             self._responses[key] = response
             self._condition.notify_all()
@@ -136,7 +136,7 @@ class RunState(RunStateResources):
     def accept_validated_result(self, key: AttemptKey, request_id: str | None) -> None:
         with self._lock:
             if key not in self._validated_results:
-                raise ContractError("Accepted results require validated provider ownership.")
+                raise ContractError("An accepted result requires validated provider ownership.")
             self._validated_results.remove(key)
             self._in_flight.discard(key.chunk_index)
             self._record_completed_locked(key.chunk_index, request_id)
@@ -190,7 +190,7 @@ class RunState(RunStateResources):
 
     def _record_completed_locked(self, index: int, request_id: str | None) -> None:
         if index not in self._attempted:
-            raise ContractError("Completed chunks require a recorded started attempt.")
+            raise ContractError("A completed chunk requires a recorded started attempt.")
         self._completed[index] = request_id
         self._definitive.discard(index)
         self._uncertain.discard(index)
@@ -218,13 +218,13 @@ class RunState(RunStateResources):
     def freeze(self) -> RunAccounting:
         with self._lock:
             if self._publication_active:
-                raise ContractError("Terminal accounting requires finished publication.")
+                raise ContractError("Final accounting requires publication to finish.")
         self.join()
         with self._lock:
             if self._frozen:
-                raise ContractError("Terminal accounting has already frozen.")
+                raise ContractError("Final accounting is already frozen.")
             if self._in_flight:
-                raise ContractError("Terminal accounting requires no in-flight chunks.")
+                raise ContractError("Final accounting requires no in-flight chunks.")
             self._frozen = True
             self._phase = RunPhase.TERMINAL
             return RunAccounting(

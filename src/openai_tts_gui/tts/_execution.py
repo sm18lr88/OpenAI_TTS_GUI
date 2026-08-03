@@ -81,7 +81,7 @@ def run(
         dependencies.preflight()
         chunks = dependencies.split_text(request.text, config.settings.MAX_CHUNK_SIZE)
         if not chunks:
-            raise TTSChunkError("No text chunks generated after splitting.")
+            raise TTSChunkError("Text splitting produced no chunks.")
         state.bind_plan(len(chunks))
         _emit(hooks, RunStarted(len(chunks)))
         paths = destination_paths(request.output_path)
@@ -147,7 +147,7 @@ def run(
             state.finish_publication()
         message = commit.message
         if plan.retain_files:
-            message += f"\nChunk files kept in:\n{plan.temp_dir}"
+            message += f"\nKept chunk files in:\n{plan.temp_dir}"
         outcome: GenerationOutcome = SuccessOutcome(
             message, request.output_path, state.freeze(), commit.finalization
         )

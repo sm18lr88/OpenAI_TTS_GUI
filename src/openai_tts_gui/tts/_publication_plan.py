@@ -74,7 +74,7 @@ def cleanup_plan(
             result = cleanup_files([file_name])
         except OSError as exc:
             retained.append(Path(file_name).name)
-            warnings.append(f"chunk cleanup failed for {Path(file_name).name}: {exc}")
+            warnings.append(f"Could not remove chunk file {Path(file_name).name}: {exc}")
             continue
         if result is not None:
             retained.extend(result.retained_basenames)
@@ -86,12 +86,12 @@ def cleanup_plan(
             continue
         except OSError as exc:
             retained.append(path.name)
-            warnings.append(f"chunk cleanup failed for {path.name}: {exc}")
+            warnings.append(f"Could not remove chunk directory {path.name}: {exc}")
     return CleanupReport(tuple(sorted(set(retained))), tuple(sorted(set(warnings))))
 
 
 def with_retained_dir(error: TTSError, temp_dir: Path) -> TTSError:
-    message = f"{error}\nPartial chunk files kept in:\n{temp_dir}"
+    message = f"{error}\nThe app kept partial chunk files in:\n{temp_dir}"
     if isinstance(error, TTSAPIError):
         return TTSAPIError(message, status_code=error.status_code, request_id=error.request_id)
     if isinstance(error, TTSChunkError):
@@ -103,5 +103,5 @@ def with_retained_dir(error: TTSError, temp_dir: Path) -> TTSError:
 
 def retained_failure_message(message: str, plan: PublicationPlan | None) -> str:
     if plan is not None and plan.retain_files:
-        return f"{message}\nPartial chunk files kept in:\n{plan.temp_dir}"
+        return f"{message}\nThe app kept partial chunk files in:\n{plan.temp_dir}"
     return message

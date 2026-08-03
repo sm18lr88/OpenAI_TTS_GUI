@@ -113,7 +113,7 @@ def test_parallel_failure_keeps_temp_dir_when_retain_true(monkeypatch, tmp_path)
         if path.is_dir() and path.name.startswith("retain_chunks_")
     ]
     assert len(retained_dirs) == 1
-    assert "Partial chunk files kept in" in str(exc_info.value)
+    assert "The app kept partial chunk files in" in str(exc_info.value)
     assert str(retained_dirs[0]) in str(exc_info.value)
     assert (retained_dirs[0] / "chunk_0001.wav").exists()
     assert concat_calls == []

@@ -15,14 +15,14 @@ def cleanup_stage(stage_dir: Path, *tracked_paths: Path) -> CleanupReport:
             path.unlink()
         except OSError as exc:
             retained.append(path.name)
-            warnings.append(f"stage cleanup failed for {path.name}: {exc}")
+            warnings.append(f"Could not clean up the stage path {path.name}: {exc}")
     try:
         stage_dir.rmdir()
     except FileNotFoundError:
         return CleanupReport(tuple(sorted(set(retained))), tuple(sorted(set(warnings))))
     except OSError as exc:
         retained.append(stage_dir.name)
-        warnings.append(f"stage cleanup failed for {stage_dir.name}: {exc}")
+        warnings.append(f"Could not clean up the stage path {stage_dir.name}: {exc}")
     return CleanupReport(tuple(sorted(set(retained))), tuple(sorted(set(warnings))))
 
 

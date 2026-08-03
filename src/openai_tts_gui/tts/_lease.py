@@ -10,7 +10,7 @@ from ._destination import DestinationPaths, ResourceIdentity
 
 
 class DestinationLease:
-    """Owns acquired native file descriptors until release."""
+    """Own acquired native file descriptors until release."""
 
     def __init__(self, root: Path, resources: tuple[ResourceIdentity, ...]) -> None:
         self.root = root
@@ -23,11 +23,11 @@ class DestinationLease:
             try:
                 _unlock(descriptor)
             except OSError as exc:
-                warnings.append(f"lease unlock failed for {path.name}: {exc}")
+                warnings.append(f"Could not unlock the lease for {path.name}: {exc}")
             try:
                 os.close(descriptor)
             except OSError as exc:
-                warnings.append(f"lease close failed for {path.name}: {exc}")
+                warnings.append(f"Could not close the lease for {path.name}: {exc}")
         self._descriptors.clear()
         return CleanupReport((), tuple(sorted(set(warnings))))
 
