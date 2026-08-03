@@ -1,6 +1,6 @@
 # Architecture
 
-> Desktop GUI + CLI for generating speech audio from text via OpenAI's TTS API.
+> A desktop GUI and CLI that generate speech audio from text through OpenAI's TTS API.
 
 ## Module Map
 
@@ -29,13 +29,13 @@ cli  ──→ keystore/
 cli  ──→ config/settings (NO Qt)
 ```
 
-- `config/settings` has zero Qt imports — safe for CLI path
-- `config/theme` requires PyQt6 — only imported by gui/
-- `core/` has zero Qt imports — pure Python logic
-- `tts/_service` has zero Qt imports — pure Python, uses callbacks
-- `tts/_service` owns OpenAI retry policy for synthesis runs and disables SDK retries for this path
-- `gui/workers` wraps TTSService in a QThread for non-blocking UI
-- `keystore/` and `presets/` are standalone, depend only on config/settings
+- `config/settings` has zero Qt imports and is safe for the CLI path.
+- `config/theme` requires PyQt6 and is only imported by gui/.
+- `core/` has zero Qt imports and contains pure Python logic.
+- `tts/_service` has zero Qt imports, is pure Python, and uses callbacks.
+- `tts/_service` owns the OpenAI retry policy for synthesis runs and disables SDK retries for this path.
+- `gui/workers` wraps TTSService in a QThread for a non-blocking UI.
+- `keystore/` and `presets/` are standalone and only depend on config/settings.
 
 Import only from `__init__.py` interfaces. Internal files prefixed with `_`.
 
@@ -51,9 +51,9 @@ Import only from `__init__.py` interfaces. Internal files prefixed with `_`.
                                             [output.mp3 + sidecar.json]
 ```
 
-During multi-chunk runs, `TTSService` keeps manifest order separate from completion order. Parallel workers may finish out of order, but concat and sidecar `request_meta` are finalized only after one successful result exists for every expected chunk index.
+During multi-chunk runs, `TTSService` keeps manifest order separate from completion order. Parallel workers can finish out of order. It finalizes concat and sidecar `request_meta` after every expected chunk index has one successful result.
 
-Rate limiting is coordinated inside a single run: `429` responses can reduce the active worker cap and impose a shared cooldown, while retry delays prefer `retry-after-ms`, then `retry-after`, then exponential fallback. Failed or cancelled runs do not emit success sidecars or final audio outputs.
+The service coordinates rate limiting within a single run. A `429` response can reduce the active worker cap and impose a shared cooldown. Retry delays prefer `retry-after-ms`, then `retry-after`, then exponential fallback. Failed or cancelled runs do not emit success sidecars or final audio outputs.
 
 ## How to Run
 
@@ -70,9 +70,9 @@ openai-tts --in f.txt --out o.mp3 # CLI
 openai-tts --help                  # CLI options and supported TTS choices
 ```
 
-The CLI path exposes the same core synthesis controls as the GUI: model, voice, output
-format, speed, optional instructions, and retained chunk files. It stays Qt-free by using
-`config/settings`, `keystore`, and `TTSService` directly.
+The CLI provides the same core synthesis controls as the GUI. These controls include the model,
+voice, output format, speed, optional instructions, and retained chunk files. The CLI remains
+Qt-free because it uses `config/settings`, `keystore`, and `TTSService` directly.
 
 ## Conventions
 
@@ -92,7 +92,8 @@ format, speed, optional instructions, and retained chunk files. It stays Qt-free
 
 ## Boundary Enforcement
 
-Architecture boundary tests in `tests/test_architecture.py` verify via AST analysis that core/, tts/_service, keystore/, presets/, and config/settings have zero PyQt6 imports.
+Architecture boundary tests in `tests/test_architecture.py` use AST analysis to verify that
+core/, tts/_service, keystore/, presets/, and config/settings have zero PyQt6 imports.
 
 ## Decisions
 

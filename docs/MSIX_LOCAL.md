@@ -1,6 +1,8 @@
 ﻿# Optional Local MSIX and WACK Workflow
 
-The supported release artifact remains the PyInstaller bundle packaged by NSIS as `OpenAI-TTS-Setup.exe`. The MSIX path is optional and local-only for developers who want to inspect a packaged desktop/full-trust app with Windows SDK tooling.
+The supported release artifact remains the PyInstaller bundle that NSIS packages as
+`OpenAI-TTS-Setup.exe`. The MSIX path is optional and local only. It lets developers inspect a
+packaged desktop/full-trust app with Windows SDK tooling.
 
 ## Required Local Tools
 
@@ -23,12 +25,14 @@ Then stage and pack the MSIX:
 powershell -ExecutionPolicy Bypass -File scripts\build_msix_local.ps1
 ```
 
-The script reads the project version from `pyproject.toml`, converts it to the four-part MSIX version form, stages files from `dist\OpenAI-TTS`, materializes `packaging\msix\AppxManifest.xml.in`, and runs `makeappx pack` to create `dist\OpenAI-TTS.msix`.
+The script reads the project version from `pyproject.toml`. It converts the version to the
+four-part MSIX form. It stages files from `dist\OpenAI-TTS`. It materializes
+`packaging\msix\AppxManifest.xml.in`. It runs `makeappx pack` to create `dist\OpenAI-TTS.msix`.
 
-Optional signing examples. When signing is enabled, the script signs staged
-`.exe`, `.dll`, and `.pyd` payload files before packing, then signs the MSIX.
-This is needed for the WACK signed-file requirement, but it requires your own
-local test certificate or production code-signing certificate.
+These are optional signing examples. When signing is enabled, the script signs staged
+`.exe`, `.dll`, and `.pyd` payload files before packing. It then signs the MSIX.
+The WACK signed-file requirement needs this. It also requires your own local test certificate
+or production code-signing certificate.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\build_msix_local.ps1 -CertThumbprint "<certificate sha1 thumbprint>"
@@ -55,13 +59,15 @@ Defaults:
 - Package: `dist\OpenAI-TTS.msix`
 - Report: `reports\wack\OpenAI-TTS-WACK.xml`
 
-The validation script locates `appcert.exe`, runs `appcert reset`, runs `appcert test -appxpackagepath <package> -reportoutputpath <report>`, and then parses the report with `scripts\check_wack_report.py`.
+The validation script finds `appcert.exe` and runs `appcert reset`. It then runs
+`appcert test -appxpackagepath <package> -reportoutputpath <report>`. It parses the report with
+`scripts\check_wack_report.py`.
 
 ## Caveats
 
 - This workflow does not claim Store certification.
-- A local pass is not claimed unless a real report from the App Certification Kit exists and parses as `PASS`.
-- The MSIX staging script removes redundant unsigned root Visual C++ runtime copies and unused Qt PDF/software-OpenGL payloads before packing. Keep `--self-check` and `--gui-smoke` passing after any future staging trim.
-- PyInstaller/PyQt payloads can still trigger WACK blocked-executable checks because required runtime files reference process-launch APIs or contain blocked command strings. If only required runtime files remain in that failure, fixing it requires a packaging/runtime change or Microsoft review/waiver, not a repository-only metadata tweak.
+- Do not claim a local pass unless a real App Certification Kit report exists and parses as `PASS`.
+- The MSIX staging script removes redundant unsigned root Visual C++ runtime copies and unused Qt PDF/software-OpenGL payloads before packing. After any future staging trim, keep `--self-check` and `--gui-smoke` passing.
+- PyInstaller/PyQt payloads can still trigger WACK blocked-executable checks. Required runtime files can reference process-launch APIs or contain blocked command strings. If only required runtime files remain in that failure, a packaging/runtime change or Microsoft review/waiver is required. A repository-only metadata tweak cannot fix it.
 - Store submission can still require additional review, identity, policy, and metadata outside this repository.
 - NSIS remains the recommended and current release artifact for public releases.

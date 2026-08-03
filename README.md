@@ -2,9 +2,9 @@
 
 ## Description
 
-OpenAI TTS GUI is an easy-to-use desktop and command-line text-to-speech client for
-OpenAI's API. It handles long text automatically by splitting, generating, and joining
-audio while preserving reproducible metadata.
+OpenAI TTS GUI is a desktop and command-line text-to-speech client for OpenAI's API.
+It splits long text into chunks, generates audio, and joins the audio automatically.
+It also keeps reproducible metadata.
 
 <img width="550" alt="image" src="https://github.com/user-attachments/assets/10e89dab-f929-4483-b942-03e8fe05d950" />
 
@@ -21,24 +21,24 @@ audio while preserving reproducible metadata.
 ## Features
 
 - Generate speech with OpenAI TTS models, voices, formats, and speed controls.
-- Includes `gpt-4o-mini-tts` instructions and reusable presets for tone and pacing.
-- Paste long scripts; the app chunks, generates, and joins audio automatically with ffmpeg.
-- See live character count, chunk count, worker status, and estimated cost before running.
-- Keep reproducible sidecar metadata and copy OpenAI request IDs for support.
-- Store API keys through OS keyring, local fallback, or environment variables.
-- CLI use available.
+- Use `gpt-4o-mini-tts` instructions and reusable presets for tone and pacing.
+- Paste long scripts. The app splits them into chunks, generates audio, and joins the audio automatically with ffmpeg.
+- View the live character count, chunk count, worker status, and estimated cost before running.
+- Keep reproducible sidecar metadata. Copy OpenAI request IDs for support.
+- Store API keys in the OS keyring, local fallback, or environment variables.
+- Use the CLI.
 
 ## Requirements
 
 - **Python 3.14** ([download](https://www.python.org/downloads/))
-- **ffmpeg** ([download](https://ffmpeg.org/download.html)) — must be on PATH
+- **ffmpeg** ([download](https://ffmpeg.org/download.html)), which must be on PATH
 - **OpenAI API key** ([get one](https://platform.openai.com/api-keys))
 
 ## Installation
 
 ### Option A: Download the installer (Windows)
 
-Download `OpenAI-TTS-Setup.exe` from the [latest release](https://github.com/sm18lr88/OpenAI_TTS_GUI/releases/latest) and run it. ffmpeg is still required on PATH.
+Download and run `OpenAI-TTS-Setup.exe` from the [latest release](https://github.com/sm18lr88/OpenAI_TTS_GUI/releases/latest). ffmpeg must still be on PATH.
 
 ### Option B: Run from source
 
@@ -86,8 +86,8 @@ openai-tts --help
 openai-tts --version
 ```
 
-CLI options mirror the core TTS settings: `--model`, `--voice`, `--format`, `--speed`,
-`--instructions`, and `--retain-files` are available in addition to `--in` and `--out`.
+The CLI supports the core TTS settings: `--model`, `--voice`, `--format`, `--speed`,
+`--instructions`, and `--retain-files`, in addition to `--in` and `--out`.
 
 ## Development
 
@@ -106,7 +106,7 @@ uv run pyinstaller --noconfirm packaging/pyinstaller/openai_tts.spec   # .exe in
 "C:\Program Files (x86)\NSIS\makensis.exe" packaging/windows/installer.nsi   # Windows installer in dist/
 ```
 
-The app bundle is built first into `dist/OpenAI-TTS/`, and the NSIS step packages that directory as `dist/OpenAI-TTS-Setup.exe`.
+First, build the app bundle in `dist/OpenAI-TTS/`. Then, the NSIS step packages that directory as `dist/OpenAI-TTS-Setup.exe`.
 
 ## Project Structure
 
@@ -127,10 +127,10 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for module boundaries and conventions.
 
 ## Contributing
 
-Before opening a pull request, install the development dependencies with
-`uv sync --extra dev`, then run `make lint`, `make test`, and `make coverage`. Keep core
-and service modules Qt-free, import package interfaces rather than private modules, and
-preserve the compatibility contracts documented in [ARCHITECTURE.md](ARCHITECTURE.md).
+Before you open a pull request, install the development dependencies with
+`uv sync --extra dev`. Then run `make lint`, `make test`, and `make coverage`. Keep core
+and service modules Qt-free. Import package interfaces instead of private modules. Preserve
+the compatibility contracts in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## License
 
@@ -152,27 +152,26 @@ does not track support clicks.
 
 Privacy and trust notes:
 
-Text you submit for speech generation is sent to OpenAI or to the compatible
-endpoint configured with `OPENAI_BASE_URL`. API keys are read from
-`OPENAI_API_KEY`, OS keyring, or the local fallback file shown in the app data
-directory. Presets, settings, logs, and sidecar metadata are stored locally under
-the data path shown in `Help` -> `About`; delete those files to remove local app
-data. Sidecar files may include request IDs to help with OpenAI support.
+The app sends text for speech generation to OpenAI or to the compatible endpoint
+configured with `OPENAI_BASE_URL`. It reads API keys from `OPENAI_API_KEY`, the OS
+keyring, or the local fallback file shown in the app data directory. It stores presets,
+settings, logs, and sidecar metadata locally under the data path shown in `Help` -> `About`.
+Delete those files to remove local app data. Sidecar files may include request IDs that help
+with OpenAI support.
 
-Release artifacts include checksum files and are built from the public release
-workflow. The Windows installer is prepared for standard-user installation and
-safe uninstall checks. The project tracks Windows App Certification Kit and
-Microsoft Store MSI/EXE readiness, but it does not claim certification until an
-actual Windows SDK/App Certification Kit or Store submission report passes.
+Release artifacts include checksum files. The public release workflow builds them. The Windows
+installer supports standard-user installation and safe uninstall checks. The project tracks
+Windows App Certification Kit and Microsoft Store MSI/EXE readiness. It does not claim certification
+until an actual Windows SDK/App Certification Kit or Store submission report passes.
 
 ## Troubleshooting
 
-- **ffmpeg not found**: ensure it's on PATH. The app checks on startup.
-- **API key issues**: try setting `OPENAI_API_KEY` environment variable directly.
-- **Logs**: check the log file path shown in `Help` → `About`.
+- **ffmpeg not found**: Make sure it is on PATH. The app checks at startup.
+- **API key issues**: Try setting the `OPENAI_API_KEY` environment variable directly.
+- **Logs**: Check the log file path shown in `Help` → `About`.
 
 ## Tips
 
-- Speed adjustments far from 1.0x may impact quality. Use `gpt-4o-mini-tts` with instructions like "speak slowly" for better results.
+- Speed adjustments far from 1.0x may affect quality. For better results, use `gpt-4o-mini-tts` with instructions such as "speak slowly".
 - Instruction examples at [openai.fm](https://openai.fm).
 - `api_key.enc` is obfuscated, not encrypted. Prefer OS keyring or environment variables.

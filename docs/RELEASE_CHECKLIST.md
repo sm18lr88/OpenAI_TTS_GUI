@@ -21,10 +21,10 @@ Run this checklist before publishing a public release.
 
 ## Optional Local MSIX/WACK Gates
 
-- Optional local MSIX packaging is documented in `docs/MSIX_LOCAL.md`; NSIS remains the recommended current release artifact.
-- If locally testing MSIX, run `scripts\build_msix_local.ps1` after the PyInstaller output exists and confirm `MakeAppx` creates `dist\OpenAI-TTS.msix`.
-- If locally validating WACK, run `scripts\validate_wack_local.ps1` with the Windows SDK App Certification Kit and keep the actual report under `reports\wack`.
-- Store certification is not claimed unless a real report is parsed as passing for the package being claimed.
+- `docs/MSIX_LOCAL.md` documents optional local MSIX packaging. NSIS remains the recommended release artifact.
+- If you test MSIX locally, run `scripts\build_msix_local.ps1` after the PyInstaller output exists. Confirm that `MakeAppx` creates `dist\OpenAI-TTS.msix`.
+- If you validate WACK locally, run `scripts\validate_wack_local.ps1` with the Windows SDK App Certification Kit. Keep the actual report under `reports\wack`.
+- Do not claim Store certification unless a real report parses as passing for the package you claim.
 
 ## Windows Installer Gates
 
@@ -37,5 +37,5 @@ Run this checklist before publishing a public release.
 
 - Confirm README support, privacy, license, and ffmpeg requirements match the release.
 - Scan release artifacts with Microsoft Defender or equivalent before publishing.
-- For Microsoft Store MSI/EXE submission, provide a secure versioned package URL, silent installer parameters, privacy policy URL if required, and certification notes.
+- For Microsoft Store MSI/EXE submission, provide a secure versioned package URL and silent installer parameters. Provide a privacy policy URL if required. Provide certification notes.
 - Windows App Certification Kit or Store certification is not claimed unless a real report passes for the submitted package.
