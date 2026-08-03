@@ -57,7 +57,7 @@ def load_app_settings(filename: str | None = None) -> AppSettings:
         with path.open(encoding="utf-8") as handle:
             payload: JsonValue = json.load(handle)
         if not isinstance(payload, dict):
-            logger.warning("App settings file %s did not contain a JSON object.", path)
+            logger.warning("The app settings file %s is not a JSON object.", path)
             return defaults
         return {
             "parallelism": _clamp_parallelism(payload.get("parallelism", defaults["parallelism"])),
@@ -70,10 +70,10 @@ def load_app_settings(filename: str | None = None) -> AppSettings:
             "retain_files": bool(payload.get("retain_files", defaults["retain_files"])),
         }
     except FileNotFoundError:
-        logger.info("App settings file %s not found. Using defaults.", path)
+        logger.info("App settings file %s was not found. Using defaults.", path)
         return defaults
     except (json.JSONDecodeError, OSError) as exc:
-        logger.warning("Failed to load app settings from %s: %s", path, exc)
+        logger.warning("Could not load app settings from %s: %s", path, exc)
         return defaults
 
 
@@ -102,7 +102,7 @@ def save_app_settings(app_settings: Mapping[str, JsonValue], filename: str | Non
         logger.info("Saved app settings to %s", path)
         return True
     except OSError as exc:
-        logger.warning("Failed to save app settings to %s: %s", path, exc)
+        logger.warning("Could not save app settings to %s: %s", path, exc)
         return False
     finally:
         if temp_path is not None and temp_path.exists():

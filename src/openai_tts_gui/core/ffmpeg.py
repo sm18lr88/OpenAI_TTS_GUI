@@ -150,16 +150,16 @@ def preflight_check() -> tuple[bool, str]:
         ok = ver >= tuple(config.FFMPEG_MIN_VERSION)
         if not ok:
             min_req = ".".join(map(str, config.FFMPEG_MIN_VERSION))
-            return False, f"ffmpeg too old: found {first}, require >= {min_req}"
+            return False, f"ffmpeg is too old: found {first}, need >= {min_req}"
         return True, first
     except FileNotFoundError:
-        return False, "ffmpeg not found. Please install ffmpeg or add it to PATH."
+        return False, "ffmpeg was not found. Install ffmpeg or add it to PATH."
     except subprocess.CalledProcessError as exc:
-        return False, f"ffmpeg invocation failed: {exc}"
+        return False, f"ffmpeg exited with an error: {exc}"
     except subprocess.TimeoutExpired as exc:
-        return False, f"ffmpeg check error: {exc}"
+        return False, f"ffmpeg check failed: {exc}"
     except OSError as exc:
-        return False, f"ffmpeg check error: {exc}"
+        return False, f"ffmpeg check failed: {exc}"
 
 
 def require_preflight() -> str:

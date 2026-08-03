@@ -238,7 +238,7 @@ def test_concat_logs_but_preserves_success_when_list_cleanup_is_blocked(
     leftovers = list(tmp_path.glob("concat_*.txt"))
 
     assert result == str(tmp_path / "joined.wav")
-    assert "Failed to remove temporary concat list" in caplog.text
+    assert "Could not remove the temporary concat list" in caplog.text
     original_unlink(leftovers[0])
 
 

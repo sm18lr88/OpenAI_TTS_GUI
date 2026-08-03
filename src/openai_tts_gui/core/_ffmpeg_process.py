@@ -22,7 +22,7 @@ class ProcessOutput:
 
 
 class FfmpegProcess:
-    """Owns one ffmpeg process group until its process is reaped."""
+    """Own one ffmpeg process group until its process is reaped."""
 
     def __init__(self, command: list[str]) -> None:
         self._command = command

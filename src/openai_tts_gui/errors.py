@@ -5,11 +5,11 @@ from enum import StrEnum
 
 
 class TTSError(Exception):
-    """Base class for all domain-specific TTS errors."""
+    """Base class for TTS domain errors."""
 
 
 class ValidationError(TTSError):
-    """Raised when user-provided options are invalid."""
+    """Raised for invalid user options."""
 
 
 class TTSAPIError(TTSError):
@@ -41,7 +41,7 @@ class TTSChunkError(TTSError):
 
 
 class TTSCancelledError(TTSError):
-    """Raised when a running generation job is cancelled."""
+    """Raised when a generation job is cancelled."""
 
     def __init__(self, message: str, *, finalization: FinalizationReport | None = None) -> None:
         self.finalization = finalization
@@ -49,7 +49,7 @@ class TTSCancelledError(TTSError):
 
 
 class ConcurrentRunError(TTSError):
-    """Raised before a service instance starts a second non-terminal run."""
+    """Raised before a service starts another active run."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -155,12 +155,12 @@ class FFmpegNotFoundError(FFmpegError):
 
 
 class ConfigError(ValidationError):
-    """Raised when application or request configuration is invalid."""
+    """Raised for invalid application or request configuration."""
 
 
 @dataclass(frozen=True, slots=True)
 class LoggingConfigurationError(ValidationError):
-    """Raised when bounded logging settings cannot satisfy their safety contract."""
+    """Raised when logging limits cannot meet their safety contract."""
 
     reason: str
 
@@ -175,7 +175,7 @@ class ContractErrorCode(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class ContractError(ValidationError):
-    """Raised when a typed generation contract is internally inconsistent."""
+    """Raised when a typed generation contract is inconsistent."""
 
     message: str
     code: ContractErrorCode = ContractErrorCode.CONFIGURATION

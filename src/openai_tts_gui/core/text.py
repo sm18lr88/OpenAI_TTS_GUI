@@ -28,7 +28,7 @@ def _find_split_offset(
 
 
 def split_text(text: str, chunk_size: int = config.MAX_CHUNK_SIZE) -> list[str]:
-    """Split text into chunks while preserving the original string exactly."""
+    """Split text into chunks without changing the original string."""
     if chunk_size <= 0:
         raise ConfigError("chunk_size must be a positive integer.")
     if not text:
@@ -36,7 +36,7 @@ def split_text(text: str, chunk_size: int = config.MAX_CHUNK_SIZE) -> list[str]:
     if len(text) <= chunk_size:
         return [text]
 
-    logger.debug("Splitting text of length %d with chunk_size %d", len(text), chunk_size)
+    logger.debug("Splitting text with length %d and chunk_size %d", len(text), chunk_size)
 
     chunks: list[str] = []
     current_pos = 0
@@ -54,13 +54,13 @@ def split_text(text: str, chunk_size: int = config.MAX_CHUNK_SIZE) -> list[str]:
         if chosen_split <= 0:
             chosen_split = chunk_size
             logger.warning(
-                "Forced split at index %d without a natural boundary.",
+                "Split at index %d without a natural boundary.",
                 current_pos + chosen_split,
             )
 
         final_chunk = text[current_pos : current_pos + chosen_split]
         if not final_chunk:
-            raise ConfigError("split_text failed to make progress while chunking text.")
+            raise ConfigError("split_text could not make progress while splitting text.")
         chunks.append(final_chunk)
         current_pos += len(final_chunk)
 

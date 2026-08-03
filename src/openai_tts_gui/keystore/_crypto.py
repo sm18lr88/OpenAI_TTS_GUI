@@ -30,5 +30,5 @@ def decrypt_key(encrypted_key: str) -> str:
         decrypted_bytes = _xor_cipher(encrypted_bytes, config.OBFUSCATION_KEY)
         return decrypted_bytes.decode("utf-8")
     except (binascii.Error, UnicodeError):
-        logger.error("Stored API key could not be decrypted.")
+        logger.error("Could not decrypt the stored API key.")
         return ""

@@ -68,7 +68,7 @@ def read_api_key_outcome(filename: str | None = None) -> CredentialReadOutcome:
     path = _resolve_filename(filename)
 
     if api_key_env:
-        logger.info("Using API key from OPENAI_API_KEY environment variable.")
+        logger.info("Using the API key from the OPENAI_API_KEY environment variable.")
         return EnvironmentCredential(api_key_env)
 
     warning: tuple[CredentialWarning, ...] = ()
@@ -77,11 +77,11 @@ def read_api_key_outcome(filename: str | None = None) -> CredentialReadOutcome:
         try:
             key = keyring.get_password(KEYRING_SERVICE_NAME, KEYRING_USERNAME)
             if key:
-                logger.info("Using API key from OS keyring.")
+                logger.info("Using the API key from the OS keyring.")
                 warnings = (StaleLegacyCredentialWarning(),) if path.is_file() else ()
                 return KeyringCredential(key, warnings)
         except (KeyringError, OSError):
-            logger.warning("Keyring credential lookup failed.")
+            logger.warning("Could not read the credential from the keyring.")
             warning = (KeyringReadFailureWarning(),)
 
     return _read_legacy_credential(path, keyring, warning)
@@ -94,20 +94,20 @@ def read_api_key(filename: str | None = None) -> str | None:
 def save_api_key_outcome(api_key: str, filename: str | None = None) -> CredentialSaveOutcome:
     del filename
     if not api_key:
-        logger.warning("Attempted to save an empty API key.")
+        logger.warning("Tried to save an empty API key.")
         return EmptyCredentialRejected()
 
     keyring = _configured_keyring()
     if keyring is None:
-        logger.warning("OS keyring is unavailable; credential was not saved.")
+        logger.warning("The OS keyring is unavailable, so the credential was not saved.")
         return KeyringCredentialUnavailable()
 
     try:
         keyring.set_password(KEYRING_SERVICE_NAME, KEYRING_USERNAME, api_key)
-        logger.info("API key saved to OS keyring.")
+        logger.info("Saved the API key to the OS keyring.")
         return KeyringCredentialSaved()
     except (KeyringError, OSError):
-        logger.warning("OS keyring credential save failed.")
+        logger.warning("Could not save the credential to the OS keyring.")
         return KeyringCredentialSaveFailed()
 
 
@@ -142,7 +142,7 @@ def _read_legacy_credential(
     except FileNotFoundError:
         return MissingCredential(warnings)
     except OSError:
-        logger.warning("Legacy credential file could not be read.")
+        logger.warning("Could not read the legacy credential file.")
         return UnreadableLegacyCredential(warnings)
 
     try:
@@ -173,11 +173,11 @@ def _migrate_legacy_credential(
     try:
         keyring.set_password(KEYRING_SERVICE_NAME, KEYRING_USERNAME, api_key)
     except (KeyringError, OSError):
-        logger.warning("Legacy credential migration to OS keyring failed.")
+        logger.warning("Could not copy the legacy credential to the OS keyring.")
         return LegacyCredential(
             api_key,
             LegacyMigrationFailed(),
             (*warnings, LegacyMigrationFailureWarning()),
         )
-    logger.info("Legacy API key copied to OS keyring.")
+    logger.info("Copied the legacy API key to the OS keyring.")
     return LegacyCredential(api_key, LegacyMigrationSucceeded(), warnings)

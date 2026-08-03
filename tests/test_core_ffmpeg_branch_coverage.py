@@ -184,7 +184,7 @@ def test_first_version_line_uses_stderr_or_unknown() -> None:
         ("custom build", (True, "custom build")),
         (
             "ffmpeg version 4.2.9",
-            (False, "ffmpeg too old: found ffmpeg version 4.2.9, require >= 4.3.0"),
+            (False, "ffmpeg is too old: found ffmpeg version 4.2.9, need >= 4.3.0"),
         ),
         ("ffmpeg version 4.3.0", (True, "ffmpeg version 4.3.0")),
     ],
@@ -205,10 +205,10 @@ def test_preflight_decodes_versions(
     ("error", "fragment"),
     [
         (FileNotFoundError("missing"), "not found"),
-        (subprocess.CalledProcessError(2, ["ffmpeg"]), "invocation failed"),
-        (subprocess.TimeoutExpired(["ffmpeg"], 15), "check error"),
-        (PermissionError("denied"), "check error"),
-        (OSError("device unavailable"), "check error"),
+        (subprocess.CalledProcessError(2, ["ffmpeg"]), "ffmpeg exited with an error"),
+        (subprocess.TimeoutExpired(["ffmpeg"], 15), "ffmpeg check failed"),
+        (PermissionError("denied"), "ffmpeg check failed"),
+        (OSError("device unavailable"), "ffmpeg check failed"),
     ],
 )
 def test_preflight_and_about_translate_probe_failures(
@@ -232,7 +232,7 @@ def test_preflight_translates_operational_os_errors(
 
     monkeypatch.setattr(ffmpeg, "_run_ffmpeg_version", raise_error)
 
-    assert ffmpeg.preflight_check() == (False, f"ffmpeg check error: {error}")
+    assert ffmpeg.preflight_check() == (False, f"ffmpeg check failed: {error}")
 
 
 def test_get_ffmpeg_version_surfaces_runtime_errors(monkeypatch: pytest.MonkeyPatch) -> None:

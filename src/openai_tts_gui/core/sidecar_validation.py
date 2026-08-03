@@ -34,7 +34,7 @@ class SidecarParseError(ValidationError):
 def safe_environment(environment: Mapping[str, str]) -> tuple[tuple[str, str], ...]:
     entries = tuple(sorted(environment.items()))
     if not set(environment).issubset(_ENVIRONMENT_FIELDS):
-        raise SidecarParseError("environment fields are not approved")
+        raise SidecarParseError("the environment fields are not approved")
     for _, value in entries:
         if basename(value) != value:
             raise SidecarParseError("environment field must not be an absolute path")
@@ -45,7 +45,7 @@ def safe_retry_headers(headers: Mapping[str, str] | None) -> tuple[tuple[str, st
     if headers is None:
         return None
     if not set(headers).issubset(_RETRY_HEADERS):
-        raise SidecarParseError("retry headers are not approved")
+        raise SidecarParseError("the retry headers are not approved")
     return tuple(sorted(headers.items()))
 
 
@@ -64,4 +64,4 @@ def _validate_portable_name(name: str) -> None:
         or name.rstrip(". ") != name
         or device_name in _WINDOWS_DEVICE_NAMES
     ):
-        raise SidecarParseError("path must have a portable basename")
+        raise SidecarParseError("the path must have a portable basename")

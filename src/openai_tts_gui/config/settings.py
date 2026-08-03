@@ -33,7 +33,7 @@ def _read_int_env(name: str, default: int, *, minimum: int, maximum: int) -> int
 # --- General Settings ---
 APP_NAME = "OpenAI TTS"
 APP_VERSION = _resolve_app_version()
-# per-user app data directory
+# Per-user application data directory.
 DATA_DIR = user_data_dir(APP_NAME, appauthor=False)
 LOG_FILE = os.path.join(DATA_DIR, "tts_app.log")
 PRESETS_FILE = os.path.join(DATA_DIR, "presets.json")
@@ -87,20 +87,20 @@ MAX_CHUNK_SIZE = 4096
 MAX_RETRIES = 3
 RETRY_DELAY = 5  # seconds
 
-# Force raw audio streaming instead of SSE; keep configurable for advanced users
+# Use raw audio streaming instead of SSE. Advanced users can change this setting.
 STREAM_FORMAT = os.getenv("TTS_STREAM_FORMAT", "audio") or "audio"
 if STREAM_FORMAT not in {"audio", "sse"}:
     STREAM_FORMAT = "audio"
 
-# Optional parallelism: 1 disables, >1 enables parallel chunk generation
+# Parallelism: 1 disables parallel chunk generation. Values above 1 enable it.
 PARALLELISM = _read_int_env("TTS_PARALLELISM", 1, minimum=1, maximum=8)
 
 # --- Encryption Key (Simple Obfuscation) ---
-# WARNING: This is NOT cryptographically secure. It only obfuscates the key.
-# Anyone with access to the source code can easily decrypt the key.
-# For stronger security, consider using OS keyring or a more robust encryption library.
+# WARNING: This is not cryptographically secure. It only obfuscates the key.
+# Anyone who can access the source code can easily decrypt the key.
+# For stronger security, use the OS keyring or a stronger encryption library.
 OBFUSCATION_KEY = b"my_simple_secret_key_for_xor"  # CHANGE THIS TO SOMETHING ELSE
-USE_KEYRING = True  # Store API key in OS keyring when available
+USE_KEYRING = True  # Store the API key in the OS keyring when it is available.
 
 # --- UI Settings ---
 DEFAULT_WINDOW_WIDTH = 700
@@ -145,7 +145,7 @@ CODEC_MAP = {
 }
 DEFAULT_CODEC = "copy"
 
-# Force consistent output params to avoid ffmpeg/env drift
+# Use consistent output parameters to avoid ffmpeg and environment differences.
 OUTPUT_SAMPLE_RATE = 48_000
 OUTPUT_CHANNELS = 2
 OUTPUT_BITRATE = "192k"

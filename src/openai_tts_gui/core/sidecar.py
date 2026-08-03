@@ -22,7 +22,7 @@ class UnsupportedSidecarSchemaError(SidecarParseError):
     schema_version: int
 
     def __init__(self, schema_version: int) -> None:
-        super().__init__("unsupported schema version")
+        super().__init__("the schema version is not supported")
         object.__setattr__(self, "schema_version", schema_version)
 
 

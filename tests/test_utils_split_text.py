@@ -28,14 +28,14 @@ def test_rejoin_equals_original(chunk_size):
 def test_no_space_long_token_forced_splits():
     long = "A" * (config.MAX_CHUNK_SIZE * 2 + 123)
     chunks = split_text(long, config.MAX_CHUNK_SIZE)
-    # All chunks except maybe last must be exactly at the limit
+    # All chunks except the last must have the maximum length.
     for c in chunks[:-1]:
         assert len(c) == config.MAX_CHUNK_SIZE
     assert "".join(chunks) == long
 
 
 def test_sentence_boundaries_preferred():
-    # Build a text with punctuation roughly every 40 chars
+    # Build text with punctuation about every 40 characters.
     parts = []
     for _i in range(20):
         s = " ".join(["word"] * 8) + random.choice([".", "!", "?", ";", ":"]) + " "

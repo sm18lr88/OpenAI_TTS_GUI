@@ -52,7 +52,7 @@ def concatenate_audio_files(file_list: Sequence[str], output_file: str) -> str:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     logger.info(
-        "Attempting to concatenate %d file(s) into %s",
+        "Combining %d file(s) into %s",
         len(input_paths),
         output_path,
     )
@@ -60,14 +60,14 @@ def concatenate_audio_files(file_list: Sequence[str], output_file: str) -> str:
     if len(input_paths) == 1:
         source_path = input_paths[0]
         if source_path.resolve() == output_path.resolve():
-            logger.info("Single input file is already at the destination: %s", output_path)
+            logger.info("The single input file is already at the destination: %s", output_path)
             return str(output_path)
         try:
             os.replace(source_path, output_path)
         except OSError as exc:
-            logger.exception("Failed to replace %s with %s", output_path, source_path)
+            logger.exception("Could not move %s to %s", source_path, output_path)
             raise TTSChunkError(
-                f"Failed to replace generated audio into place: {exc}",
+                f"Could not move the generated audio to the output path: {exc}",
                 file_path=str(output_path),
             ) from exc
         logger.info("Replaced single audio file %s at %s", source_path, output_path)
@@ -112,7 +112,7 @@ def concatenate_audio_files(file_list: Sequence[str], output_file: str) -> str:
             concat_command += ["-b:a", str(params["b:a"])]
         concat_command.append(str(output_path))
 
-        logger.info("Executing ffmpeg for concatenation into %s", output_path)
+        logger.info("Running ffmpeg to combine files into %s", output_path)
         result = FfmpegProcess(concat_command).run(_ffmpeg_process_owner.get())
         logger.debug("ffmpeg stdout: %s", result.stdout)
         logger.debug("ffmpeg stderr: %s", result.stderr)
@@ -123,12 +123,12 @@ def concatenate_audio_files(file_list: Sequence[str], output_file: str) -> str:
                 "ffmpeg concatenation failed with exit code "
                 f"{result.returncode}: {result.stderr.strip()}"
             )
-        logger.info("Successfully concatenated files to %s", output_path)
+        logger.info("Combined files into %s", output_path)
         return str(output_path)
     except OSError as exc:
-        logger.exception("File I/O error during concatenation")
+        logger.exception("File I/O error while combining audio")
         raise TTSChunkError(
-            f"File I/O error during concatenation: {exc}",
+            f"File I/O error while combining audio: {exc}",
             file_path=str(output_path),
         ) from exc
     finally:
@@ -136,12 +136,12 @@ def concatenate_audio_files(file_list: Sequence[str], output_file: str) -> str:
             try:
                 concat_list_path.unlink()
             except OSError:
-                logger.warning("Failed to remove temporary concat list %s", concat_list_path)
+                logger.warning("Could not remove the temporary concat list %s", concat_list_path)
 
 
 def cleanup_files(file_list: Iterable[str]) -> CleanupReport:
     files = [Path(path) for path in file_list]
-    logger.info("Cleaning up %d temporary file(s).", len(files))
+    logger.info("Removing %d temporary file(s).", len(files))
     retained: list[str] = []
     warnings: list[str] = []
     for file_path in files:
@@ -152,7 +152,7 @@ def cleanup_files(file_list: Iterable[str]) -> CleanupReport:
             file_path.unlink()
             logger.debug("Deleted temporary file: %s", file_path)
         except OSError as exc:
-            logger.warning("Failed to delete temporary file %s: %s", file_path, exc)
+            logger.warning("Could not delete temporary file %s: %s", file_path, exc)
             retained.append(file_path.name)
-            warnings.append(f"temporary cleanup failed for {file_path.name}: {exc}")
+            warnings.append(f"could not remove temporary file {file_path.name}: {exc}")
     return CleanupReport(tuple(sorted(set(retained))), tuple(sorted(set(warnings))))

@@ -21,7 +21,7 @@ def load_presets(filename: str | None = None) -> dict[str, str]:
         with path.open(encoding="utf-8") as file:
             presets = json.load(file)
         if not isinstance(presets, dict):
-            logger.warning("Presets file %s did not contain a JSON object.", path)
+            logger.warning("The presets file %s is not a JSON object.", path)
             return {}
 
         cleaned: dict[str, str] = {}
@@ -34,14 +34,14 @@ def load_presets(filename: str | None = None) -> dict[str, str]:
         logger.info("Loaded %d presets from %s", len(cleaned), path)
         return cleaned
     except FileNotFoundError:
-        logger.info("Presets file %s not found. Returning empty dictionary.", path)
+        logger.info("Presets file %s was not found. Returning an empty dictionary.", path)
         return {}
     except json.JSONDecodeError as exc:
-        logger.error("Error decoding JSON from %s: %s. Returning empty dictionary.", path, exc)
+        logger.error("Could not decode JSON from %s: %s. Returning an empty dictionary.", path, exc)
         return {}
     except OSError as exc:
         logger.exception(
-            "Error reading presets file %s: %s. Returning empty dictionary.",
+            "Could not read presets file %s: %s. Returning an empty dictionary.",
             path,
             exc,
         )
@@ -69,7 +69,7 @@ def save_presets(presets: dict[str, str], filename: str | None = None) -> bool:
         logger.info("Saved %d presets to %s", len(presets), path)
         return True
     except OSError as exc:
-        logger.exception("Error writing presets to %s: %s", path, exc)
+        logger.exception("Could not write presets to %s: %s", path, exc)
         return False
     finally:
         if temp_path is not None and temp_path.exists():

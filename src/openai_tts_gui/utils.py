@@ -1,4 +1,4 @@
-"""Backward-compat facade — re-exports from new module locations."""
+"""Backward-compatible facade that re-exports newer module locations."""
 
 from .core import (  # noqa: F401
     cleanup_files,

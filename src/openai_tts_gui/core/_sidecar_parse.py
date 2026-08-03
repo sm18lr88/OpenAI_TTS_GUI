@@ -32,7 +32,7 @@ def _parse_serialized(serialized: str) -> ParsedSidecar:
     try:
         payload = json.loads(serialized)
     except json.JSONDecodeError as exc:
-        raise SidecarParseError("invalid JSON") from exc
+        raise SidecarParseError("the sidecar is not valid JSON") from exc
     return parse_sidecar_payload(payload)
 
 
@@ -42,7 +42,7 @@ def read_sidecar_metadata(path: Path) -> ParsedSidecar:
     except FileNotFoundError:
         raise
     except (OSError, UnicodeError) as exc:
-        raise SidecarParseError("could not read sidecar") from exc
+        raise SidecarParseError("could not read the sidecar file") from exc
 
 
 def parse_sidecar_payload(payload: JsonValue) -> ParsedSidecar:
@@ -88,7 +88,7 @@ def _parse_v2(source: dict[str, JsonValue]) -> SidecarV2:
         "request_meta",
     }
     if set(source) != required:
-        raise SidecarParseError("v2 fields are invalid")
+        raise SidecarParseError("the v2 sidecar fields are invalid")
     return SidecarV2(
         audio=_parse_audio(_mapping(source["audio"], "audio")),
         settings=_parse_settings(_mapping(source["settings"], "settings")),
@@ -102,12 +102,12 @@ def _parse_v2(source: dict[str, JsonValue]) -> SidecarV2:
 
 def _parse_audio(source: dict[str, JsonValue]) -> AudioIdentity:
     if set(source) != {"basename", "size_bytes", "sha256"}:
-        raise SidecarParseError("audio fields are invalid")
+        raise SidecarParseError("the audio fields are invalid")
     audio_basename = _string(source["basename"], "audio.basename")
     size_bytes = _integer(source["size_bytes"], "audio.size_bytes")
     sha256 = _string(source["sha256"], "audio.sha256")
     if _basename(audio_basename) != audio_basename or size_bytes < 0 or not _sha256(sha256):
-        raise SidecarParseError("audio identity is invalid")
+        raise SidecarParseError("the audio identity is invalid")
     return AudioIdentity(audio_basename, size_bytes, sha256)
 
 
@@ -126,7 +126,7 @@ def _parse_settings(source: dict[str, JsonValue]) -> SidecarSettings:
         "input_chars",
     }
     if set(source) != required:
-        raise SidecarParseError("settings fields are invalid")
+        raise SidecarParseError("the settings fields are invalid")
     match source["speed"]:
         case int() as value if type(value) is int:
             speed = float(value)
@@ -177,10 +177,10 @@ def _parse_request_meta(value: JsonValue) -> SidecarRequestMeta:
         "retry_headers",
     }
     if set(source) != required:
-        raise SidecarParseError("request_meta fields are invalid")
+        raise SidecarParseError("the request_meta fields are invalid")
     file = _string(source["file"], "file")
     if _basename(file) != file:
-        raise SidecarParseError("chunk file must be a basename")
+        raise SidecarParseError("the chunk file name must be a basename")
     return SidecarRequestMeta(
         _integer(source["chunk_index"], "chunk_index"),
         _nullable_string(source["request_id"], "request_id"),

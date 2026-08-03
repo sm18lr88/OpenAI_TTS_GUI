@@ -23,7 +23,7 @@ class LegacyMigrationFailureWarning:
 
 @dataclass(frozen=True, slots=True)
 class StaleLegacyCredentialWarning:
-    guidance: str = "Remove the legacy credential file manually after verifying keyring access."
+    guidance: str = "After confirming keyring access, manually delete the legacy credential file."
 
 
 type CredentialWarning = (

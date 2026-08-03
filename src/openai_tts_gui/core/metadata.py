@@ -53,7 +53,7 @@ def write_sidecar_metadata(output_file: str, meta: MetadataInput) -> str:
         if temp_path is not None and temp_path.exists():
             temp_path.unlink(missing_ok=True)
 
-    logger.info("Wrote sidecar metadata: %s", sidecar_path)
+    logger.info("Wrote sidecar metadata to %s", sidecar_path)
     return str(sidecar_path)
 
 

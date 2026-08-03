@@ -25,13 +25,13 @@ def _choices_text(values: list[str]) -> str:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="openai-tts",
-        description="Generate speech audio from text via OpenAI TTS API.",
+        description="Create speech audio from text with the OpenAI TTS API.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    input_group = parser.add_argument_group("Input/output")
-    input_group.add_argument("--in", dest="infile", help="Input UTF-8 text file")
-    input_group.add_argument("--out", dest="outfile", help="Output audio path")
+    input_group = parser.add_argument_group("Input and output")
+    input_group.add_argument("--in", dest="infile", help="UTF-8 input text file")
+    input_group.add_argument("--out", dest="outfile", help="Path for the output audio")
 
     tts_group = parser.add_argument_group("TTS options")
     tts_group.add_argument(
@@ -61,12 +61,12 @@ def _build_parser() -> argparse.ArgumentParser:
     tts_group.add_argument(
         "--instructions",
         default="",
-        help=f"Optional voice/tone guidance for {config.GPT_4O_MINI_TTS_MODEL}",
+        help=f"Optional voice and tone instructions for the {config.GPT_4O_MINI_TTS_MODEL} model",
     )
     tts_group.add_argument(
         "--retain-files",
         action="store_true",
-        help="Keep intermediate chunk files next to the output",
+        help="Keep temporary chunk files next to the output",
     )
 
     runtime_group = parser.add_argument_group("Runtime options")
@@ -74,7 +74,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Logging verbosity",
+        help="Log detail level",
     )
     runtime_group.add_argument("--version", action="store_true", help="Print version and exit")
     return parser

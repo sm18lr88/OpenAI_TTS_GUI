@@ -35,7 +35,7 @@ def test_cli_help_documents_tts_option_sections(capsys):
     assert exc_info.value.code == 0
     out = capsys.readouterr().out
     normalized_out = " ".join(out.split())
-    assert "Input/output:" in out
+    assert "Input and output:" in out
     assert "TTS options:" in out
     assert "Runtime options:" in out
     assert "--model" in out

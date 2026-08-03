@@ -51,7 +51,7 @@ def _record_string(record: logging.LogRecord, name: str) -> str | None:
 
 
 class RedactingFormatter(logging.Formatter):
-    """Render only schema-approved logging fields as a bounded JSON record."""
+    """Render only schema-approved logging fields as a size-limited JSON record."""
 
     def __init__(self, max_record_bytes: int, *, include_trace: bool = True) -> None:
         super().__init__()
@@ -264,7 +264,7 @@ class BoundedRotatingFileHandler(logging.Handler):
 
 
 def configure_cli_logging(level: int) -> logging.Handler:
-    """Route sanitized CLI diagnostics to stderr without exception traces."""
+    """Send sanitized CLI diagnostics to stderr without exception traces."""
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(RedactingFormatter(GUI_LOG_MAX_RECORD_BYTES, include_trace=False))
     logging.basicConfig(level=level, handlers=[handler], force=True)

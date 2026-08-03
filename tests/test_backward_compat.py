@@ -1,9 +1,8 @@
-"""Backward compatibility tests.
+"""Test compatibility with existing users and tools.
 
-These tests pin the exact constants, environment variable names, keyring
-service/username strings, and data-format behaviour that external tooling or
-saved user data may depend on. They must PASS without any architecture changes
-and must continue to pass after the refactor.
+These tests protect exact constants, environment variable names, keyring service and username
+strings, and data formats. External tools or saved user data can depend on them. The tests must
+pass without architecture changes and after the refactor.
 """
 
 from __future__ import annotations
