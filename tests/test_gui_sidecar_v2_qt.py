@@ -69,7 +69,7 @@ def test_v2_sidecar_request_ids_and_malformed_schema_are_safe_in_result_actions(
     window._refresh_request_ids_button()
     window._copy_request_ids()
 
-    # Then: valid v2 data works and malformed metadata stays a safe visible failure.
+    # Then: valid v2 data works, and bad metadata shows a visible copy error.
     assert clipboard.text == "v2-request"
     assert not window.copy_ids_button.isEnabled()
     assert [notice[0] for notice in notices] == ["Copied", "Copy Failed"]
@@ -97,4 +97,4 @@ def test_result_actions_handle_empty_output_and_unavailable_clipboard(
     assert window._read_parallelism_used() == 2
     window._copy_request_ids()
 
-    assert notices == [("Copy Failed", "Clipboard unavailable.", "warning")]
+    assert notices == [("Copy Failed", "The clipboard is unavailable.", "warning")]

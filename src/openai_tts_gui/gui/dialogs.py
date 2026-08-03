@@ -83,7 +83,7 @@ class PresetDialog(QDialog):
     def load_selected(self) -> None:
         item = self.preset_list.currentItem()
         if not item:
-            QMessageBox.warning(self, "No Selection", "Please select a preset to load.")
+            QMessageBox.warning(self, "No Selection", "Select a preset to load.")
             return
         name = item.text()
         self.preset_selected.emit(self._presets.get(name, ""))
@@ -106,7 +106,7 @@ class PresetDialog(QDialog):
             response = QMessageBox.question(
                 self,
                 "Overwrite Preset?",
-                f"A preset named '{name}' exists. Overwrite?",
+                f"The preset '{name}' already exists. Overwrite it?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
             if response != QMessageBox.StandardButton.Yes:
@@ -117,13 +117,13 @@ class PresetDialog(QDialog):
             self.load_presets()
             QMessageBox.information(self, "Preset Saved", f"Preset '{name}' saved.")
         else:
-            QMessageBox.critical(self, "Error", "Failed to save presets file.")
+            QMessageBox.critical(self, "Error", "Could not save the presets file.")
 
     @pyqtSlot()
     def delete_selected(self) -> None:
         item = self.preset_list.currentItem()
         if not item:
-            QMessageBox.warning(self, "No Selection", "Please select a preset to delete.")
+            QMessageBox.warning(self, "No Selection", "Select a preset to delete.")
             return
         name = item.text()
         response = QMessageBox.question(
@@ -139,4 +139,6 @@ class PresetDialog(QDialog):
             if save_presets(self._presets):
                 self.load_presets()
             else:
-                QMessageBox.critical(self, "Error", "Failed to save presets file after deletion.")
+                QMessageBox.critical(
+                    self, "Error", "Could not save the presets file after deletion."
+                )

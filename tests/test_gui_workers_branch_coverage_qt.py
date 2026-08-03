@@ -155,28 +155,28 @@ def test_tts_worker_cancel_suppresses_progress_and_emits_cancel_error(qtbot, mon
     [
         (
             PublicationInProgress(),
-            "Publication is already in progress; waiting for verified finalization.",
+            "Publication is already in progress. Waiting for verified finalization.",
         ),
         (
             CancellationStage.AWAITING_PROVIDER_RESPONSE,
-            "Cancellation requested; waiting for the provider call to return.",
+            "Cancellation requested. Waiting for the provider request to return.",
         ),
         (
             CancellationStage.DURING_PROVIDER_STREAM,
-            "Cancellation requested; closing active response streams and waiting for workers.",
+            "Cancellation requested. Closing active response streams. Waiting for workers.",
         ),
         (
             CancellationStage.DURING_FFMPEG,
-            "Cancellation requested; stopping ffmpeg and cleaning staged files.",
+            "Cancellation requested. Stopping ffmpeg and cleaning staged files.",
         ),
         (CancellationStage.NONE, None),
-        (CancellationStage.DURING_RETRY_WAIT, "Cancellation requested; queued work stopped."),
+        (CancellationStage.DURING_RETRY_WAIT, "Cancellation requested. Queued work stopped."),
     ],
 )
 def test_tts_worker_maps_typed_cancellation_decisions_without_message_classification(
     decision: CancellationStage | PublicationInProgress, expected: str | None
 ) -> None:
-    # Given: a typed cancellation decision from the run ownership boundary.
+    # Given: a cancellation result from the generation service.
     worker = TTSWorker(_params())
     statuses: list[str] = []
     worker.status_update.connect(statuses.append)
@@ -184,7 +184,7 @@ def test_tts_worker_maps_typed_cancellation_decisions_without_message_classifica
     # When: the worker translates that decision for the status bar.
     worker._emit_cancel_status(decision)
 
-    # Then: the selected message follows its typed stage rather than an error string.
+    # Then: the selected message matches the cancellation stage, not an error string.
     assert statuses == ([] if expected is None else [expected])
 
 

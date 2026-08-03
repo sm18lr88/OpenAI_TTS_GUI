@@ -45,7 +45,7 @@ def test_close_event_defers_slow_tts_cancellation_without_worker_signal(qtbot, m
     event = QCloseEvent()
     window.closeEvent(event)
 
-    # Then: cancellation is requested and a single event-loop retry is scheduled.
+    # Then: cancellation is requested, and one retry is scheduled through the event loop.
     assert worker.cancelled is True
     assert event.isAccepted() is False
     assert window._close_after_tts_cancel is True

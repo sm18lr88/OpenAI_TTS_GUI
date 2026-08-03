@@ -14,7 +14,7 @@ def build_menu(window: TTSWindow) -> None:
     if menubar is None:
         return
     settings_menu: QMenu | None = menubar.addMenu("Settings")
-    window.retain_files_action = QAction("Retain intermediate chunk files", window)
+    window.retain_files_action = QAction("Keep intermediate chunk files", window)
     window.retain_files_action.setCheckable(True)
     window.parallelism_action = QAction("Chunk parallelism...", window)
     window.parallelism_action.triggered.connect(window._set_parallelism)
@@ -22,7 +22,7 @@ def build_menu(window: TTSWindow) -> None:
         settings_menu.addAction(window.parallelism_action)
         settings_menu.addAction(window.retain_files_action)
     api_menu: QMenu | None = menubar.addMenu("API Key")
-    reload_action = QAction("Reload from secure store", window)
+    reload_action = QAction("Reload API key from secure store", window)
     reload_action.triggered.connect(window._load_api_key_from_file)
     set_key_action = QAction("Set/Update API Key...", window)
     set_key_action.triggered.connect(window._set_custom_api_key)

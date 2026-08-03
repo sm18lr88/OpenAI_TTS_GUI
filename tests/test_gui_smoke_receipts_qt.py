@@ -62,7 +62,7 @@ def test_gui_smoke_deletes_window_and_releases_application_after_success(tmp_pat
     # When: the packaged smoke route completes normally.
     receipt = _observe_teardown(screenshot_path, marker_path)
 
-    # Then: it explicitly defers window destruction, releases QApplication, and exits normally.
+    # Then: it delays window deletion, releases QApplication, and exits normally.
     assert receipt == {"result": 0, "deferred_delete_called": True, "application_released": True}
     assert marker_path.read_text(encoding="utf-8") == "normal"
 

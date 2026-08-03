@@ -152,25 +152,24 @@ class TTSWorker(QThread):
         match decision:
             case PublicationInProgress():
                 self.status_update.emit(
-                    "Publication is already in progress; waiting for verified finalization."
+                    "Publication is already in progress. Waiting for verified finalization."
                 )
             case CancellationStage.AWAITING_PROVIDER_RESPONSE:
                 self.status_update.emit(
-                    "Cancellation requested; waiting for the provider call to return."
+                    "Cancellation requested. Waiting for the provider request to return."
                 )
             case CancellationStage.DURING_PROVIDER_STREAM:
                 self.status_update.emit(
-                    "Cancellation requested; closing active response streams "
-                    "and waiting for workers."
+                    "Cancellation requested. Closing active response streams. Waiting for workers."
                 )
             case CancellationStage.DURING_FFMPEG:
                 self.status_update.emit(
-                    "Cancellation requested; stopping ffmpeg and cleaning staged files."
+                    "Cancellation requested. Stopping ffmpeg and cleaning staged files."
                 )
             case CancellationStage.NONE:
                 return
             case CancellationStage():
-                self.status_update.emit("Cancellation requested; queued work stopped.")
+                self.status_update.emit("Cancellation requested. Queued work stopped.")
             case unreachable:
                 assert_never(unreachable)
 

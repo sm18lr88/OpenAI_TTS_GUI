@@ -243,7 +243,7 @@ class TTSWindow(QMainWindow):
                 return
             self._close_after_api_key_load = True
             (status_bar := self.statusBar()) and status_bar.showMessage(
-                "Waiting for API key load before closing...", 5000
+                "Waiting for the API key to load before closing...", 5000
             )
             self._schedule_close_retry()
             self._ignore_close_event(a0)
@@ -257,7 +257,7 @@ class TTSWindow(QMainWindow):
             response = QMessageBox.question(
                 self,
                 "Confirm Exit",
-                "TTS generation in progress. Exit and cancel it?",
+                "TTS generation is in progress. Exit and cancel it?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
             if response != QMessageBox.StandardButton.Yes:
@@ -267,7 +267,7 @@ class TTSWindow(QMainWindow):
             self._close_after_tts_cancel = True
             self.cancel_button.setEnabled(False)
             (status_bar := self.statusBar()) and status_bar.showMessage(
-                "Waiting for TTS cancellation before closing...", 5000
+                "Waiting for TTS cancellation to finish before closing...", 5000
             )
             self._schedule_close_retry()
             self._ignore_close_event(a0)

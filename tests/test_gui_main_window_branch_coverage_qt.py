@@ -90,8 +90,8 @@ def test_start_creation_validates_key_text_path_and_speed_via_controls(
 
     assert notices[:4] == [
         ("API Key Missing", "Set your OpenAI API key in the 'API Key' menu.", "warning"),
-        ("Empty Text", "Please enter some text.", "warning"),
-        ("Path Error", "Output path points to a directory.", "critical"),
+        ("Empty Text", "Enter text to convert to speech.", "warning"),
+        ("Path Error", "The output path is a directory.", "critical"),
         (
             "Invalid Speed",
             f"Speed must be between {config.MIN_SPEED} and {config.MAX_SPEED}. "
@@ -183,12 +183,12 @@ def test_sidecar_request_ids_and_parallelism_outcomes_are_visible(
 
     assert window.copy_ids_button.isEnabled()
     assert clipboard.text == "request-one\nrequest-two"
-    assert window.parallelism_status_label.text() == "Last run parallelism used: 2"
+    assert window.parallelism_status_label.text() == "Chunk parallelism used in the last run: 2"
     assert notices[-2:] == [
-        ("Copied", "Request IDs copied to clipboard.", "info"),
+        ("Copied", "Request IDs were copied to the clipboard.", "info"),
         (
             "TTS Complete",
-            'done\n\nShow <a href="https://paypal.me/LeoRiera">appreciation</a>.',
+            'done\n\nShow <a href="https://paypal.me/LeoRiera">your appreciation</a>.',
             "info",
         ),
     ]

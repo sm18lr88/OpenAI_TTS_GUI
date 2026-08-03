@@ -49,7 +49,9 @@ def test_close_defers_for_active_api_loader_without_wait_and_eventually_closes(q
     assert not second.isAccepted()
     assert window._close_after_api_key_load
     assert loader.wait_calls == 0
-    assert window.statusBar().currentMessage() == "Waiting for API key load before closing..."
+    assert (
+        window.statusBar().currentMessage() == "Waiting for the API key to load before closing..."
+    )
     loader.running = False
     loader.finished.emit()
     qtbot.waitUntil(lambda: not window.isVisible())
@@ -76,7 +78,10 @@ def test_close_defers_for_active_tts_after_user_confirms_without_wait_and_eventu
     assert not second.isAccepted()
     assert window._close_after_tts_cancel
     assert worker.wait_calls == 0
-    assert window.statusBar().currentMessage() == "Waiting for TTS cancellation before closing..."
+    assert (
+        window.statusBar().currentMessage()
+        == "Waiting for TTS cancellation to finish before closing..."
+    )
     worker.running = False
     worker.finished.emit()
     qtbot.waitUntil(lambda: not window.isVisible())

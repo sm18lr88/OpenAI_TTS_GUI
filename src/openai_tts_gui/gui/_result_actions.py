@@ -53,7 +53,7 @@ class ResultActions:
     def completion_message(self, message: str) -> str:
         escaped_message = html.escape(message)
         escaped_url = html.escape(config.SUPPORT_URL, quote=True)
-        return f'{escaped_message}\n\nShow <a href="{escaped_url}">appreciation</a>.'
+        return f'{escaped_message}\n\nShow <a href="{escaped_url}">your appreciation</a>.'
 
     def read_parallelism_used(self) -> int | None:
         output_path = self._window.path_entry.text().strip()
@@ -69,7 +69,7 @@ class ResultActions:
         output_path = self._window.path_entry.text().strip()
         if not output_path:
             self._window._notify(
-                "No Output", "Generate TTS first to copy request IDs.", level="warning"
+                "No Output", "Generate speech first to copy request IDs.", level="warning"
             )
             return
         sidecar = Path(f"{output_path}.json")
@@ -77,18 +77,22 @@ class ResultActions:
             request_ids = read_sidecar_metadata(sidecar).request_ids
             if not request_ids:
                 self._window._notify(
-                    "No Request IDs", "No request IDs found in sidecar.", level="warning"
+                    "No Request IDs", "No request IDs are in the sidecar file.", level="warning"
                 )
                 return
             clipboard = QApplication.clipboard()
             if clipboard is None:
-                self._window._notify("Copy Failed", "Clipboard unavailable.", level="warning")
+                self._window._notify(
+                    "Copy Failed", "The clipboard is unavailable.", level="warning"
+                )
                 return
             clipboard.setText("\n".join(request_ids))
-            self._window._notify("Copied", "Request IDs copied to clipboard.")
+            self._window._notify("Copied", "Request IDs were copied to the clipboard.")
         except FileNotFoundError:
             self._window._notify(
-                "Sidecar Missing", "Sidecar file not found for this output.", level="warning"
+                "Sidecar Missing",
+                "The sidecar file for this output was not found.",
+                level="warning",
             )
         except SidecarParseError as exc:
             self._window._notify("Copy Failed", str(exc), level="critical")

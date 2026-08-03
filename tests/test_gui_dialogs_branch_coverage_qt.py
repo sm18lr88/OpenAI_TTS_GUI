@@ -44,7 +44,7 @@ def test_load_without_selection_displays_warning(qtbot, monkeypatch) -> None:
 
     dialog.load_selected()
 
-    assert warnings == [("No Selection", "Please select a preset to load.")]
+    assert warnings == [("No Selection", "Select a preset to load.")]
 
 
 @pytest.mark.parametrize(
@@ -108,7 +108,7 @@ def test_save_current_handles_overwrite_rejection_success_and_failure(qtbot, mon
     assert records == [{"saved": "current instructions"}]
     assert notices == [
         ("Preset Saved", "Preset 'saved' saved."),
-        ("Error", "Failed to save presets file."),
+        ("Error", "Could not save the presets file."),
     ]
 
 
@@ -141,8 +141,8 @@ def test_delete_action_handles_selection_confirmation_and_write_outcomes(
     qtbot.mouseClick(dialog.delete_button, Qt.MouseButton.LeftButton)
 
     assert notices == [
-        ("No Selection", "Please select a preset to delete."),
-        ("Error", "Failed to save presets file after deletion."),
+        ("No Selection", "Select a preset to delete."),
+        ("Error", "Could not save the presets file after deletion."),
     ]
     assert "remove" not in dialog._presets
 

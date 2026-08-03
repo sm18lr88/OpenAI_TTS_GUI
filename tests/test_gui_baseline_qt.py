@@ -79,7 +79,7 @@ def test_gui_smoke_replaces_stale_capture_with_png_when_output_path_is_provided(
     # When: the packaged entry smoke surface receives that output path.
     result = _run_gui_smoke(screenshot_path)
 
-    # Then: the legacy success marker remains and a fresh PNG replaces the stale file.
+    # Then: the existing success marker remains, and a fresh PNG replaces the stale file.
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "gui-smoke=ok"
     assert screenshot_path.read_bytes().startswith(PNG_SIGNATURE)
@@ -146,7 +146,7 @@ def test_gui_baseline_exits_normally_after_teardown(tmp_path: Path) -> None:
         timeout=20,
     )
 
-    # Then: normal interpreter teardown runs after valid baseline evidence is written.
+    # Then: the process exits normally after it writes valid baseline evidence.
     assert result.returncode == 0, result.stderr
     assert marker_path.read_text(encoding="utf-8") == "normal"
     evidence = json.loads(json_path.read_text(encoding="utf-8"))
@@ -175,7 +175,7 @@ def test_gui_baseline_records_stable_geometry_focus_and_state_at_each_scale(
         timeout=20,
     )
 
-    # Then: required controls, focus traversal, state, and clipping classification are stable.
+    # Then: required controls, focus traversal, state, and clipping results are stable.
     assert result.returncode == 0, result.stderr
     assert screenshot_path.read_bytes().startswith(PNG_SIGNATURE)
     evidence = json.loads(json_path.read_text(encoding="utf-8"))

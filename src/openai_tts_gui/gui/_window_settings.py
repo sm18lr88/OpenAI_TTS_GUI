@@ -86,7 +86,9 @@ class WindowSettings:
             )
             return
         if last_used is not None:
-            self._window.parallelism_status_label.setText(f"Last run parallelism used: {last_used}")
+            self._window.parallelism_status_label.setText(
+                f"Chunk parallelism used in the last run: {last_used}"
+            )
             return
         self._window.parallelism_status_label.setText("Active chunk workers: idle")
 
@@ -98,7 +100,7 @@ class WindowSettings:
         value, ok = QInputDialog.getInt(
             self._window,
             "Chunk Parallelism",
-            "How many chunks may run at once?",
+            "How many chunks can run at once?",
             value=self._window._parallelism,
             min=1,
             max=8,
@@ -116,9 +118,9 @@ class WindowSettings:
         if showed_warning:
             self._window._notify(
                 "Parallel Processing Risk",
-                "Chunk parallelism was increased above 1. Higher values can trigger rate limits, "
-                "may slow down jobs through retries, and are often best kept at 2 or 3 unless your "
-                "account stays stable.",
+                "Chunk parallelism was increased above 1. Higher values can trigger rate limits. "
+                "Retries may slow jobs. Values of 2 or 3 are often best unless your account stays "
+                "stable.",
                 level="warning",
             )
             return

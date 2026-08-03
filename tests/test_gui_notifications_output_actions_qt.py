@@ -34,8 +34,8 @@ def test_about_page_includes_appreciation_link(qtbot):
     html = window.about_text.toHtml()
     text = window.about_text.toPlainText()
 
-    # Then: the appreciation action is represented in plain and rich text.
-    assert "Show appreciation" in text
+    # Then: the appreciation link appears in plain and rich text.
+    assert "Show your appreciation" in text
     assert "https://paypal.me/LeoRiera" in html
     assert "appreciation" in html
     window.close()
@@ -79,11 +79,12 @@ def test_tts_success_notification_includes_appreciation_link_and_preserves_open_
     # When: TTS completion is handled.
     window._handle_tts_success("TTS audio saved successfully.")
 
-    # Then: the rich notification and original output path are preserved.
+    # Then: the completion notice has a rich-text link, and it opens the original output path.
     assert messages == [
         (
             "TTS Complete",
-            'TTS audio saved successfully.\n\nShow <a href="https://paypal.me/LeoRiera">appreciation</a>.',
+            "TTS audio saved successfully.\n\n"
+            'Show <a href="https://paypal.me/LeoRiera">your appreciation</a>.',
             "info",
             True,
         )
@@ -101,9 +102,9 @@ def test_tts_completion_message_escapes_generated_text(qtbot):
     # When: a completion message is created from generated text containing HTML characters.
     message = window._completion_message("Saved <danger> & done.")
 
-    # Then: generated content is escaped while the appreciation link remains rich text.
+    # Then: generated text is escaped, and the appreciation link remains rich text.
     assert "Saved &lt;danger&gt; &amp; done." in message
-    assert '<a href="https://paypal.me/LeoRiera">appreciation</a>' in message
+    assert '<a href="https://paypal.me/LeoRiera">your appreciation</a>' in message
     window.close()
 
 

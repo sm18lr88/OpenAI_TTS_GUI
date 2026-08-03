@@ -149,14 +149,14 @@ def test_request_id_empty_missing_and_read_error_notify_user(qtbot, tmp_path) ->
 
 
 def test_request_id_invalid_sidecar_shapes_preserve_copy_failed(qtbot, tmp_path) -> None:
-    # Given: a visible window and every JSON shape that cannot produce string request IDs.
+    # Given: a visible window and valid JSON payloads with invalid request-ID shapes.
     window = _window(qtbot)
     notices = _notices(window)
     output = tmp_path / "invalid.mp3"
     window.path_entry.setText(str(output))
     sidecar = Path(f"{output}.json")
 
-    # When: request IDs are copied from each malformed-but-valid JSON payload.
+    # When: request IDs are copied from each valid JSON payload with an invalid shape.
     payloads = (
         [{"request_id": "id"}],
         "not-an-object",
@@ -168,7 +168,7 @@ def test_request_id_invalid_sidecar_shapes_preserve_copy_failed(qtbot, tmp_path)
         sidecar.write_text(json.dumps(payload), encoding="utf-8")
         window._copy_request_ids()
 
-    # Then: every shape keeps the original visible copy failure outcome.
+    # Then: every shape shows the same copy-failed notice.
     assert [record[0] for record in notices] == ["Copy Failed"] * 5
 
 

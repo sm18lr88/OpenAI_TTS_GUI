@@ -93,7 +93,7 @@ def test_parallelism_setting_persists_in_app(qtbot, monkeypatch, tmp_path):
     qtbot.addWidget(restored_window)
     restored_window.show()
 
-    # Then: the persisted capacity and its warning state are restored.
+    # Then: the saved worker limit and warning state return.
     assert restored_window.parallelism_label.text() == "Parallel workers: 0 (max: 3)"
     assert restored_window._parallelism_warning_shown is True
     restored_window.close()
@@ -152,7 +152,7 @@ def test_parallelism_label_uses_requested_current_and_max_format(qtbot):
     # When: the chunk count is refreshed.
     window.update_counts()
 
-    # Then: the label distinguishes current workers from requested capacity.
+    # Then: the label shows active workers and the requested maximum.
     assert window.parallelism_label.text() == "Parallel workers: 2 (max: 5)"
     window.close()
 

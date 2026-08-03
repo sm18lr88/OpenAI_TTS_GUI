@@ -46,7 +46,7 @@ def _require_named_widget(window: QWidget, object_name: str) -> QWidget:
 
 
 def test_text_panel_preserves_pre_extraction_editor_placeholder_and_defaults(qtbot) -> None:
-    # Given: a window built through the extracted layout composition facade.
+    # Given: a window built through the layout builder.
     window = TTSWindow()
     qtbot.addWidget(window)
     window.show()
@@ -85,7 +85,7 @@ def test_layout_smoke_reports_missing_named_widget_when_panel_builder_is_omitted
     window.show()
     QApplication.processEvents()
 
-    # Then: stable-widget smoke identifies the omitted panel by its object name.
+    # Then: the smoke test finds the missing panel by its object name.
     with pytest.raises(AssertionError, match=f"Missing stable GUI object name: {object_name}"):
         _require_named_widget(window, object_name)
 
@@ -102,7 +102,7 @@ def test_menu_smoke_reports_missing_action_when_menu_builder_is_omitted(
     _layout.build_menubar(window)
     QApplication.processEvents()
 
-    # Then: the menu smoke reports the missing observable action instead of passing silently.
+    # Then: the smoke test reports the missing action instead of passing.
     with pytest.raises(AttributeError, match="retain_files_action"):
         _ = window.retain_files_action
 

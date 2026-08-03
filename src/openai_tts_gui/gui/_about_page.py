@@ -59,42 +59,42 @@ def about_html() -> str:
         f"""
         <h2>{html.escape(config.APP_NAME)} {html.escape(config.APP_VERSION)}</h2>
         <p>
-            OpenAI TTS GUI converts text into speech via OpenAI's TTS service.
-            Fine-tune voices, models, and export formats without scripting.
+            OpenAI TTS GUI turns text into speech with OpenAI's TTS service.
+            Set voices, models, and export formats without writing scripts.
         </p>
         <h3>Highlights</h3>
         <ul>
-            <li>Pick an OpenAI voice, tweak speed, and export in your preferred format.</li>
-            <li>Save reusable instruction presets for guidance-capable models.</li>
-            <li>Monitor generation progress, cancel work in flight, and optionally keep chunks.</li>
+            <li>Choose an OpenAI voice, set the speed, and export in your preferred format.</li>
+            <li>Save instruction presets for models that support them.</li>
+            <li>Monitor progress, cancel generation, and optionally keep chunk files.</li>
         </ul>
         <h3>Quick Tips</h3>
         <ul>
-            <li>Add the API key under <em>API Key &gt; Set/Update</em>.</li>
-            <li>Use the preset manager to store prompt snippets.</li>
+            <li>Add your API key under <em>API Key &gt; Set/Update</em>.</li>
+            <li>Use the preset manager to store instruction snippets.</li>
             <li>
-                Long text is split into chunks of up to {config.MAX_CHUNK_SIZE} characters
-                before generation.
+                The app splits long text into chunks of up to {config.MAX_CHUNK_SIZE} characters.
+                It then generates speech.
             </li>
-            <li>Adjust chunk parallelism under <em>Settings &gt; Chunk parallelism</em>.</li>
+            <li>Set chunk parallelism under <em>Settings &gt; Chunk parallelism</em>.</li>
             <li>See README.md for workflow examples.</li>
         </ul>
         <h3>Support</h3>
         <p>
-            Show <a href="{html.escape(config.SUPPORT_URL)}">appreciation</a>
+            Show <a href="{html.escape(config.SUPPORT_URL)}">your appreciation</a>
             if this app helps you.
         </p>
         <h3>Parallel Processing Risks</h3>
         <ul>
             <li>
-                Higher parallelism can trigger OpenAI rate limits,
+                Higher parallelism can cause OpenAI rate limits,
                 especially on smaller or non-corporate accounts.
             </li>
             <li>
-                When rate limits hit, the app slows itself down and retries,
-                so larger values are not always faster.
+                When this happens, the app slows down and retries.
+                Larger values are not always faster.
             </li>
-            <li>Start with 2 or 3 workers and only increase if your runs stay stable.</li>
+            <li>Start with 2 or 3 workers. Increase only if your runs stay stable.</li>
         </ul>
         <h3>Environment</h3>
         <ul>

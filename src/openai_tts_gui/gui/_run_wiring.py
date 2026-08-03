@@ -72,7 +72,7 @@ class RunWiring:
             return
         text_to_speak = self._window.text_edit.toPlainText()
         if not text_to_speak.strip():
-            self._window._notify("Empty Text", "Please enter some text.", level="warning")
+            self._window._notify("Empty Text", "Enter text to convert to speech.", level="warning")
             return
         selected_format = self._window.format_combo.currentText()
         output_path = self._window._normalize_output_path(
@@ -81,9 +81,7 @@ class RunWiring:
         self._window.path_entry.setText(output_path)
         output_path_object = Path(output_path)
         if output_path_object.exists() and output_path_object.is_dir():
-            self._window._notify(
-                "Path Error", "Output path points to a directory.", level="critical"
-            )
+            self._window._notify("Path Error", "The output path is a directory.", level="critical")
             return
         try:
             speed = float(self._window.speed_input.text().strip())

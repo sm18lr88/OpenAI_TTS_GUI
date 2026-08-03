@@ -127,7 +127,7 @@ def build_controls_panel(window: TTSWindow) -> QWidget:
     window.instructions_edit = QTextEdit()
     window.instructions_edit.setObjectName("instructionsEdit")
     window.instructions_edit.setPlaceholderText(
-        f"Optional voice, tone, and pacing guidance for {config.GPT_4O_MINI_TTS_MODEL}."
+        f"Optional voice, tone, and pacing instructions for {config.GPT_4O_MINI_TTS_MODEL}."
     )
     window.instructions_edit.setMinimumHeight(60)
     window.instructions_edit.setSizePolicy(
@@ -147,7 +147,7 @@ def build_controls_panel(window: TTSWindow) -> QWidget:
     path_row.addWidget(_field_label("Save As:"))
     window.path_entry = QLineEdit()
     window.path_entry.setObjectName("pathEntry")
-    window.path_entry.setPlaceholderText("Select output file path...")
+    window.path_entry.setPlaceholderText("Select an output file path...")
     path_row.addWidget(window.path_entry)
     window.select_path_button = QPushButton("Browse...")
     window.select_path_button.setObjectName("selectPathButton")
