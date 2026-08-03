@@ -1,6 +1,6 @@
 # MSIX Visual Assets
 
-The local MSIX build script stages placeholder PNG assets for these manifest names:
+The local MSIX build script stages placeholder PNG assets with these manifest names:
 
 - `Square44x44Logo.png`
 - `Square150x150Logo.png`

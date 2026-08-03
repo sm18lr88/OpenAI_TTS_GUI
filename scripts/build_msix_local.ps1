@@ -27,7 +27,7 @@ function Get-ProjectVersion {
 
 function Convert-ToMsixVersion([string]$InputVersion) {
     $parts = $InputVersion -split '[^0-9]+' | Where-Object { $_ -ne "" }
-    if ($parts.Count -eq 0) { throw "Version '$InputVersion' cannot be converted to MSIX numeric form." }
+    if ($parts.Count -eq 0) { throw "Version '$InputVersion' cannot be converted to the MSIX numeric format." }
     while ($parts.Count -lt 4) { $parts += "0" }
     return ($parts[0..3] -join ".")
 }
@@ -68,14 +68,14 @@ function Remove-StagedPath([string]$RelativePath) {
 }
 
 if (-not (Test-Path -LiteralPath $PyInstallerOutput)) {
-    throw "PyInstaller output not found at '$PyInstallerOutput'. Run: uv run pyinstaller --noconfirm packaging/pyinstaller/openai_tts.spec"
+    throw "PyInstaller output was not found at '$PyInstallerOutput'. Run: uv run pyinstaller --noconfirm packaging/pyinstaller/openai_tts.spec"
 }
 if (-not (Test-Path -LiteralPath (Join-Path $PyInstallerOutput "openai_tts_bin.exe"))) {
-    throw "Packaged executable not found: '$PyInstallerOutput\openai_tts_bin.exe'."
+    throw "The packaged executable was not found: '$PyInstallerOutput\openai_tts_bin.exe'."
 }
 
 $makeappx = Resolve-Tool "makeappx.exe"
-if (-not $makeappx) { throw "makeappx.exe is unavailable. Install the Windows SDK and add MakeAppx to PATH." }
+if (-not $makeappx) { throw "makeappx.exe is not available. Install the Windows SDK and add MakeAppx to PATH." }
 
 if (Test-Path -LiteralPath $StagePath) { Remove-Item -LiteralPath $StagePath -Recurse -Force }
 New-Item -ItemType Directory -Path $StagePath | Out-Null
@@ -105,7 +105,7 @@ Set-Content -LiteralPath (Join-Path $StagePath "AppxManifest.xml") -Value $manif
 $signtool = $null
 if ($CertThumbprint -or $PfxPath) {
     $signtool = Resolve-Tool "signtool.exe"
-    if (-not $signtool) { throw "signtool.exe is unavailable. Install the Windows SDK or skip signing." }
+    if (-not $signtool) { throw "signtool.exe is not available. Install the Windows SDK or skip signing." }
     Get-ChildItem -LiteralPath $StagePath -Recurse -File |
         Where-Object { $_.Extension -in @(".exe", ".dll", ".pyd") } |
         ForEach-Object { Invoke-SignTarget $signtool $_.FullName }

@@ -14,7 +14,7 @@ function Resolve-AppCert {
 }
 
 if (-not (Test-Path -LiteralPath $PackagePath)) {
-    Write-Error "MSIX package unavailable: $PackagePath. Build it first with scripts/build_msix_local.ps1."
+    Write-Error "MSIX package was not found: $PackagePath. Build it first with scripts/build_msix_local.ps1."
     exit 1
 }
 $resolvedPackagePath = (Resolve-Path -LiteralPath $PackagePath).Path
@@ -45,14 +45,14 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 if (-not (Test-Path -LiteralPath $resolvedReportPath)) {
-    Write-Error "WACK report unavailable after appcert completed: $resolvedReportPath"
+    Write-Error "WACK report was not found after appcert completed: $resolvedReportPath"
     exit 1
 }
 
 & python "scripts/check_wack_report.py" $resolvedReportPath
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "WACK report is not a parsed pass. Certification is not claimed."
+    Write-Error "WACK report could not be parsed as a pass. Certification is not claimed."
     exit $LASTEXITCODE
 }
 
-Write-Host "WACK report parsed as PASS: $resolvedReportPath"
+Write-Host "WACK report result is PASS: $resolvedReportPath"

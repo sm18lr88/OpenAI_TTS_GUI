@@ -1,4 +1,4 @@
-# Prevent test and profiling assets from being included in release archives
+# Exclude test and profiling assets from release archives
 tests/ export-ignore
 tests/** export-ignore
 tools/profile_split_concat.py export-ignore

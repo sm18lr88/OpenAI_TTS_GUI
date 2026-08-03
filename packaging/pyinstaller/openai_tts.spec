@@ -1,12 +1,12 @@
-# PyInstaller spec for OpenAI TTS GUI (native PyQt6 only)
+# PyInstaller specification for OpenAI TTS GUI. It uses native PyQt6 only.
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_data_files
 
 PROJECT_ROOT = Path(SPECPATH).parents[1]
 
-# Restrict to the Qt modules we actually use to avoid pulling in optional
-# plugins that emit missing-DLL warnings on Windows runners.
+# Include only the Qt modules that the app uses.
+# This avoids optional plugins that emit missing-DLL warnings on Windows runners.
 REQUIRED_QT_MODULES = [
     "PyQt6.QtCore",
     "PyQt6.QtGui",
@@ -54,8 +54,8 @@ hidden = REQUIRED_QT_MODULES + [
     "openai_tts_gui.gui._window_settings",
     "openai_tts_gui.errors",
 ]
-# Only bundle the Qt plugin categories required for widget apps; avoid heavy/optional
-# plugins (3D, multimedia, QML) that trigger missing-DLL warnings on CI.
+# Bundle only the Qt plugin categories that widget apps require.
+# Exclude heavy optional plugins (3D, multimedia, QML) that trigger missing-DLL warnings in CI.
 datas = collect_data_files(
     "PyQt6",
     includes=[

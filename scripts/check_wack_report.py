@@ -39,18 +39,18 @@ def report_passed(report_path: Path) -> tuple[bool, str]:
     ]
 
     if not explicit_results:
-        return False, "WACK report schema unknown: missing explicit result fields"
+        return False, "WACK report schema is unknown: explicit result fields are missing"
     if any(result in FAIL_MARKERS for result in explicit_results):
         failed_tests = _failed_test_names(root)
         if failed_tests:
             return False, "WACK report contains failed tests: " + "; ".join(failed_tests[:5])
-        return False, "WACK report contains fail/error markers"
+        return False, "WACK report contains failure or error markers"
     if root_overall and root_overall not in PASS_MARKERS:
         return False, f"WACK report overall result: {root_overall}"
     if overall_results and any(result not in PASS_MARKERS for result in overall_results):
         return False, f"WACK report result: {', '.join(overall_results)}"
     if test_results and any(result not in PASS_MARKERS for result in test_results):
-        return False, "WACK report contains non-pass test results"
+        return False, "WACK report contains test results that did not pass"
 
     for element in root.iter():
         values = [
@@ -58,7 +58,7 @@ def report_passed(report_path: Path) -> tuple[bool, str]:
             *(_normalized(value) for value in element.attrib.values()),
         ]
         if any(value in FAIL_MARKERS for value in values):
-            return False, "WACK report contains fail/error markers"
+            return False, "WACK report contains failure or error markers"
 
     return True, "WACK report PASS"
 

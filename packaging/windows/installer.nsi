@@ -24,7 +24,7 @@ RequestExecutionLevel user
 Section "Install"
     IfFileExists "$INSTDIR\.openai-tts-install" install.continue
     IfFileExists "$INSTDIR\*.*" 0 install.continue
-    MessageBox MB_ICONSTOP "The selected folder is not empty. Choose an empty OpenAI TTS folder or the existing app install folder."
+    MessageBox MB_ICONSTOP "The selected folder is not empty. Choose an empty OpenAI TTS folder or the existing application installation folder."
     Abort
 
     install.continue:
@@ -81,6 +81,6 @@ Section "Uninstall"
     Return
 
     un.safe_abort:
-        MessageBox MB_ICONSTOP "Uninstall path verification failed. Refusing to remove $INSTDIR."
+        MessageBox MB_ICONSTOP "Uninstall path verification failed. The uninstaller will not remove $INSTDIR."
         Abort
 SectionEnd

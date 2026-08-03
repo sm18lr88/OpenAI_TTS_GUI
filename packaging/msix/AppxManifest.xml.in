@@ -29,7 +29,7 @@
     <Application Id="OpenAITTSGUI" Executable="openai_tts_bin.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
         DisplayName="OpenAI TTS GUI"
-        Description="Desktop text-to-speech app for OpenAI TTS."
+        Description="Desktop app that converts text to speech with OpenAI TTS."
         BackgroundColor="#202124"
         Square44x44Logo="Assets\Square44x44Logo.png"
         Square150x150Logo="Assets\Square150x150Logo.png">
