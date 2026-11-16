@@ -3,7 +3,7 @@
 ## Description
 
 OpenAI TTS GUI is a desktop and command-line text-to-speech client for OpenAI's API.
-It splits long text into chunks, generates audio, and joins the audio automatically.
+It splits long text into chunks, generates the audio for each chunk, and joins the pieces automatically.
 It also keeps reproducible metadata.
 
 <img width="550" alt="image" src="https://github.com/user-attachments/assets/10e89dab-f929-4483-b942-03e8fe05d950" />
@@ -21,11 +21,11 @@ It also keeps reproducible metadata.
 ## Features
 
 - Generate speech with OpenAI TTS models, voices, formats, and speed controls.
-- Use `gpt-4o-mini-tts` instructions and reusable presets for tone and pacing.
-- Paste long scripts. The app splits them into chunks, generates audio, and joins the audio automatically with ffmpeg.
-- View the live character count, chunk count, worker status, and estimated cost before running.
+- Use `gpt-4o-mini-tts` instructions and reusable presets to set tone and pacing.
+- Paste a long script. The app splits it into chunks, generates audio for each, and joins the audio automatically with ffmpeg.
+- See the live character count, chunk count, worker status, and estimated cost before you run.
 - Keep reproducible sidecar metadata. Copy OpenAI request IDs for support.
-- Store API keys in the OS keyring, local fallback, or environment variables.
+- Store API keys in the OS keyring, a local fallback, or environment variables.
 - Use the CLI.
 
 ## Requirements
@@ -86,8 +86,8 @@ openai-tts --help
 openai-tts --version
 ```
 
-The CLI supports the core TTS settings: `--model`, `--voice`, `--format`, `--speed`,
-`--instructions`, and `--retain-files`, in addition to `--in` and `--out`.
+Besides `--in` and `--out`, the CLI supports the core TTS settings: `--model`, `--voice`,
+`--format`, `--speed`, `--instructions`, and `--retain-files`.
 
 ## Development
 
@@ -152,10 +152,10 @@ does not track support clicks.
 
 Privacy and trust notes:
 
-The app sends text for speech generation to OpenAI or to the compatible endpoint
+The app sends text for speech generation to OpenAI, or to the compatible endpoint
 configured with `OPENAI_BASE_URL`. It reads API keys from `OPENAI_API_KEY`, the OS
-keyring, or the local fallback file shown in the app data directory. It stores presets,
-settings, logs, and sidecar metadata locally under the data path shown in `Help` -> `About`.
+keyring, or the local fallback file shown in the app data directory. Presets,
+settings, logs, and sidecar metadata are stored locally under the data path shown in `Help` -> `About`.
 Delete those files to remove local app data. Sidecar files may include request IDs that help
 with OpenAI support.
 
